@@ -8,7 +8,8 @@ export class UserRepository {
 
   async getUserById(id: number): Promise<User | undefined> {
     const result = await this.databaseService.runQuery(
-      `SELECT * FROM users WHERE id = $1`,
+      `SELECT * FROM users
+	   WHERE id = $1`,
       [id],
     );
 
@@ -17,7 +18,8 @@ export class UserRepository {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const result = await this.databaseService.runQuery(
-      `SELECT * FROM users WHERE email = $1`,
+      `SELECT * FROM users
+	   WHERE email = $1`,
       [email],
     );
 

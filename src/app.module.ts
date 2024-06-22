@@ -1,9 +1,13 @@
+import { MailerModule } from '@nestjs-modules/mailer';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { EnvironmentVariables, validateEnv } from './env.validation';
-import { IamModule } from './iam/iam.module';
 import { DatabaseModule } from './database/database.module';
+import { validateEnv } from './env.validation';
+import { IamModule } from './iam/iam.module';
+import { RedisModule } from './redis/redis.module';
 import { UserModule } from './user/user.module';
+import { emailConfig } from './configs/email.config';
+import { dbConfig } from './configs/db.config';
 
 @Module({
   imports: [
@@ -13,16 +17,16 @@ import { UserModule } from './user/user.module';
     }),
     DatabaseModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService<EnvironmentVariables>) => ({
-        user: configService.get('POSTGRES_USER'),
-        database: configService.get('POSTGRES_DB'),
-        host: configService.get('POSTGRES_HOST'),
-        password: configService.get('POSTGRES_PASSWORD'),
-        port: configService.get('POSTGRES_PORT'),
-      }),
+      useFactory: dbConfig
+    }),
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: emailConfig
     }),
     IamModule,
     UserModule,
+    RedisModule,
   ],
   controllers: [],
   providers: [],

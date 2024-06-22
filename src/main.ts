@@ -1,11 +1,18 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import * as cookieParser from 'cookie-parser';
+
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 import { EnvironmentVariables } from './env.validation';
+import { validationError } from './utils/validationError';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService =
+    app.get<ConfigService<EnvironmentVariables>>(ConfigService);
+
+  app.use(cookieParser(configService.get("COOKIE_SECRET")));
   app.setGlobalPrefix('/api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
@@ -15,11 +22,10 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
+      exceptionFactory: validationError,
     }),
   );
 
-  const configService =
-    app.get<ConfigService<EnvironmentVariables>>(ConfigService);
   await app.listen(configService.get('PORT'));
 }
 bootstrap();

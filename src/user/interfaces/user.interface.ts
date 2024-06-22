@@ -10,6 +10,8 @@ export interface User {
   avatar: string | null;
   about: string | null;
   is_verified: boolean;
+  verification_token: string | null;
+  verification_expires: Date | null;
   password_reset_token: string | null;
   password_reset_expires: Date | null;
   google_id: number | null;

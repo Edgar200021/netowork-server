@@ -38,6 +38,60 @@ export class EnvironmentVariables {
 
   @IsString()
   POSTGRES_DB: string;
+
+  @IsString()
+  JWT_SECRET: string;
+
+  @IsString()
+  JWT_ACCESS_EXPIRES: string;
+
+  @IsString()
+  JWT_REFRESH_EXPIRES: string;
+
+  @IsNumber()
+  COOKIE_JWT_ACCESS_MAX_AGE: number;
+
+  @IsNumber()
+  COOKIE_JWT_REFRESH_MAX_AGE: number;
+
+  @IsNumber()
+  REDIS_REFRESH_MAX_AGE: number;
+
+  @IsString()
+  COOKIE_SECRET: string;
+
+  @IsString()
+  REDIS_URL: string;
+
+  @IsString()
+  SMTP_USER: string;
+
+  @IsString()
+  SMTP_PASSWORD: string;
+
+  @IsString()
+  SMTP_HOST: string;
+
+  @IsNumber()
+  SMTP_PORT: number;
+
+  @IsNumber()
+  CLOUDINARY_API_KEY: number;
+
+  @IsString()
+  CLOUDINARY_API_SECRET: string;
+
+  @IsString()
+  CLOUDINARY_CLOUD_NAME: string;
+
+  @IsString()
+  CLOUDINARY_FOLDER: string;
+
+  @IsString()
+  CLIENT_URL: string;
+
+  @IsString()
+  CLIENT_VERIFICATION_URL: string;
 }
 
 export const validateEnv = (config: Record<string, unknown>) => {
