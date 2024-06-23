@@ -26,6 +26,9 @@ export class RedisService
     });
 
     await this.redisClient.connect();
+    this.redisClient.on('error', () => {
+      process.exit(1);
+    });
   }
 
   async onApplicationShutdown() {

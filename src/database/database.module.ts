@@ -1,10 +1,10 @@
 import { Global, Module } from '@nestjs/common';
+import { Pool } from 'pg';
 import {
-  ConfigurableDatabaseModule,
   CONNECTION_POOL,
+  ConfigurableDatabaseModule,
   DATABASE_OPTIONS,
 } from './database.module-definition';
-import { Pool } from 'pg';
 import { DatabaseService } from './database.service';
 import { DatabaseOptions } from './interfaces/database-options.interface';
 
@@ -16,13 +16,19 @@ import { DatabaseOptions } from './interfaces/database-options.interface';
       provide: CONNECTION_POOL,
       inject: [DATABASE_OPTIONS],
       useFactory: (databaseOptions: DatabaseOptions) => {
-        return new Pool({
+        const pool = new Pool({
           host: databaseOptions.host,
           port: databaseOptions.port,
           user: databaseOptions.user,
           password: databaseOptions.password,
           database: databaseOptions.database,
         });
+
+        pool.on('error', () => {
+          process.exit(1);
+        });
+
+        return pool;
       },
     },
   ],

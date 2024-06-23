@@ -13,6 +13,7 @@ import { jwtConfig } from './authentication/config/jwt.config';
 import { AuthGuard } from './authentication/guards/auth.guard';
 import { BcryptService } from './authentication/hashing/bcrypt.service';
 import { HashingService } from './authentication/hashing/hashing.service';
+import { AuthorizeGuard } from './authorization/guards/authorize.guard';
 
 @Module({
   imports: [
@@ -35,6 +36,10 @@ import { HashingService } from './authentication/hashing/hashing.service';
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthorizeGuard,
     },
   ],
 })
