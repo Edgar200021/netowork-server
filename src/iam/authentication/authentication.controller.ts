@@ -8,6 +8,8 @@ import {
 } from '../constants/cookie.constants';
 import { AuthService } from './authentication.service';
 import { jwtConfig } from './config/jwt.config';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -34,6 +36,9 @@ export class AuthController {
 
     const { accessToken, refreshToken } = result;
 
+    console.log('accessToken', accessToken);
+    console.log('refreshToken', refreshToken);
+
     this.attachTokensToCookie(res, accessToken, refreshToken);
   }
 
@@ -47,7 +52,23 @@ export class AuthController {
   @Post('verify')
   async verify(@Body() verifyEmailDto: VerifyEmailDto) {
     await this.authService.verify(verifyEmailDto);
-    return this.responseService.success('Почта успешно подтвержден');
+    return this.responseService.success('Почта успешно подтверждена');
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(forgotPasswordDto);
+
+    return this.responseService.success(
+      'Письмо для восстановления пароля успешно отправлен на почту',
+    );
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto);
+
+    return this.responseService.success('Пароль успешно обновлен');
   }
 
   private attachTokensToCookie(
@@ -57,7 +78,7 @@ export class AuthController {
   ) {
     res.cookie(ACCESS_TOKEN_KEY, accessToken, {
       path: '/',
-      httpOnly: this.jwtConfiguration.nodeEnv === 'production',
+      httpOnly: true,
       maxAge: this.jwtConfiguration.cookieJwtAccessMaxAge,
       secure: this.jwtConfiguration.nodeEnv === 'production',
       signed: true,
@@ -65,7 +86,7 @@ export class AuthController {
 
     res.cookie(REFRESH_TOKEN_KEY, refreshToken, {
       path: '/',
-      httpOnly: this.jwtConfiguration.nodeEnv === 'production',
+      httpOnly: true,
       maxAge: this.jwtConfiguration.cookieJwtRefreshMaxAge,
       secure: this.jwtConfiguration.nodeEnv === 'production',
       signed: true,

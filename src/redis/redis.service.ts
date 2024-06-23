@@ -21,9 +21,10 @@ export class RedisService
   ) {}
 
   async onApplicationBootstrap() {
-    this.redisClient = await createClient({
+    this.redisClient = createClient({
       url: this.redisConfiguration.redisUrl,
     });
+
     await this.redisClient.connect();
   }
 

@@ -4,6 +4,7 @@ export const validationError = (errors: ValidationError[]) => {
   const collection = new Map();
 
   errors.map(({ property, constraints, value }) => {
+    if (!constraints) return;
     const arrayFromConstraints = Object.values(constraints);
     collection.set(
       property,

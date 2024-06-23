@@ -20,7 +20,7 @@ export class ResponseService {
     if (
       typeof data === 'object' &&
       !Array.isArray(data) &&
-      Object.keys(extractedFields).length
+      extractedFields?.length
     ) {
       return {
         status: 'success',

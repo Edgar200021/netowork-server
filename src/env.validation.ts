@@ -92,6 +92,9 @@ export class EnvironmentVariables {
 
   @IsString()
   CLIENT_VERIFICATION_URL: string;
+
+  @IsString()
+  CLIENT_RESET_PASSWORD_URL: string;
 }
 
 export const validateEnv = (config: Record<string, unknown>) => {

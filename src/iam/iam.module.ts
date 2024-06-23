@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { EmailService } from 'src/common/services/email.service';
 import { RedisModule } from 'src/redis/redis.module';
@@ -9,6 +10,7 @@ import { AuthController } from './authentication/authentication.controller';
 import { AuthRepository } from './authentication/authentication.repository';
 import { AuthService } from './authentication/authentication.service';
 import { jwtConfig } from './authentication/config/jwt.config';
+import { AuthGuard } from './authentication/guards/auth.guard';
 import { BcryptService } from './authentication/hashing/bcrypt.service';
 import { HashingService } from './authentication/hashing/hashing.service';
 
@@ -29,6 +31,10 @@ import { HashingService } from './authentication/hashing/hashing.service';
     {
       provide: HashingService,
       useClass: BcryptService,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
     },
   ],
 })

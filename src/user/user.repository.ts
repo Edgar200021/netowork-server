@@ -6,7 +6,7 @@ import { User } from './interfaces/user.interface';
 export class UserRepository {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async getUserById(id: number): Promise<User | undefined> {
+  async getById(id: number): Promise<User | undefined> {
     const result = await this.databaseService.runQuery(
       `SELECT * FROM users
 	   WHERE id = $1`,
@@ -16,7 +16,7 @@ export class UserRepository {
     return result.rows[0];
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
+  async getByEmail(email: string): Promise<User | undefined> {
     const result = await this.databaseService.runQuery(
       `SELECT * FROM users
 	   WHERE email = $1`,
@@ -24,5 +24,14 @@ export class UserRepository {
     );
 
     return result.rows[0];
+  }
+
+  async updatePassword(email: string, password: string) {
+    await this.databaseService.runQuery(
+      `UPDATE users
+	   SET password = $1
+	   WHERE email = $2`,
+      [password,email],
+    );
   }
 }

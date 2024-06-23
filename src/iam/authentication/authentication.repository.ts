@@ -23,13 +23,26 @@ export class AuthRepository {
   }
 
   async updateVerificationToken(
-    email: string | null,
+    email: string,
     token: string | null,
-    tokenExpires: Date,
+    tokenExpires: Date | null,
   ) {
     await this.databaseService.runQuery(
       `UPDATE users 
 	   SET verification_token = $1, verification_expires = $2
+	   WHERE email = $3`,
+      [token, tokenExpires, email],
+    );
+  }
+
+  async updateResetPasswordToken(
+    email: string ,
+    token: string | null,
+    tokenExpires: Date | null,
+  ) {
+    await this.databaseService.runQuery(
+      `UPDATE users 
+	   SET password_reset_token = $1, password_reset_expires = $2
 	   WHERE email = $3`,
       [token, tokenExpires, email],
     );
