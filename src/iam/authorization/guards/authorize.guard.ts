@@ -20,17 +20,17 @@ export class AuthorizeGuard implements CanActivate {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const user: User = context.switchToHttp().getRequest<Request>()[
-      REQUEST_USER_KEY
-    ];
-    if (!user) throw new UnauthorizedException('Пользователь не авторизован');
-
     const role = this.reflect.get<Role | undefined, string>(
       ROLES_KEY,
       context.getHandler(),
     );
 
     if (!role) return true;
+
+    const user: User = context.switchToHttp().getRequest<Request>()[
+      REQUEST_USER_KEY
+    ];
+    if (!user) throw new UnauthorizedException('Пользователь не авторизован');
 
     if (!user.role.includes(role))
       throw new ForbiddenException('Доступ запрещен');

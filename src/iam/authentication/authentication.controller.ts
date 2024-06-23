@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Res } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { Response } from 'express';
 import { ResponseService } from '../../common/services/response.service';
@@ -8,17 +8,23 @@ import {
 } from '../constants/cookie.constants';
 import { AuthService } from './authentication.service';
 import { jwtConfig } from './config/jwt.config';
+import { FacebookOAuthDto } from './dto/facebook-oauth.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { GoogleOAuthDto } from './dto/google-oauth.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { FacebookOAuthService } from './social/facebook.service';
+import { GoogleOAuthService } from './social/google.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly responseService: ResponseService,
     private readonly authService: AuthService,
+    private readonly googleOAuthService: GoogleOAuthService,
+    private readonly facebookOAuthService: FacebookOAuthService,
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
   ) {}
@@ -36,10 +42,8 @@ export class AuthController {
 
     const { accessToken, refreshToken } = result;
 
-    console.log('accessToken', accessToken);
-    console.log('refreshToken', refreshToken);
-
     this.attachTokensToCookie(res, accessToken, refreshToken);
+    return this.responseService.success('Вы успешно зашли в аккаунте');
   }
 
   @Post('sign-up')
@@ -69,6 +73,45 @@ export class AuthController {
     await this.authService.resetPassword(resetPasswordDto);
 
     return this.responseService.success('Пароль успешно обновлен');
+  }
+
+  @Get('google')
+  generateGoogleAuthorizeUrl() {
+    const url = this.googleOAuthService.generateAuthorizeUrl();
+
+    return this.responseService.success(url);
+  }
+
+  @Post('google')
+  async googleSignIn(
+    @Body() googleOAuthDto: GoogleOAuthDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.googleOAuthService.signIn(googleOAuthDto);
+    if (!result)
+      return this.responseService.success(
+        'Письмо для верификации отправлена на почту',
+      );
+
+    const { accessToken, refreshToken } = result;
+
+    this.attachTokensToCookie(res, accessToken, refreshToken);
+    return this.responseService.success('Вы успешно зашли в аккаунте');
+  }
+
+  @Get('facebook')
+  generateFacebookAuthorizeUrl() {
+    const url = this.facebookOAuthService.generateAuthorizeUrl();
+    console.log(url);
+
+    return this.responseService.success(url);
+  }
+
+  @Post('facebook')
+  async facebookSignIn(@Body() facebookOAuthDto: FacebookOAuthDto) {
+    await this.facebookOAuthService.signIn(facebookOAuthDto);
+
+    return this.responseService.success('Ok');
   }
 
   private attachTokensToCookie(

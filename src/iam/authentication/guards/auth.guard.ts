@@ -45,6 +45,8 @@ export class AuthGuard implements CanActivate {
       context.getHandler(),
     );
 
+    console.log(authType);
+
     if (!authType || authType === AuthTypes.NONE) return true;
 
     return this.verifyToken(req, res);

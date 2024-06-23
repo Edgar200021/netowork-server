@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { TokenPayload } from 'google-auth-library';
+import { UserRole } from 'src/user/constants/user-role.const';
+import { User } from 'src/user/interfaces/user.interface';
 import { DatabaseService } from '../../database/database.service';
 import { SignUpDto } from './dto/sign-up.dto';
+import { FacebookUserInfoResponse } from './social/interfaces/facebook-response.interface';
 
 @Injectable()
 export class AuthRepository {
@@ -22,6 +26,65 @@ export class AuthRepository {
     );
   }
 
+  async googleOAuth(
+    payload: Pick<
+      TokenPayload,
+      'sub' | 'email' | 'email_verified' | 'picture' | 'name' | 'given_name'
+    > & { role: Omit<UserRole, 'admin'> },
+  ): Promise<User> {
+    try {
+      const res = await this.databaseService.runQuery(
+        `INSERT INTO users (name, last_name,email, is_verified, avatar, google_id, role)
+		 VALUES ($1, $2, $3, $4, $5, $6, &7)
+		 ON CONFLICT (email) DO UPDATE
+		 SET email = $3
+		 RETURNING *
+			 `,
+        [
+          payload.name,
+          payload.given_name,
+          payload.email,
+          payload.email_verified,
+          payload.picture,
+          payload.sub,
+          payload.role,
+        ],
+      );
+
+      return res.rows[0];
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async facebookOAuth(
+    payload: FacebookUserInfoResponse & { role: Omit<UserRole, 'admin'> },
+  ): Promise<User> {
+    try {
+      const res = await this.databaseService.runQuery(
+        `INSERT INTO users (name, last_name,email, avatar, facebook_id, role)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 ON CONFLICT (email) DO UPDATE
+		 SET email = $3
+		 RETURNING *
+			 `,
+        [
+          payload.first_name,
+          payload.last_name,
+          payload.email,
+          payload.picture.data.url,
+          payload.id,
+          payload.role,
+        ],
+      );
+
+      return res.rows[0];
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async updateVerificationToken(
     email: string,
     token: string | null,
@@ -36,7 +99,7 @@ export class AuthRepository {
   }
 
   async updateResetPasswordToken(
-    email: string ,
+    email: string,
     token: string | null,
     tokenExpires: Date | null,
   ) {
@@ -55,5 +118,18 @@ export class AuthRepository {
 	   WHERE email = $2`,
       [isVerified, email],
     );
+  }
+
+  async getUserByOAuthId(
+    key: keyof Pick<User, 'google_id' | 'facebook_id'>,
+    value: User['google_id' | 'facebook_id'],
+  ): Promise<User | undefined> {
+    const result = await this.databaseService.runQuery(
+      `SELECT * FROM users
+														WHERE ${key} = $1`,
+      [value],
+    );
+
+    return result.rows[0];
   }
 }

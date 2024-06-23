@@ -159,7 +159,7 @@ export class AuthService {
     }
   }
 
-  private async sendVerificationEmail(email: string) {
+  async sendVerificationEmail(email: string) {
     const token = crypto.randomBytes(16).toString('hex');
     const encrypted = await this.hashingService.hash(token);
 
@@ -222,7 +222,7 @@ export class AuthService {
     return token;
   }
 
-  private async generateTokens(userId: User['id']) {
+  async generateTokens(userId: User['id']) {
     try {
       const refreshTokenId = crypto.randomUUID();
       const [accessToken, refreshToken] = await Promise.all([

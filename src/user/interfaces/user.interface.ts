@@ -14,6 +14,6 @@ export interface User {
   verification_expires: Date | null;
   password_reset_token: string | null;
   password_reset_expires: Date | null;
-  google_id: number | null;
-  facebook_id: number | null;
+  google_id: string | null;
+  facebook_id: string | null;
 }

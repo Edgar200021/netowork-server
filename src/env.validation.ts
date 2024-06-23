@@ -95,6 +95,37 @@ export class EnvironmentVariables {
 
   @IsString()
   CLIENT_RESET_PASSWORD_URL: string;
+
+  @IsString()
+  GOOGLE_CLIENT_SECRET: string;
+
+  @IsString()
+  GOOGLE_CLIENT_ID: string;
+
+  @IsString()
+  GOOGLE_REDIRECT_URL: string;
+
+  @IsString()
+  FACEBOOK_CLIENT_SECRET: string;
+
+  @IsString()
+  FACEBOOK_CLIENT_ID: string;
+
+  @IsString()
+  FACEBOOK_REDIRECT_URL: string;
+
+
+  @IsString()
+  FACEBOOK_SCOPE: string;
+
+  @IsString()
+  FACEBOOK_AUTHORIZE_URL: string;
+
+  @IsString()
+  FACEBOOK_TOKEN_REQUEST_URL: string
+
+  @IsString()
+  FACEBOOK_USERINFO_REQUEST_URL: string
 }
 
 export const validateEnv = (config: Record<string, unknown>) => {

@@ -26,8 +26,9 @@ export class RedisService
     });
 
     await this.redisClient.connect();
-    this.redisClient.on('error', () => {
-      process.exit(1);
+
+    this.redisClient.on('disconnect', () => {
+      console.log('redis disconnected');
     });
   }
 

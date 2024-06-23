@@ -10,15 +10,19 @@ import { AuthController } from './authentication/authentication.controller';
 import { AuthRepository } from './authentication/authentication.repository';
 import { AuthService } from './authentication/authentication.service';
 import { jwtConfig } from './authentication/config/jwt.config';
+import { OAuthConfig } from './authentication/config/oauth.config';
 import { AuthGuard } from './authentication/guards/auth.guard';
 import { BcryptService } from './authentication/hashing/bcrypt.service';
 import { HashingService } from './authentication/hashing/hashing.service';
+import { FacebookOAuthService } from './authentication/social/facebook.service';
+import { GoogleOAuthService } from './authentication/social/google.service';
 import { AuthorizeGuard } from './authorization/guards/authorize.guard';
 
 @Module({
   imports: [
     ConfigModule,
     ConfigModule.forFeature(jwtConfig),
+    ConfigModule.forFeature(OAuthConfig),
     UserModule,
     RedisModule,
     JwtModule.registerAsync(jwtConfig.asProvider()),
@@ -29,6 +33,9 @@ import { AuthorizeGuard } from './authorization/guards/authorize.guard';
     AuthService,
     EmailService,
     AuthRepository,
+    GoogleOAuthService,
+    FacebookOAuthService,
+
     {
       provide: HashingService,
       useClass: BcryptService,
