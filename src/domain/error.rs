@@ -1,9 +1,9 @@
 #[derive(Debug)]
 pub enum DomainError {
-    InvalidEmailError(String),
-    InvalidPasswordError(String),
-    InvalidNameError(String),
-    InvalidSurnameError(String),
-    InvalidRoleError(String),
-    PasswordsNotMatchError,
+    InvalidEmail(String),
+    InvalidPassword(String),
+    InvalidName(String),
+    InvalidSurname(String),
+    InvalidRole(String),
+    PasswordsNotMatch,
 }

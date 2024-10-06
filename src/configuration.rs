@@ -71,7 +71,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .try_into()
         .expect("Failed to parse environment");
 
-    let config_file = format!("{}.yaml", environment.as_str());
+    let config_file = format!("{}.yaml", environment.as_ref());
 
     let settings = config::Config::builder()
         .add_source(config::File::from(config_directory.join(config_file)))
@@ -85,8 +85,8 @@ pub enum Environment {
     Local,
 }
 
-impl Environment {
-    fn as_str(&self) -> &'static str {
+impl AsRef<str> for Environment {
+    fn as_ref(&self) -> &str {
         match self {
             Self::Production => "production",
             Self::Local => "local",

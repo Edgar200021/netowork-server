@@ -2,7 +2,7 @@ mod helpers;
 
 #[tokio::test]
 async fn test_health_check() {
-    let helpers::TestApp { address, .. } = helpers::start_app().await;
+    let helpers::TestApp { address, .. } = helpers::TestApp::try_start().await;
 
     let client = reqwest::Client::new();
 

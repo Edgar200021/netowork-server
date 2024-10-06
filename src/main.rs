@@ -1,5 +1,6 @@
 use netowork_server::{
     configuration::{get_configuration, Settings},
+    db::Database,
     startup::run,
     telemetry::{get_subscriber, init_subscriber},
 };
@@ -17,7 +18,7 @@ async fn main() {
         database,
     } = get_configuration().expect("Failed to read configuration");
 
-    let pool = PgPool::connect_with(database.connect_options())
+    let db = Database::try_new(database.connect_options())
         .await
         .expect("Failed to connect to database");
 
@@ -25,5 +26,5 @@ async fn main() {
         .await
         .expect("Failed to bind address");
 
-    run(pool, listener).await.expect("Failed to running server")
+    run(listener, db).await.expect("Failed to running server")
 }

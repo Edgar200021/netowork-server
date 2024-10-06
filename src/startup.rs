@@ -20,22 +20,22 @@ use tower_http::{
 use tracing::info_span;
 use uuid::Uuid;
 
-use crate::{handlers::health_check, routes::configure_routes};
+use crate::{db::Database, handlers::health_check, helpers::send_error, routes::configure_routes};
 
 pub struct AppState {
-    pub pool: PgPool,
+    pub db: Database,
 }
 
-pub fn run(pool: PgPool, listener: TcpListener) -> Serve<Router, Router> {
+pub fn run(listener: TcpListener, db: Database) -> Serve<Router, Router> {
     let app = Router::new()
         .route("/health_check", get(health_check))
         .nest("/api", configure_routes())
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(|err: BoxError| async move {
-                    println!("Something went wrong : {}", err);
+                    tracing::error!("Unhandled error {err}");
 
-                    StatusCode::INTERNAL_SERVER_ERROR
+                    send_error(StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong")
                 }))
                 .layer(
                     TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
@@ -68,7 +68,7 @@ pub fn run(pool: PgPool, listener: TcpListener) -> Serve<Router, Router> {
                 .layer(RateLimitLayer::new(5, Duration::from_secs(1)))
                 .layer(TimeoutLayer::new(Duration::from_secs(30))),
         )
-        .with_state(Arc::new(AppState { pool }));
+        .with_state(Arc::new(AppState { db }));
 
     axum::serve(listener, app)
 }
