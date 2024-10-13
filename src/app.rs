@@ -39,7 +39,7 @@ impl Application {
 
         let port = listener.local_addr().unwrap().port();
 
-        let db = Database::new(settings.database.connect_options())
+        let db = Database::try_new(settings.database.connect_options())
             .await
             .expect("Failed to build application");
 
@@ -58,7 +58,7 @@ impl Application {
 }
 
 pub struct AppState {
-    database: Database,
+    pub database: Database,
 }
 
 pub fn run(listener: TcpListener, database: Database) -> Serve<Router, Router> {

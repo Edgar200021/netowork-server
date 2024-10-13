@@ -22,15 +22,16 @@ tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 derive_more = {version = "1.0.0", features = ["from"]}
 axum = "0.7.7"
 axum-extra = {version = "0.9.4", features = ["cookie"]}
-chrono = "0.4.38"
 time = "0.3.36"
-validator = "0.18.1"
+validator = {version = "0.18.1", features = ["derive"]}
 secrecy = "0.10.3"
 tower = {version = "0.5.1", features = ["limit", "buffer"]}
 tower-http = {version = "0.6.1", features = ["trace", "cors", "compression-full", "timeout"]}
 argon2 = "0.5.3"
 jsonwebtoken = "9.3.0"
 uuid = {version = "1.10.0", features = ["v4"]}
+trait-variant = "0.1.2"
+unicode-segmentation = "1.12.0"
 
 [dependencies.sqlx]
 version = "0.8.2"
@@ -39,7 +40,7 @@ features = [
 	"runtime-tokio-rustls",
 	"macros",
 	"postgres",
-	"chrono",
+	"time",
 	"migrate",
 ]
 
