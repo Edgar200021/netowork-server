@@ -1,0 +1,48 @@
+[package]
+name = "netowork"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "./src/lib.rs"
+
+[[bin]]
+path = "./src/main.rs"
+name = "netowork"
+
+[dependencies]
+config = "0.14.0"
+dotenv = "0.15.0"
+serde = {version = "1.0.210", features = ["derive"]}
+serde-aux = "4.5.0"
+serde_json = "1.0.128"
+tracing = "0.1.40"
+tracing-subscriber = {version =  "0.3.18", features = ["json"]}
+tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
+derive_more = {version = "1.0.0", features = ["from"]}
+axum = "0.7.7"
+axum-extra = {version = "0.9.4", features = ["cookie"]}
+chrono = "0.4.38"
+time = "0.3.36"
+validator = "0.18.1"
+secrecy = "0.10.3"
+tower = {version = "0.5.1", features = ["limit", "buffer"]}
+tower-http = {version = "0.6.1", features = ["trace", "cors", "compression-full", "timeout"]}
+argon2 = "0.5.3"
+jsonwebtoken = "9.3.0"
+uuid = {version = "1.10.0", features = ["v4"]}
+
+[dependencies.sqlx]
+version = "0.8.2"
+default-features = false
+features = [
+	"runtime-tokio-rustls",
+	"macros",
+	"postgres",
+	"chrono",
+	"migrate",
+]
+
+[dev-dependencies]
+reqwest = "0.12.8"
+claim = "0.5.0"
