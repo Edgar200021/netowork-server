@@ -1,4 +1,3 @@
-use core::error;
 use std::collections::HashMap;
 
 use axum::{http::StatusCode, response::IntoResponse};
@@ -36,9 +35,31 @@ impl IntoResponse for AppError {
                     send_error(&format!("User with {} address already exists", email)),
                 )
                     .into_response(),
+                ApplicationLogicError::JwtError(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    send_error("Something went wrong"),
+                )
+                    .into_response(),
+                ApplicationLogicError::PermissionDenied => {
+                    (StatusCode::FORBIDDEN, send_error("Permission denied")).into_response()
+                }
                 ApplicationLogicError::InvalidCredentials => {
                     (StatusCode::BAD_REQUEST, send_error("Invalid credentials")).into_response()
                 }
+                ApplicationLogicError::Unauthorized => {
+                    (StatusCode::UNAUTHORIZED, send_error("Unauthorized")).into_response()
+                }
+
+                ApplicationLogicError::SomethingWentWrong => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    send_error("Something went wrong"),
+                )
+                    .into_response(),
+
+                ApplicationLogicError::UserNotFound => {
+                    (StatusCode::BAD_REQUEST, send_error("User doesn't exists")).into_response()
+                }
+
                 ApplicationLogicError::PasswordHash(err) => {
                     tracing::error!("Error hashing password: {err:?}");
 

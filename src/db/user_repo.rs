@@ -35,6 +35,24 @@ impl UserRepository for PgUserRepository {
         Ok(user)
     }
 
+    #[tracing::instrument(name = "Get user by id from database", skip(self, id))]
+    async fn get_user_by_id(&self, id: i32) -> Result<Option<User>> {
+        let user = sqlx::query_as!(
+            User,
+            r#"
+			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, verification_token, verification_token_expires, password_reset_token, password_reset_expires, created_at, updated_at
+			FROM users 
+			WHERE id = $1;
+		"#,
+            id
+        ).fetch_optional(&self.pool).await.map_err(|e| {
+			tracing::error!("Failed to execute query: {:?}", e);
+			e
+		})?;
+
+        Ok(user)
+    }
+
     #[tracing::instrument(name = "Insert new user into database", skip(self, new_user))]
     async fn create_user(&self, new_user: SignUpRequest) -> Result<i32> {
         let id = sqlx::query_scalar!(

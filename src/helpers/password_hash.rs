@@ -10,15 +10,15 @@ pub fn hash_password(password: &str) -> Result<String> {
 
     let hashed = argon2
         .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| ApplicationLogicError::PasswordHash(e))?
+        .map_err(ApplicationLogicError::PasswordHash)?
         .to_string();
 
     Ok(hashed)
 }
 
-pub async fn verify_hash(password: String, hashed_password: String) -> Result<()> {
-    let parsed_hash = PasswordHash::new(hashed_password.as_ref())
-        .map_err(|e| ApplicationLogicError::PasswordHash(e))?;
+pub fn verify_hash(password: String, hashed_password: String) -> Result<()> {
+    let parsed_hash =
+        PasswordHash::new(hashed_password.as_ref()).map_err(ApplicationLogicError::PasswordHash)?;
 
     Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)

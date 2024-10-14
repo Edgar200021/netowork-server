@@ -10,11 +10,11 @@ async fn health_check_works() {
     } = TestApp::build().await;
 
     let response = api_client
-        .get(format!("{}/api/health_check", address))
+        .get(format!("{}/health_check", address))
         .send()
         .await
         .expect("Failed to execute request");
 
-    assert!(response.status().is_success());
+    assert_eq!(200, response.status());
     assert_eq!(Some(0), response.content_length());
 }

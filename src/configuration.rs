@@ -1,6 +1,6 @@
 use std::env::{self, current_dir};
 
-use config::{Config, ConfigBuilder};
+use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
@@ -15,7 +15,7 @@ pub struct ApplicationSettings {
 #[derive(Deserialize, Debug)]
 pub struct DatabaseSettings {
     pub username: String,
-    pub password: String,
+    pub password: SecretString,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
@@ -33,7 +33,7 @@ impl DatabaseSettings {
 
         PgConnectOptions::new()
             .username(&self.username)
-            .password(&self.password)
+            .password(&self.password.expose_secret())
             .port(self.port)
             .host(&self.host)
             .database(&self.database_name)
@@ -49,7 +49,7 @@ impl DatabaseSettings {
 
         PgConnectOptions::new()
             .username(&self.username)
-            .password(&self.password)
+            .password(&self.password.expose_secret())
             .port(self.port)
             .host(&self.host)
             .ssl_mode(ssl_mode)
@@ -57,9 +57,21 @@ impl DatabaseSettings {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct JwtSettings {
+    pub access_secret: SecretString,
+    pub refresh_secret: SecretString,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub access_exp_in_minutes: i64,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub refresh_exp_in_minutes: i64,
+    pub secure: bool,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Settings {
     pub application: ApplicationSettings,
     pub database: DatabaseSettings,
+    pub jwt: JwtSettings,
 }
 
 const ENVIRONMENT_KEY: &'static str = "APP_ENV";

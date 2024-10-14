@@ -3,7 +3,7 @@ use netowork::{
     configuration::{DatabaseSettings, Settings},
     db::Database,
 };
-use reqwest::{redirect, Client};
+use reqwest::{redirect, Body, Client};
 use sqlx::{Connection, Executor, PgConnection};
 use uuid::Uuid;
 
@@ -19,6 +19,11 @@ pub async fn configure_database(database_settings: &DatabaseSettings) -> Databas
     let db = Database::try_new(database_settings.connect_options())
         .await
         .expect("Failed to connect to postgres");
+
+    sqlx::migrate!("./migrations")
+        .run(&db.pool)
+        .await
+        .expect("Failed to run migrations");
 
     db
 }
@@ -43,7 +48,7 @@ impl TestApp {
         let db = configure_database(&settings.database).await;
         let app = Application::build(settings).await;
 
-        let address = format!("http://127.0.0.1:{}", app.port());
+        let address = format!("http://127.0.0.1:{}/api", app.port());
 
         tokio::spawn(app.run_until_stopped());
 
@@ -57,5 +62,15 @@ impl TestApp {
             address,
             api_client,
         }
+    }
+
+    pub async fn post_sign_up(&self, body: impl Into<Body>) -> reqwest::Response {
+        self.api_client
+            .post(format!("{}/auth/sign-up", self.address))
+            .header("Content-Type", "application/json")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
     }
 }

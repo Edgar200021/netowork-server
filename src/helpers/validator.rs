@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use unicode_segmentation::UnicodeSegmentation;
-use validator::{ValidationError, ValidationErrors};
+use validator::ValidationError;
 
 use crate::models::UserRole;
 
@@ -21,7 +21,6 @@ pub fn validate_str(s: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_user_role(r: &UserRole) -> Result<(), ValidationError> {
-    println!("VALIDATE FUCKKKKK ");
     match r {
         UserRole::Client | UserRole::Freelancer => Ok(()),
         _ => Err(ValidationError::new("Invalid user role")

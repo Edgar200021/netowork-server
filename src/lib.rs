@@ -6,6 +6,8 @@ pub mod dto;
 pub mod error;
 pub mod handlers;
 pub mod helpers;
+pub mod jwt_client;
+pub mod middlewares;
 pub mod models;
 pub mod routers;
 pub mod services;

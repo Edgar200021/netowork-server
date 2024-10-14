@@ -1,14 +1,12 @@
-use core::error;
 use std::{sync::Arc, time::Duration};
 
 use axum::{
     error_handling::HandleErrorLayer,
     http::{Method, Request, StatusCode},
-    routing::get,
     serve::Serve,
     BoxError, Router,
 };
-use tokio::{net::TcpListener, runtime::Handle};
+use tokio::net::TcpListener;
 use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use tower_http::{
     compression::CompressionLayer,
@@ -19,7 +17,7 @@ use tower_http::{
 use tracing::info_span;
 use uuid::Uuid;
 
-use crate::{configuration::Settings, db::Database, routers::configure_routes};
+use crate::{configuration::Settings, db::Database, jwt_client::JwtClient, routers::configure_routes};
 
 pub struct Application {
     port: u16,
@@ -43,7 +41,9 @@ impl Application {
             .await
             .expect("Failed to build application");
 
-        let server = run(listener, db);
+        let jwt_client = JwtClient::new(settings.jwt);
+
+        let server = run(listener, db, jwt_client);
 
         Self { port, server }
     }
@@ -59,14 +59,24 @@ impl Application {
 
 pub struct AppState {
     pub database: Database,
+    pub jwt_client: JwtClient,
 }
 
-pub fn run(listener: TcpListener, database: Database) -> Serve<Router, Router> {
-    let app = configure_routes()
+pub fn run(
+    listener: TcpListener,
+    database: Database,
+    jwt_client: JwtClient,
+) -> Serve<Router, Router> {
+    let state = Arc::new(AppState {
+        database,
+        jwt_client,
+    });
+
+    let app = configure_routes(state.clone())
         .layer(
             ServiceBuilder::new()
                 .layer(HandleErrorLayer::new(|err: BoxError| async move {
-                    tracing::error!("Unahndled error {err}");
+                    tracing::error!("Unhandled error {err}");
 
                     StatusCode::INTERNAL_SERVER_ERROR
                 }))
@@ -101,7 +111,7 @@ pub fn run(listener: TcpListener, database: Database) -> Serve<Router, Router> {
                 .layer(TimeoutLayer::new(Duration::from_secs(30)))
                 .layer(RateLimitLayer::new(5, Duration::from_secs(2))),
         )
-        .with_state(Arc::new(AppState { database }));
+        .with_state(state.clone());
 
     axum::serve(listener, app)
 }

@@ -5,7 +5,7 @@ mod user_repo;
 pub use user_repo::*;
 
 pub struct Database {
-    pool: PgPool,
+    pub pool: PgPool,
     pub user_repository: PgUserRepository,
 }
 
