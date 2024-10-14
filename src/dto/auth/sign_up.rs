@@ -23,7 +23,7 @@ pub struct SignUpRequest {
     #[validate(custom(function = "validate_str", message = "Invalid first name"))]
     pub first_name: String,
 
-    #[validate(custom(function = "validate_str", message = "Invalid first name"))]
+    #[validate(custom(function = "validate_str", message = "Invalid last name"))]
     pub last_name: String,
 
     #[validate(custom(function = "validate_user_role",))]

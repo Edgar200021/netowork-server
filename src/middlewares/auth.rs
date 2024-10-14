@@ -2,11 +2,13 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Request, State},
-    http::{header::SET_COOKIE, status::StatusCode, HeaderValue},
     middleware::Next,
     response::IntoResponse,
 };
-use axum_extra::extract::{cookie::Cookie, CookieJar};
+use axum_extra::extract::{
+    cookie::{Cookie, SameSite},
+    CookieJar,
+};
 use jsonwebtoken::errors::ErrorKind;
 use time::Duration;
 
@@ -41,34 +43,22 @@ pub async fn auth(
                 if let Some(user) = user {
                     let token = state.jwt_client.generate_access_jwt(user.id)?;
 
-                    let expires =
-                        Duration::minutes(state.jwt_client.access_exp_in_minutes()).whole_seconds();
+                    let access_cookie = Cookie::build(("access_token", token))
+                        .http_only(true)
+                        .path("/")
+                        .secure(state.jwt_client.secure())
+                        .max_age(Duration::minutes(state.jwt_client.access_exp_in_minutes()))
+                        .same_site(SameSite::Strict);
 
-                    let mut access_cookie = format!(
-						"access_token={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={expires}",	
-					);
-
-                    if state.jwt_client.secure() {
-                        access_cookie.push_str(";Secure");
-                    }
+                    let jar = jar.add(access_cookie);
 
                     req.extensions_mut().insert(UserId(user.id));
 
-                    let mut response = next.run(req).await;
+                    let response = next.run(req).await;
 
-                    response.headers_mut().insert(
-                        SET_COOKIE,
-                        HeaderValue::from_str(&access_cookie)
-                            .or(Err(ApplicationLogicError::SomethingWentWrong))?,
-                    );
-
-                    return Ok(response);
+                    return Ok((jar, response));
                 } else {
-                    let jar = jar
-                        .remove(Cookie::from("access_token"))
-                        .remove(Cookie::from("refresh_token"));
-
-                    return Ok((StatusCode::NOT_FOUND, jar).into_response());
+                    return Err(ApplicationLogicError::UserNotFound)?;
                 }
             }
             Err(err) => match err {
@@ -83,6 +73,7 @@ pub async fn auth(
                             req,
                             next,
                             &state.jwt_client,
+                            jar.clone(),
                             &state.database.user_repository,
                             &refresh_token,
                         )
@@ -103,6 +94,7 @@ pub async fn auth(
             req,
             next,
             &state.jwt_client,
+            jar.clone(),
             &state.database.user_repository,
             &refresh_token,
         )

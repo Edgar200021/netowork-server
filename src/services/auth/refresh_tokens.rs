@@ -1,8 +1,7 @@
-use axum::{
-    body::Body,
-    extract::Request,
-    http::{header::SET_COOKIE, HeaderValue, Response},
-    middleware::Next,
+use axum::{body::Body, extract::Request, http::Response, middleware::Next};
+use axum_extra::extract::{
+    cookie::{Cookie, SameSite},
+    CookieJar,
 };
 use time::Duration;
 
@@ -15,9 +14,10 @@ pub async fn refresh_tokens<R: UserRepository>(
     mut req: Request,
     next: Next,
     jwt_client: &JwtClient,
+    jar: CookieJar,
     user_repo: &R,
     token: &str,
-) -> Result<Response<Body>> {
+) -> Result<(CookieJar, Response<Body>)> {
     let token = jwt_client.verify_refresh_jwt(token)?;
 
     let user = user_repo
@@ -27,36 +27,25 @@ pub async fn refresh_tokens<R: UserRepository>(
 
     let (access_token, refresh_token) = jwt_client.generate_tokens(user.id)?;
 
-    let access_expires = Duration::minutes(jwt_client.access_exp_in_minutes()).whole_seconds();
-    let refresh_expires = Duration::minutes(jwt_client.refresh_exp_in_minutes()).whole_seconds();
-
-    let mut access_cookie = format!(
-        "access_token={access_token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={access_expires}",
-    );
-
-    let mut refresh_cookie = format!(
-	"access_token={refresh_token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={refresh_expires}",
-);
-
-    if jwt_client.secure() {
-        access_cookie.push_str(";Secure");
-        refresh_cookie.push_str(";Secure");
-    }
-
     req.extensions_mut().insert(UserId(user.id));
 
-    let mut response = next.run(req).await;
+    let response = next.run(req).await;
 
-    response.headers_mut().insert(
-        SET_COOKIE,
-        HeaderValue::from_str(&access_cookie).or(Err(ApplicationLogicError::SomethingWentWrong))?,
-    );
+    let access_cookie = Cookie::build(("access_token", access_token))
+        .http_only(true)
+        .path("/")
+        .secure(jwt_client.secure())
+        .max_age(Duration::minutes(jwt_client.access_exp_in_minutes()))
+        .same_site(SameSite::Strict);
 
-    response.headers_mut().insert(
-        SET_COOKIE,
-        HeaderValue::from_str(&refresh_cookie)
-            .or(Err(ApplicationLogicError::SomethingWentWrong))?,
-    );
+    let refresh_cookie = Cookie::build(("refresh_token", refresh_token))
+        .http_only(true)
+        .path("/")
+        .secure(jwt_client.secure())
+        .max_age(Duration::minutes(jwt_client.refresh_exp_in_minutes()))
+        .same_site(SameSite::Strict);
 
-    return Ok(response);
+    let jar = jar.add(access_cookie).add(refresh_cookie);
+
+    return Ok((jar, response));
 }
