@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::PoisonError};
 
 use axum::{http::StatusCode, response::IntoResponse};
 use derive_more::derive::From;
@@ -6,6 +6,7 @@ use tokio::task::JoinError;
 
 use crate::{
     helpers::{send_error, send_validation_error},
+    redis_client::RedisClient,
     services::ApplicationLogicError,
 };
 
@@ -24,6 +25,9 @@ pub enum AppError {
 
     #[from]
     JoinHandle(JoinError),
+
+    #[from]
+    RedisError(redis::RedisError),
 }
 
 impl IntoResponse for AppError {
@@ -35,11 +39,10 @@ impl IntoResponse for AppError {
                     send_error(&format!("User with {} address already exists", email)),
                 )
                     .into_response(),
-                ApplicationLogicError::JwtError(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    send_error("Something went wrong"),
-                )
-                    .into_response(),
+                ApplicationLogicError::JwtError(error) => {
+                    tracing::error!("Jwt error: {error:?}\n Kind: {:?}", error.kind());
+                    (StatusCode::UNAUTHORIZED, send_error("Unauthorized")).into_response()
+                }
                 ApplicationLogicError::PermissionDenied => {
                     (StatusCode::FORBIDDEN, send_error("Permission denied")).into_response()
                 }
@@ -71,7 +74,6 @@ impl IntoResponse for AppError {
                 }
             },
             Self::ValidationError(err) => {
-                println!("{err:?}");
                 let field_errors = err.field_errors();
 
                 let errors =
@@ -86,6 +88,15 @@ impl IntoResponse for AppError {
                         });
 
                 (StatusCode::BAD_REQUEST, send_validation_error(errors)).into_response()
+            }
+            Self::RedisError(err) => {
+                tracing::error!("Redis error: {err:?}");
+
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    send_error("Something went wrong"),
+                )
+                    .into_response()
             }
             Self::SqlError(_) | Self::JoinHandle(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,

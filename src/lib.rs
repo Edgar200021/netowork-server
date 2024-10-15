@@ -9,6 +9,7 @@ pub mod helpers;
 pub mod jwt_client;
 pub mod middlewares;
 pub mod models;
+pub mod redis_client;
 pub mod routers;
 pub mod services;
 pub mod telemetry;

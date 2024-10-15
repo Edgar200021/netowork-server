@@ -56,6 +56,19 @@ impl DatabaseSettings {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RedisSettings {
+    pub host: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+}
+
+impl RedisSettings {
+    pub fn connection_string(&self) -> String {
+        format!("redis://{}:{}", self.host, self.port)
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct JwtSettings {
     pub access_secret: SecretString,
@@ -71,6 +84,7 @@ pub struct JwtSettings {
 pub struct Settings {
     pub application: ApplicationSettings,
     pub database: DatabaseSettings,
+    pub redis: RedisSettings,
     pub jwt: JwtSettings,
 }
 

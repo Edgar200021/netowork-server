@@ -3,17 +3,17 @@ use std::sync::Arc;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::Json;
-use axum_extra::extract::cookie::{Cookie, SameSite};
-use axum_extra::extract::CookieJar;
+use axum::{debug_handler, Json};
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use time::Duration;
 use validator::Validate;
 
 use crate::app::AppState;
 use crate::dto::SignInRequest;
 use crate::error::Result;
-use crate::services;
+use crate::services::{self};
 
+#[debug_handler]
 #[tracing::instrument(
 	name = "Sign in", 
 	skip(state, data),
@@ -21,14 +21,21 @@ use crate::services;
 		user_email = %data.email
 	 ))]
 pub async fn sign_in(
-    jar: CookieJar,
     State(state): State<Arc<AppState>>,
+    jar: CookieJar,
     Json(data): Json<SignInRequest>,
 ) -> Result<impl IntoResponse> {
     data.validate()?;
 
-    let (access_token, refresh_token) =
-        services::sign_in(data, &state.database.user_repository, &state.jwt_client).await?;
+    let mut redis_client = state.redis_client.write().await;
+
+    let (access_token, refresh_token) = services::sign_in(
+        data,
+        &state.database.user_repository,
+        &state.jwt_client,
+        &mut redis_client,
+    )
+    .await?;
 
     let access_cookie = Cookie::build(("access_token", access_token))
         .http_only(true)

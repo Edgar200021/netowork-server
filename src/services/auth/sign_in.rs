@@ -2,13 +2,14 @@ use tokio::task::spawn_blocking;
 
 use crate::{
     domain::UserRepository, dto::SignInRequest, error::Result, helpers::verify_hash,
-    jwt_client::JwtClient, services::ApplicationLogicError,
+    jwt_client::JwtClient, redis_client::RedisClient, services::ApplicationLogicError,
 };
 
 pub async fn sign_in<R: UserRepository>(
     data: SignInRequest,
     user_repository: &R,
     jwt_client: &JwtClient,
+    redis_client: &mut RedisClient,
 ) -> Result<(String, String)> {
     let db_user = user_repository
         .get_user_by_email(&data.email)
@@ -17,5 +18,11 @@ pub async fn sign_in<R: UserRepository>(
 
     spawn_blocking(|| verify_hash(data.password, db_user.password)).await??;
 
-    jwt_client.generate_tokens(db_user.id)
+    let (access_token, refresh_token, refresh_token_id) = jwt_client.generate_tokens(db_user.id)?;
+
+    redis_client
+        .insert(db_user.id.to_string(), refresh_token_id.to_string())
+        .await?;
+
+    Ok((access_token, refresh_token))
 }

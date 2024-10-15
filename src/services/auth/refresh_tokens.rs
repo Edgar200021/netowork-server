@@ -4,16 +4,18 @@ use axum_extra::extract::{
     CookieJar,
 };
 use time::Duration;
+use uuid::Uuid;
 
 use crate::{
     domain::UserRepository, error::Result, jwt_client::JwtClient, middlewares::UserId,
-    services::ApplicationLogicError,
+    redis_client::RedisClient, services::ApplicationLogicError,
 };
 
 pub async fn refresh_tokens<R: UserRepository>(
     mut req: Request,
     next: Next,
     jwt_client: &JwtClient,
+    redis_client: &mut RedisClient,
     jar: CookieJar,
     user_repo: &R,
     token: &str,
@@ -25,7 +27,21 @@ pub async fn refresh_tokens<R: UserRepository>(
         .await?
         .ok_or(ApplicationLogicError::UserNotFound)?;
 
-    let (access_token, refresh_token) = jwt_client.generate_tokens(user.id)?;
+    let redis_token = redis_client
+        .get::<String, String>(user.id.to_string())
+        .await?
+        .ok_or(ApplicationLogicError::InvalidCredentials)?;
+
+    if token.refresh_token_id.to_string() != redis_token {
+        redis_client.delete(user.id.to_string()).await?;
+        return Err(ApplicationLogicError::InvalidCredentials)?;
+    }
+
+    let (access_token, refresh_token, refresh_token_id) = jwt_client.generate_tokens(user.id)?;
+
+    redis_client
+        .insert(user.id.to_string(), refresh_token_id.to_string())
+        .await?;
 
     req.extensions_mut().insert(UserId(user.id));
 

@@ -5,12 +5,9 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use axum_extra::extract::{
-    cookie::{Cookie, SameSite},
-    CookieJar,
-};
+use axum_extra::extract::cookie::CookieJar;
 use jsonwebtoken::errors::ErrorKind;
-use time::Duration;
+use time::OffsetDateTime;
 
 use crate::{
     app::AppState,
@@ -24,11 +21,13 @@ pub struct UserId(pub i32);
 
 #[tracing::instrument(name = "Verify jwt tokens", skip(state, jar, req, next))]
 pub async fn auth(
-    State(state): State<Arc<AppState>>,
     jar: CookieJar,
+    State(state): State<Arc<AppState>>,
     mut req: Request,
     next: Next,
 ) -> Result<impl IntoResponse> {
+    let mut redis_client = state.redis_client.write().await;
+
     if let Some(token) = jar.get("access_token") {
         let token = token.value();
 
@@ -38,31 +37,25 @@ pub async fn auth(
                     .database
                     .user_repository
                     .get_user_by_id(claim.sub)
-                    .await?;
+                    .await?
+                    .ok_or(ApplicationLogicError::UserNotFound)?;
 
-                if let Some(user) = user {
-                    let token = state.jwt_client.generate_access_jwt(user.id)?;
+                println!(
+                    "{}",
+                    OffsetDateTime::now_utc().unix_timestamp()
+                        - OffsetDateTime::from_unix_timestamp(claim.exp)
+                            .unwrap()
+                            .unix_timestamp()
+                );
 
-                    let access_cookie = Cookie::build(("access_token", token))
-                        .http_only(true)
-                        .path("/")
-                        .secure(state.jwt_client.secure())
-                        .max_age(Duration::minutes(state.jwt_client.access_exp_in_minutes()))
-                        .same_site(SameSite::Strict);
+                req.extensions_mut().insert(UserId(user.id));
 
-                    let jar = jar.add(access_cookie);
+                let response = next.run(req).await;
 
-                    req.extensions_mut().insert(UserId(user.id));
-
-                    let response = next.run(req).await;
-
-                    return Ok((jar, response));
-                } else {
-                    return Err(ApplicationLogicError::UserNotFound)?;
-                }
+                return Ok((jar, response));
             }
-            Err(err) => match err {
-                AppError::ApplicationLogicError(ApplicationLogicError::JwtError(err)) => {
+            Err(err) => {
+                if let AppError::ApplicationLogicError(ApplicationLogicError::JwtError(err)) = err {
                     if let ErrorKind::ExpiredSignature = err.kind() {
                         let refresh_token = jar
                             .get("refresh_token")
@@ -73,16 +66,19 @@ pub async fn auth(
                             req,
                             next,
                             &state.jwt_client,
+                            &mut redis_client,
                             jar.clone(),
                             &state.database.user_repository,
                             &refresh_token,
                         )
                         .await;
                     }
-                    return Err(ApplicationLogicError::Unauthorized)?;
+
+                    return Err(ApplicationLogicError::JwtError(err))?;
                 }
-                _ => return Err(ApplicationLogicError::Unauthorized)?,
-            },
+
+                return Err(ApplicationLogicError::Unauthorized)?;
+            }
         }
     } else {
         let refresh_token = jar
@@ -94,6 +90,7 @@ pub async fn auth(
             req,
             next,
             &state.jwt_client,
+            &mut redis_client,
             jar.clone(),
             &state.database.user_repository,
             &refresh_token,
