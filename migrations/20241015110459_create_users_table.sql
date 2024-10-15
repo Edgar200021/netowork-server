@@ -1,4 +1,5 @@
 -- Add migration script here
+-- Add migration script here
 
 CREATE TABLE users (
 	id SERIAL PRIMARY KEY,
@@ -10,8 +11,9 @@ CREATE TABLE users (
 	password_reset_token TEXT,
 	password_reset_expires TIMESTAMP,
 	is_verified BOOLEAN NOT NULL DEFAULT FALSE,
-	verification_token TEXT,
-	verification_token_expires TIMESTAMP,
 	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 	updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-)
+);
+
+CREATE INDEX index_email_on_users ON users (email);
+

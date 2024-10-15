@@ -1,4 +1,4 @@
-use jsonwebtoken::{crypto::verify, decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};

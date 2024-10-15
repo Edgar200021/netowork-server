@@ -4,7 +4,6 @@ use axum_extra::extract::{
     CookieJar,
 };
 use time::Duration;
-use uuid::Uuid;
 
 use crate::{
     domain::UserRepository, error::Result, jwt_client::JwtClient, middlewares::UserId,

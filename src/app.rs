@@ -1,4 +1,4 @@
-use std::sync::{Arc};
+use std::sync::Arc;
 
 use axum::{serve::Serve, Router};
 use tokio::{net::TcpListener, sync::RwLock};

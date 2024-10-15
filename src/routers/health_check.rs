@@ -1,7 +1,5 @@
-use axum::{http::status::StatusCode, response::IntoResponse, Extension};
+use axum::{http::status::StatusCode, response::IntoResponse};
 
-use crate::middlewares::UserId;
-
-pub async fn health_check(Extension(UserId(id)): Extension<UserId>) -> impl IntoResponse {
+pub async fn health_check() -> impl IntoResponse {
     StatusCode::OK
 }

@@ -1,7 +1,4 @@
-use axum::{
-    error_handling::HandleErrorLayer, http::status::StatusCode, middleware, routing::get, Router,
-};
-use axum_extra::extract::CookieJar;
+use axum::{error_handling::HandleErrorLayer, http::status::StatusCode, routing::get, Router};
 
 use std::{sync::Arc, time::Duration};
 
@@ -22,7 +19,7 @@ use uuid::Uuid;
 mod auth;
 mod health_check;
 
-use crate::{app::AppState, middlewares::auth};
+use crate::app::AppState;
 use health_check::*;
 
 pub fn configure_routes(state: Arc<AppState>) -> Router<()> {
@@ -31,7 +28,7 @@ pub fn configure_routes(state: Arc<AppState>) -> Router<()> {
             "/api",
             Router::new()
                 .route("/health_check", get(health_check))
-                .route_layer(middleware::from_fn_with_state(state.clone(), auth))
+                //.route_layer(middleware::from_fn_with_state(state.clone(), auth))
                 .merge(auth::configure_routes()),
         )
         .layer(

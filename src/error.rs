@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::PoisonError};
+use std::collections::HashMap;
 
 use axum::{http::StatusCode, response::IntoResponse};
 use derive_more::derive::From;
@@ -6,7 +6,6 @@ use tokio::task::JoinError;
 
 use crate::{
     helpers::{send_error, send_validation_error},
-    redis_client::RedisClient,
     services::ApplicationLogicError,
 };
 

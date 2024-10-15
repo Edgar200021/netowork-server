@@ -12,4 +12,7 @@ pub mod models;
 pub mod redis_client;
 pub mod routers;
 pub mod services;
+pub mod smtp_client;
 pub mod telemetry;
+
+

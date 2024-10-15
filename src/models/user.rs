@@ -30,8 +30,6 @@ pub struct User {
     pub password_reset_token: Option<String>,
     pub password_reset_expires: Option<time::PrimitiveDateTime>,
     pub is_verified: bool,
-    pub verification_token: Option<String>,
-    pub verification_token_expires: Option<time::PrimitiveDateTime>,
     pub created_at: time::PrimitiveDateTime,
     pub updated_at: time::PrimitiveDateTime,
 }

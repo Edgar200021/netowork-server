@@ -22,7 +22,7 @@ impl UserRepository for PgUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, verification_token, verification_token_expires, password_reset_token, password_reset_expires, created_at, updated_at
+			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, password_reset_token, password_reset_expires, created_at, updated_at
 			FROM users 
 			WHERE email = $1;
 		"#,
@@ -40,7 +40,7 @@ impl UserRepository for PgUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, verification_token, verification_token_expires, password_reset_token, password_reset_expires, created_at, updated_at
+			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, password_reset_token, password_reset_expires, created_at, updated_at
 			FROM users 
 			WHERE id = $1;
 		"#,

@@ -1,8 +1,10 @@
 use sqlx::{postgres::PgConnectOptions, PgPool};
 
 mod user_repo;
+mod token_repo;
 
 pub use user_repo::*;
+pub use token_repo::*;
 
 pub struct Database {
     pub pool: PgPool,
