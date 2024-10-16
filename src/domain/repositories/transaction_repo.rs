@@ -1,6 +1,6 @@
 use time::PrimitiveDateTime;
 
-use crate::{dto::SignUpRequest, error::Result};
+use crate::{dto::SignUpRequest, error::Result, models::Token};
 
 #[trait_variant::make(HttpService: Send)]
 pub trait TransactionRepository {
@@ -10,4 +10,6 @@ pub trait TransactionRepository {
         token: &str,
         expires: PrimitiveDateTime,
     ) -> Result<()>;
+
+    async fn delete_token_and_update_is_verified(&self, token: Token) -> Result<()>;
 }

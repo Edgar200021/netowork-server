@@ -16,7 +16,7 @@ pub fn hash_password(password: &str) -> Result<String> {
     Ok(hashed)
 }
 
-pub fn verify_hash(password: String, hashed_password: String) -> Result<()> {
+pub fn verify_hash(password: String, hashed_password: &str) -> Result<()> {
     let parsed_hash =
         PasswordHash::new(hashed_password.as_ref()).map_err(ApplicationLogicError::PasswordHash)?;
 

@@ -5,7 +5,8 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use serde_json::{json, Value};
+use serde::Serialize;
+use serde_json::json;
 
 pub enum Status {
     Success,
@@ -21,7 +22,7 @@ impl AsRef<str> for Status {
     }
 }
 
-pub fn send_json(status: Status, data: Value) -> Response<Body> {
+pub fn send_json<D: Serialize>(status: Status, data: D) -> Response<Body> {
     Json(json!({ "status": status.as_ref(), "data": data })).into_response()
 }
 

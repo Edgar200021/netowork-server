@@ -5,7 +5,7 @@ use derive_more::derive::From;
 use tokio::task::JoinError;
 
 use crate::{
-    helpers::{send_error, send_validation_error},
+    helpers::{send_error, send_validation_error, Status},
     services::ApplicationLogicError,
 };
 
@@ -68,6 +68,19 @@ impl IntoResponse for AppError {
                 }
                 ApplicationLogicError::Unauthorized => {
                     (StatusCode::UNAUTHORIZED, send_error("Unauthorized")).into_response()
+                }
+
+                ApplicationLogicError::NotVerified => {
+                    (StatusCode::FORBIDDEN, send_error("Not verified")).into_response()
+                }
+
+                ApplicationLogicError::VerificationTokenExpires => (
+                    StatusCode::BAD_REQUEST,
+                    send_error("Verification token expired"),
+                )
+                    .into_response(),
+                ApplicationLogicError::VerificationTokenNotFound => {
+                    (StatusCode::NOT_FOUND, send_error("Token not found")).into_response()
                 }
 
                 ApplicationLogicError::SendingEmailError

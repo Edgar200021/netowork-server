@@ -76,4 +76,28 @@ impl UserRepository for PgUserRepository {
 
         Ok(id)
     }
+
+    #[tracing::instrument(
+        name = "Update user is_verified in database",
+        skip(self, id, is_verified)
+    )]
+    async fn update_is_verified(&self, id: i32, is_verified: bool) -> Result<()> {
+        sqlx::query!(
+            r#"
+			UPDATE users
+			SET is_verified = $1
+			WHERE id = $2
+		"#,
+            is_verified,
+            id,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to execute query: {:?}", e);
+            e
+        })?;
+
+        Ok(())
+    }
 }

@@ -1,5 +1,5 @@
-use crate::{domain::TransactionRepository, dto::SignUpRequest, error::Result};
-use sqlx::{Acquire, PgPool};
+use crate::{domain::TransactionRepository, dto::SignUpRequest, error::Result, models::Token};
+use sqlx::PgPool;
 use time::PrimitiveDateTime;
 
 pub struct PgTransactionRepository {
@@ -13,6 +13,10 @@ impl PgTransactionRepository {
 }
 
 impl TransactionRepository for PgTransactionRepository {
+    #[tracing::instrument(
+        name = "Insert user and verification token into database",
+        skip(self, user, token, expires)
+    )]
     async fn save_user_and_verification_token(
         &self,
         user: &SignUpRequest,
@@ -49,6 +53,50 @@ impl TransactionRepository for PgTransactionRepository {
             id,
             token,
             expires
+        )
+        .execute(&mut *transaction)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to execute query: {e:?}");
+            e
+        })?;
+
+        transaction.commit().await.map_err(|e| {
+            tracing::error!("Failed to commit transaction: {e:?}");
+            e
+        })?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(
+        name = "Delete token and update user is_verified in database",
+        skip(self, token)
+    )]
+    async fn delete_token_and_update_is_verified(&self, token: Token) -> Result<()> {
+        let mut transaction = self.pool.begin().await?;
+
+        sqlx::query!(
+            r#"
+				UPDATE users
+				SET is_verified = true
+				WHERE id = $1
+			"#,
+            token.user_id,
+        )
+        .execute(&mut *transaction)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to execute query: {:?}", e);
+            e
+        })?;
+
+        sqlx::query!(
+            r#"
+				DELETE FROM verification_tokens
+				WHERE token = $1 
+			"#,
+            token.token
         )
         .execute(&mut *transaction)
         .await

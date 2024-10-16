@@ -13,6 +13,10 @@ impl PgTokenRepository {
 }
 
 impl TokenRepository for PgTokenRepository {
+    #[tracing::instrument(
+        name = "Insert new verification token into database",
+        skip(self, user_id, token, expires)
+    )]
     async fn create(&self, user_id: i32, token: &str, expires: PrimitiveDateTime) -> Result<()> {
         sqlx::query!(
             r#"
@@ -34,6 +38,7 @@ impl TokenRepository for PgTokenRepository {
         Ok(())
     }
 
+    #[tracing::instrument(name = "Get verification token from database", skip(self, token))]
     async fn get(&self, token: &str) -> Result<Option<Token>> {
         let token = sqlx::query_as!(
             Token,
@@ -53,6 +58,7 @@ impl TokenRepository for PgTokenRepository {
         Ok(token)
     }
 
+    #[tracing::instrument(name = "Delete verification token from database", skip(self, token))]
     async fn delete(&self, token: &str) -> Result<()> {
         sqlx::query!(
             r#"

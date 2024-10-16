@@ -11,6 +11,7 @@ use validator::Validate;
 use crate::app::AppState;
 use crate::dto::SignInRequest;
 use crate::error::Result;
+use crate::helpers::{send_json, Status};
 use crate::services::{self};
 
 #[debug_handler]
@@ -29,7 +30,7 @@ pub async fn sign_in(
 
     let mut redis_client = state.redis_client.write().await;
 
-    let (access_token, refresh_token) = services::sign_in(
+    let (user, access_token, refresh_token) = services::sign_in(
         data,
         &state.database.user_repository,
         &state.jwt_client,
@@ -53,5 +54,5 @@ pub async fn sign_in(
 
     let jar = jar.add(access_cookie).add(refresh_cookie);
 
-    Ok((StatusCode::OK, jar))
+    Ok((StatusCode::OK, jar, send_json(Status::Success, user)))
 }

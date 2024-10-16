@@ -11,6 +11,9 @@ pub enum ApplicationLogicError {
     PermissionDenied,
     SomethingWentWrong,
     SendingEmailError,
+    VerificationTokenNotFound,
+	VerificationTokenExpires,
+	NotVerified,
     #[from]
     JwtError(jsonwebtoken::errors::Error),
     #[from]
