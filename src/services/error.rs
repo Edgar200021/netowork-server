@@ -12,8 +12,10 @@ pub enum ApplicationLogicError {
     SomethingWentWrong,
     SendingEmailError,
     VerificationTokenNotFound,
-	VerificationTokenExpires,
-	NotVerified,
+    VerificationTokenExpires,
+    PasswordResetTokenNotFound,
+	PasswordResetTokenExpires,
+    NotVerified,
     #[from]
     JwtError(jsonwebtoken::errors::Error),
     #[from]

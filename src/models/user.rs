@@ -27,8 +27,6 @@ pub struct User {
     pub first_name: String,
     pub last_name: String,
     pub role: UserRole,
-    pub password_reset_token: Option<String>,
-    pub password_reset_expires: Option<time::PrimitiveDateTime>,
     pub is_verified: bool,
     pub created_at: time::PrimitiveDateTime,
     pub updated_at: time::PrimitiveDateTime,

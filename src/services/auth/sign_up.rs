@@ -1,4 +1,7 @@
-use rand::distributions::{Alphanumeric, DistString};
+use rand::{
+    distributions::{Alphanumeric, DistString},
+    Rng,
+};
 use time::{Duration, OffsetDateTime, PrimitiveDateTime};
 use tokio::task::spawn_blocking;
 
@@ -28,7 +31,8 @@ pub async fn sign_up<R: UserRepository, T: TransactionRepository>(
 
     new_user.password = spawn_blocking(move || hash_password(&password)).await??;
 
-    let token = Alphanumeric.sample_string(&mut rand::thread_rng(), 24);
+    let token = Alphanumeric.sample_string(&mut rand::thread_rng(), 30);
+
     let token_expires = OffsetDateTime::now_utc().saturating_add(Duration::days(1));
 
     transaction_repository
@@ -39,7 +43,7 @@ pub async fn sign_up<R: UserRepository, T: TransactionRepository>(
         )
         .await?;
 
-    if !send_verification_email(&email_client, &client_base_url, &token).await? {
+    if !send_verification_email(&email_client, &new_user.email, &client_base_url, &token).await? {
         return Err(ApplicationLogicError::SendingEmailError)?;
     }
 
@@ -52,6 +56,7 @@ pub async fn sign_up<R: UserRepository, T: TransactionRepository>(
 )]
 pub async fn send_verification_email(
     email_client: &EmailClient,
+    to: &str,
     client_base_url: &str,
     token: &str,
 ) -> Result<bool> {
@@ -66,6 +71,6 @@ pub async fn send_verification_email(
     );
 
     email_client
-        .send_email("warfacexleb@mail.ru", "Account verification", &body)
+        .send_email(to, "Account verification", &body)
         .await
 }

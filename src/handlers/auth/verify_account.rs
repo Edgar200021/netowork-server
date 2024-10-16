@@ -8,6 +8,7 @@ use validator::Validate;
 
 use crate::{app::AppState, dto::VerifyAccountRequest, error::Result, services};
 
+#[tracing::instrument(name = "Verify account", skip(state, data))]
 pub async fn verify_account(
     State(state): State<Arc<AppState>>,
     Json(data): Json<VerifyAccountRequest>,

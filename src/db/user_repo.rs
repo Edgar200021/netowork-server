@@ -22,7 +22,7 @@ impl UserRepository for PgUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, password_reset_token, password_reset_expires, created_at, updated_at
+			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, created_at, updated_at
 			FROM users 
 			WHERE email = $1;
 		"#,
@@ -40,7 +40,7 @@ impl UserRepository for PgUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, password_reset_token, password_reset_expires, created_at, updated_at
+			SELECT id, email, password, first_name, last_name, role as "role: UserRole", is_verified, created_at, updated_at
 			FROM users 
 			WHERE id = $1;
 		"#,
@@ -89,6 +89,29 @@ impl UserRepository for PgUserRepository {
 			WHERE id = $2
 		"#,
             is_verified,
+            id,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to execute query: {:?}", e);
+            e
+        })?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(
+        name = "Update user password in database",
+        skip(self, id, hashed_password)
+    )]
+    async fn update_password(&self, id: i32, hashed_password: &str) -> Result<()> {
+        sqlx::query!(
+            r#"
+			UPDATE users SET password = $1
+			WHERE id = $2
+		"#,
+            hashed_password,
             id,
         )
         .execute(&self.pool)

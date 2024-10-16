@@ -2,6 +2,7 @@ use redis::{aio::MultiplexedConnection, FromRedisValue, ToRedisArgs};
 
 use crate::{configuration::RedisSettings, error::Result};
 
+#[derive(Debug)]
 pub struct RedisClient {
     conn: MultiplexedConnection,
 }
@@ -32,8 +33,8 @@ impl RedisClient {
         Ok(Self { conn })
     }
 
+    #[tracing::instrument(name = "Insert key and value into redis", skip(key, value))]
     pub async fn insert<T: ToRedisArgs>(&mut self, key: T, value: T) -> Result<()> {
-        println!("INSERTING KEY--------------");
         redis::cmd("SET")
             .arg(&[key, value])
             .exec_async(&mut self.conn)
@@ -42,8 +43,8 @@ impl RedisClient {
         Ok(())
     }
 
+    #[tracing::instrument(name = "Get value from redis", skip(key))]
     pub async fn get<T: ToRedisArgs, RV: FromRedisValue>(&mut self, key: T) -> Result<Option<RV>> {
-		println!("GETTING KEY-----------------");
         let value = redis::cmd("GET")
             .arg(key)
             .query_async(&mut self.conn)
@@ -52,6 +53,7 @@ impl RedisClient {
         Ok(value)
     }
 
+    #[tracing::instrument(name = "Delete key from redis", skip(key))]
     pub async fn delete<T: ToRedisArgs>(&mut self, key: T) -> Result<()> {
         redis::cmd("DELETE")
             .arg(key)
