@@ -1,5 +1,6 @@
 use std::env::{self, current_dir};
 
+use lettre::transport::smtp::authentication::Credentials;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
@@ -10,6 +11,7 @@ pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u32,
     pub host: String,
+    pub client_base_url: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -57,6 +59,33 @@ impl DatabaseSettings {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct SmtpSettings {
+    pub sender: String,
+    pub username: String,
+    pub password: SecretString,
+    pub host: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+}
+
+impl SmtpSettings {
+    pub fn credentials(&self) -> Credentials {
+        Credentials::new(
+            self.username.clone(),
+            self.password.expose_secret().to_string(),
+        )
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EmailSettings {
+    pub url: String,
+    pub api_token: SecretString,
+    pub sender: String,
+    pub timeout_duration_in_seconds: u8,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct RedisSettings {
     pub host: String,
     #[serde(deserialize_with = "deserialize_number_from_string")]
@@ -86,6 +115,7 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub redis: RedisSettings,
     pub jwt: JwtSettings,
+    pub email: EmailSettings,
 }
 
 const ENVIRONMENT_KEY: &'static str = "APP_ENV";

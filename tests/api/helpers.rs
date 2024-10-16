@@ -73,4 +73,14 @@ impl TestApp {
             .await
             .expect("Failed to execute request")
     }
+
+    pub async fn post_sign_in(&self, body: impl Into<Body>) -> reqwest::Response {
+        self.api_client
+            .post(format!("{}/auth/sign-in", self.address))
+            .header("Content-Type", "application/json")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
 }

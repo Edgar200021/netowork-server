@@ -22,7 +22,7 @@ pub async fn refresh_tokens<R: UserRepository>(
     let token = jwt_client.verify_refresh_jwt(token)?;
 
     let user = user_repo
-        .get_user_by_id(token.sub)
+        .get_by_id(token.sub)
         .await?
         .ok_or(ApplicationLogicError::UserNotFound)?;
 

@@ -36,7 +36,7 @@ pub async fn auth(
                 let user = state
                     .database
                     .user_repository
-                    .get_user_by_id(claim.sub)
+                    .get_by_id(claim.sub)
                     .await?
                     .ok_or(ApplicationLogicError::UserNotFound)?;
 

@@ -1,3 +1,4 @@
+use netowork::domain::UserRepository;
 use serde_json::json;
 
 use crate::helpers::TestApp;
@@ -98,5 +99,32 @@ pub async fn sign_up_with_valid_data_returns_200() {
     println!("{response:?}");
 
     assert_eq!(200, response.status());
-    //assert_eq!(Some(0), response.content_length());
+    assert_eq!(Some(0), response.content_length());
+}
+
+#[tokio::test]
+pub async fn sign_up_persists_the_new_user() {
+    let test_app = TestApp::build().await;
+
+    let body = json!({
+        "email": "johndoe@gmail.com",
+        "password": "password",
+        "password_confirm": "password",
+        "first_name": "John",
+        "last_name": "Doe",
+        "role": "freelancer"
+    });
+
+    test_app.post_sign_up(body.to_string()).await;
+    let saved = test_app
+        .db
+        .user_repository
+        .get_by_email("johndoe@gmail.com")
+        .await
+        .expect("Failed to execute query")
+        .expect("User not found");
+
+    assert_eq!(saved.email, "johndoe@gmail.com");
+    assert_eq!(saved.first_name, "John");
+    assert_eq!(saved.role.as_ref(), "freelancer");
 }

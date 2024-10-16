@@ -1,6 +1,6 @@
 use derive_more::derive::From;
 
-#[derive(From)]
+#[derive(From, Debug)]
 pub enum ApplicationLogicError {
     UserAlreadyExists(String),
     UserNotFound,
@@ -9,7 +9,12 @@ pub enum ApplicationLogicError {
     InvalidCredentials,
     Unauthorized,
     PermissionDenied,
-	SomethingWentWrong,
+    SomethingWentWrong,
+    SendingEmailError,
     #[from]
     JwtError(jsonwebtoken::errors::Error),
+    #[from]
+    InvalidSmtpAddress(lettre::address::AddressError),
+    #[from]
+    RequestError(reqwest::Error),
 }

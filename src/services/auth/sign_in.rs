@@ -12,7 +12,7 @@ pub async fn sign_in<R: UserRepository>(
     redis_client: &mut RedisClient,
 ) -> Result<(String, String)> {
     let db_user = user_repository
-        .get_user_by_email(&data.email)
+        .get_by_email(&data.email)
         .await?
         .ok_or(ApplicationLogicError::InvalidCredentials)?;
 

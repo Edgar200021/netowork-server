@@ -11,7 +11,7 @@ use crate::{
 
 pub type Result<T> = core::result::Result<T, AppError>;
 
-#[derive(From)]
+#[derive(From, Debug)]
 pub enum AppError {
     #[from]
     SqlError(sqlx::Error),
@@ -27,6 +27,9 @@ pub enum AppError {
 
     #[from]
     RedisError(redis::RedisError),
+
+    #[from]
+    Lettre(lettre::error::Error),
 }
 
 impl IntoResponse for AppError {
@@ -36,6 +39,21 @@ impl IntoResponse for AppError {
                 ApplicationLogicError::UserAlreadyExists(email) => (
                     StatusCode::BAD_REQUEST,
                     send_error(&format!("User with {} address already exists", email)),
+                )
+                    .into_response(),
+                ApplicationLogicError::RequestError(err) => {
+                    tracing::error!("Request error: {err:?}");
+
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        send_error("Something went wrong"),
+                    )
+                        .into_response()
+                }
+
+                ApplicationLogicError::InvalidSmtpAddress(email) => (
+                    StatusCode::BAD_REQUEST,
+                    send_error(&format!("Invalid email address: {}", email)),
                 )
                     .into_response(),
                 ApplicationLogicError::JwtError(error) => {
@@ -52,7 +70,8 @@ impl IntoResponse for AppError {
                     (StatusCode::UNAUTHORIZED, send_error("Unauthorized")).into_response()
                 }
 
-                ApplicationLogicError::SomethingWentWrong => (
+                ApplicationLogicError::SendingEmailError
+                | ApplicationLogicError::SomethingWentWrong => (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     send_error("Something went wrong"),
                 )
@@ -91,6 +110,15 @@ impl IntoResponse for AppError {
             Self::RedisError(err) => {
                 tracing::error!("Redis error: {err:?}");
 
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    send_error("Something went wrong"),
+                )
+                    .into_response()
+            }
+
+            Self::Lettre(err) => {
+                tracing::error!("Lettre error: {err:?}");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     send_error("Something went wrong"),

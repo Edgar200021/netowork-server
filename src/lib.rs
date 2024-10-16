@@ -3,6 +3,7 @@ pub mod configuration;
 pub mod db;
 pub mod domain;
 pub mod dto;
+pub mod email_client;
 pub mod error;
 pub mod handlers;
 pub mod helpers;
@@ -14,5 +15,3 @@ pub mod routers;
 pub mod services;
 pub mod smtp_client;
 pub mod telemetry;
-
-

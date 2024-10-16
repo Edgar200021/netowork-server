@@ -18,7 +18,7 @@ impl PgUserRepository {
 
 impl UserRepository for PgUserRepository {
     #[tracing::instrument(name = "Get user by email from database", skip(self, email))]
-    async fn get_user_by_email(&self, email: &str) -> Result<Option<User>> {
+    async fn get_by_email(&self, email: &str) -> Result<Option<User>> {
         let user = sqlx::query_as!(
             User,
             r#"
@@ -36,7 +36,7 @@ impl UserRepository for PgUserRepository {
     }
 
     #[tracing::instrument(name = "Get user by id from database", skip(self, id))]
-    async fn get_user_by_id(&self, id: i32) -> Result<Option<User>> {
+    async fn get_by_id(&self, id: i32) -> Result<Option<User>> {
         let user = sqlx::query_as!(
             User,
             r#"
@@ -54,7 +54,7 @@ impl UserRepository for PgUserRepository {
     }
 
     #[tracing::instrument(name = "Insert new user into database", skip(self, new_user))]
-    async fn create_user(&self, new_user: SignUpRequest) -> Result<i32> {
+    async fn create(&self, new_user: SignUpRequest) -> Result<i32> {
         let id = sqlx::query_scalar!(
             r#"
 			INSERT INTO users (email, password, first_name, last_name, role)

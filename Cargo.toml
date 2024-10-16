@@ -22,7 +22,7 @@ tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread", "signal"]
 derive_more = { version = "1.0.0", features = ["from"]}
 axum ={version =  "0.7.7", features = ["macros"]}
 axum-extra = { version = "0.9.4", features = ["cookie"]}
-time = {version = "0.3.36", features = ["serde"]}
+time = {version = "0.3.36", features = ["serde", "macros"]}
 validator = { version = "0.18.1", features = ["derive"]}
 secrecy = { version = "0.10.3", features =["serde"]}
 tower = {version = "0.5.1", features = ["limit", "buffer"]}
@@ -33,6 +33,9 @@ uuid = {version = "1.10.0", features = ["v4", "serde"]}
 trait-variant = "0.1.2"
 unicode-segmentation = "1.12.0"
 redis = {version =  "0.27.4", features = ["aio", "tokio-comp", "uuid"]}
+lettre = {version="0.11.9", feautures = ["tokio1", "tokio1-rustls-tls", ]}
+reqwest = {version="0.12.8", feautures = ["serde"]}
+rand = "0.8.5"
 
 [dependencies.sqlx]
 version = "0.8.2"
@@ -46,5 +49,4 @@ features = [
 ]
 
 [dev-dependencies]
-reqwest = "0.12.8"
 claim = "0.5.0"

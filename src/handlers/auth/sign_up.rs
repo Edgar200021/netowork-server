@@ -24,7 +24,14 @@ pub async fn sign_up(
 ) -> Result<impl IntoResponse> {
     data.validate()?;
 
-    services::sign_up(data, &state.database.user_repository).await?;
+    services::sign_up(
+        &state.client_base_url,
+        data,
+        &state.database.user_repository,
+        &state.database.transaction_repository,
+        &state.email_client,
+    )
+    .await?;
 
     Ok(StatusCode::OK)
 }

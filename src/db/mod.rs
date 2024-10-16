@@ -1,14 +1,18 @@
 use sqlx::{postgres::PgConnectOptions, PgPool};
 
-mod user_repo;
 mod token_repo;
+mod transaction_repo;
+mod user_repo;
 
-pub use user_repo::*;
 pub use token_repo::*;
+pub use transaction_repo::*;
+pub use user_repo::*;
 
 pub struct Database {
     pub pool: PgPool,
     pub user_repository: PgUserRepository,
+    pub token_repository: PgTokenRepository,
+    pub transaction_repository: PgTransactionRepository,
 }
 
 impl Database {
@@ -21,6 +25,8 @@ impl Database {
         Ok(Self {
             pool: pool.clone(),
             user_repository: PgUserRepository::new(pool.clone()),
+            token_repository: PgTokenRepository::new(pool.clone()),
+            transaction_repository: PgTransactionRepository::new(pool.clone()),
         })
     }
 }
