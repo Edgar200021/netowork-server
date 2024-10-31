@@ -1,4 +1,113 @@
 package storage
 
+import (
+	"context"
+	"errors"
+	"log/slog"
+
+	"github.com/Edgar200021/netowork-server/internal/dto"
+	"github.com/Edgar200021/netowork-server/internal/models"
+	"github.com/Edgar200021/netowork-server/internal/utils/sl"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
 type UserRepository interface {
+	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	GetById(ctx context.Context, id int) (*models.User, error)
+	Create(ctx context.Context, newUser *dto.CreateUserRequest) (int, error)
+}
+
+type PgUserRepository struct {
+	pool *pgxpool.Pool
+	log  *slog.Logger
+}
+
+func NewUserRepository(pool *pgxpool.Pool, log *slog.Logger) *PgUserRepository {
+	return &PgUserRepository{
+		pool,
+		log,
+	}
+}
+
+func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
+	r.log.Info("getting user by email from database", slog.String("email", email))
+
+	query := `
+        SELECT * FROM users
+        WHERE email = $1
+    `
+
+	var user models.User
+
+	if err := r.pool.
+		QueryRow(ctx, query, email).
+		Scan(&user.ID, &user.Email, &user.HashedPassword, &user.FirstName, &user.LastName, &user.Role, &user.CreatedAt, &user.UpdatedAt, &user.IsVerified); err != nil {
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+
+		r.log.Error("failed to execute query", sl.Err(err))
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *PgUserRepository) GetById(ctx context.Context, id int) (*models.User, error) {
+	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
+	r.log.Info("getting user by id from database", slog.Int("id", id))
+
+	query := `
+        SELECT * FROM users
+        WHERE id = $1
+    `
+
+	var user models.User
+
+	if err := r.pool.
+		QueryRow(ctx, query, id).
+		Scan(&user.ID, &user.Email, &user.HashedPassword, &user.FirstName, &user.LastName, &user.Role, &user.IsVerified, &user.CreatedAt, &user.UpdatedAt); err != nil {
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+
+		r.log.Error("failed to execute query", sl.Err(err))
+
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *PgUserRepository) Create(ctx context.Context, newUser *dto.CreateUserRequest) (int, error) {
+	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
+	r.log.Info("insert new user into database",
+		slog.String("email", newUser.Email),
+		slog.String("first_name", newUser.FirstName),
+		slog.String("last_name", newUser.LastName))
+
+	query := `
+        INSERT INTO users
+        (email, hashed_password, first_name, last_name, role)
+        VALUES
+        ($1, $2, $3, $4, $5)
+        RETURNING id
+    `
+
+	var id int
+
+	if err := r.pool.
+		QueryRow(ctx, query, newUser.Email, newUser.Password, newUser.FirstName, newUser.LastName, newUser.Role).
+		Scan(&id); err != nil {
+		r.log.Error("failed to execute query", sl.Err(err))
+		return 0, err
+
+	}
+
+	return id, nil
 }

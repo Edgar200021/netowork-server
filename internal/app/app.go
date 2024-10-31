@@ -3,11 +3,14 @@ package app
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/Edgar200021/netowork-server/internal/config"
+	"github.com/Edgar200021/netowork-server/internal/router"
+	"github.com/Edgar200021/netowork-server/internal/service"
 	"github.com/Edgar200021/netowork-server/internal/storage"
 )
 
@@ -23,15 +26,12 @@ func (a *application) Run() error {
 	return a.server.ListenAndServe()
 }
 
-func New(config *config.Config) (*application, func()) {
+func New(config *config.Config, log *slog.Logger) (*application, func()) {
 
-	_, pool := storage.New(&config.Database)
+	storage, pool := storage.New(&config.Database, log)
 
-	router := http.NewServeMux()
-
-	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Hello World")
-	})
+	services := service.New(storage, &config.Application, &config.Smtp, log)
+	router := router.New(services, log)
 
 	server := http.Server{
 		Addr:         fmt.Sprintf("%s:%d", config.HTTPServer.Host, config.HTTPServer.Port),

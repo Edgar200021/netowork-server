@@ -15,8 +15,10 @@ import (
 )
 
 type Config struct {
-	HTTPServer HTTPServerConfig `yaml:"http_server" env-required:"true"`
-	Database   DatabaseConfig   `yaml:"database" env-required:"true"`
+	HTTPServer  HTTPServerConfig  `yaml:"http_server" env-required:"true"`
+	Application ApplicationConfig `yaml:"application" env-required:"true"`
+	Smtp        SmtpConfig        `yaml:"smtp" env-required:"true"`
+	Database    DatabaseConfig    `yaml:"database" env-required:"true"`
 }
 
 type HTTPServerConfig struct {
@@ -25,6 +27,22 @@ type HTTPServerConfig struct {
 	WriteTimeout time.Duration `yaml:"write_timeout" env-default:"5s"`
 	ReadTimeout  time.Duration `yaml:"read_timeout" env-default:"5s"`
 	IdleTimeout  time.Duration `yaml:"idle_timeout" env-default:"100s"`
+}
+
+type ApplicationConfig struct {
+	ClientURL             string        `yaml:"client_url" env-required:"true"`
+	VerificationTokenTTL  time.Duration `yaml:"verification_token_ttl" env-default:"1d"`
+	PasswordResetTokenTTL time.Duration `yaml:"password_reset_token_ttl" env-default:"10m"`
+	VerificationTokenPath string        `yaml:"verification_token_path" env-required:"true"`
+	//PasswordResetLinkPath   string        `yaml:"password_reset_link_path" env-default:"/reset-password"`
+}
+
+type SmtpConfig struct {
+	Host     string `yaml:"host" env-required:"true"`
+	Port     int    `yaml:"port" env-required:"true"`
+	Username string `yaml:"username" env-required:"true"`
+	Password string `yaml:"password" env-required:"true"`
+	Sender   string `yaml:"sender" env-required:"true"`
 }
 
 type DatabaseConfig struct {

@@ -4,15 +4,18 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 
 	"github.com/Edgar200021/netowork-server/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Store struct {
+	UserRepository        UserRepository
+	TransactionRepository TransactionRepository
 }
 
-func New(dbConfig *config.DatabaseConfig) (*Store, *pgxpool.Pool) {
+func New(dbConfig *config.DatabaseConfig, slog *slog.Logger) (*Store, *pgxpool.Pool) {
 	connPool, err := pgxpool.NewWithConfig(context.Background(), dbConfig.ConnectOptions())
 	if err != nil {
 		log.Fatal("Error while creating connection to the database!!")
@@ -31,5 +34,8 @@ func New(dbConfig *config.DatabaseConfig) (*Store, *pgxpool.Pool) {
 
 	fmt.Println("Connected to the database!!")
 
-	return &Store{}, connPool
+	return &Store{
+		UserRepository:        NewUserRepository(connPool, slog),
+		TransactionRepository: NewTransactionRepository(connPool, slog),
+	}, connPool
 }
