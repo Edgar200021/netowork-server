@@ -15,13 +15,15 @@ func (s *AuthService) SignIn(ctx context.Context, data dto.SignInRequest) (*mode
 
 	user, err := s.userRepository.GetByEmail(ctx, data.Email)
 	if err != nil {
+		println("AXXXXXXXX")
+
 		s.log.Error("failed to get user by email", sl.Err(err))
 		return nil, err
 	}
 
 	if user == nil {
-		s.log.Error("user does not exist", sl.Err(err))
-		return nil, ErrUserDoesNotExist
+		s.log.Error("user does not exist")
+		return nil, ErrInvalidCredentials
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(data.Password)); err != nil {
@@ -30,9 +32,11 @@ func (s *AuthService) SignIn(ctx context.Context, data dto.SignInRequest) (*mode
 	}
 
 	if !user.IsVerified {
-		s.log.Error("user is not verified", sl.Err(err))
+		s.log.Error("user is not verified")
 		return nil, ErrAccountNotVerified
 	}
 
 	return user, nil
 }
+
+"fix some errors"

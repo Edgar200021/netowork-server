@@ -26,7 +26,7 @@ func SuccessResponse(w http.ResponseWriter, status int, data interface{}) error 
 }
 
 func ErrorResponse(w http.ResponseWriter, status int, message string) error {
-	response := map[string]interface{}{
+	response := map[string]string{
 		"status":  "error",
 		"message": message,
 	}
@@ -36,6 +36,10 @@ func ErrorResponse(w http.ResponseWriter, status int, message string) error {
 
 func ValidationErrorResponse(w http.ResponseWriter, errors validator.ValidationErrors) error {
 	errorsResponse := make(map[string]string)
+	response := map[string]interface{}{
+		"status": "error",
+		"errors": errorsResponse,
+	}
 
 	for _, err := range errors {
 		field := strings.ToLower(err.Field())
@@ -61,7 +65,7 @@ func ValidationErrorResponse(w http.ResponseWriter, errors validator.ValidationE
 		}
 	}
 
-	return WriteJson(w, http.StatusBadRequest, errorsResponse)
+	return WriteJson(w, http.StatusBadRequest, response)
 }
 
 func InternalServerErrorResponse(w http.ResponseWriter) error {
