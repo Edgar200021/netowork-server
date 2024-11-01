@@ -9,6 +9,7 @@ import (
 
 type Sender interface {
 	SendVerifyAccountEmail(to, token string) error
+	SendResetPasswordEmail(to, token string) error
 }
 
 type GomailService struct {
@@ -34,6 +35,21 @@ func (s *GomailService) SendVerifyAccountEmail(to, token string) error {
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", "Подтверждение почты")
 	m.SetBody("text/html", fmt.Sprintf("Перейдите по <a href=\"%s/%s?token=%s\">ссылке</a>, чтобы подтвердить почту.", s.applicationConfig.ClientURL, s.applicationConfig.VerificationTokenPath, token))
+
+	if err := s.client.DialAndSend(m); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *GomailService) SendResetPasswordEmail(to, token string) error {
+	m := gomail.NewMessage()
+
+	m.SetHeader("From", s.sender)
+	m.SetHeader("To", to)
+	m.SetHeader("Subject", "Сброс пароля")
+	m.SetBody("text/html", fmt.Sprintf("Перейдите по <a href=\"%s/%s?token=%s\">ссылке</a>, чтобы сбросить пароль.", s.applicationConfig.ClientURL, s.applicationConfig.PasswordResetPath, token))
 
 	if err := s.client.DialAndSend(m); err != nil {
 		return err

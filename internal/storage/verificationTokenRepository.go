@@ -14,6 +14,7 @@ import (
 
 type VerificationTokenRepository interface {
 	GetByToken(ctx context.Context, token string) (*models.VerificationToken, error)
+	DeleteByToken(ctx context.Context, token string) error
 }
 
 type PgVerificationTokenRepository struct {
@@ -52,4 +53,21 @@ func (r *PgVerificationTokenRepository) GetByToken(ctx context.Context, token st
 	}
 
 	return &verificationToken, nil
+}
+
+func (r *PgVerificationTokenRepository) DeleteByToken(ctx context.Context, token string) error {
+	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
+	r.log.Info("deleting token from database")
+
+	query := `
+        DELETE FROM verification_token
+        WHERE token = $1
+    `
+
+	if _, err := r.pool.Exec(ctx, query, token); err != nil {
+		r.log.Error("failed to execute query", sl.Err(err))
+		return err
+	}
+
+	return nil
 }

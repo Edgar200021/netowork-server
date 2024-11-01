@@ -17,17 +17,16 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var signInRateLimiter = httprate.NewRateLimiter(5, time.Minute * 2)
+var verifyAccontLimiter = httprate.NewRateLimiter(2, time.Hour*24)
 
-
-func (h *authHandler) SignIn(w http.ResponseWriter, r *http.Request) {
-	if signInRateLimiter.RespondOnLimit(w, r, request.ReadUserIP(r)) {
+func (h *authHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
+	if verifyAccontLimiter.RespondOnLimit(w, r, request.ReadUserIP(r)) {
 		return
 	}
 
-	h.log = h.log.With(slog.String("handler", "signUp"), slog.String("request_id", middleware.GetReqID(r.Context())))
+	h.log = h.log.With(slog.String("handler", "verifyAccount"), slog.String("request_id", middleware.GetReqID(r.Context())))
 
-	var data dto.SignInRequest
+	var data dto.VerifyAccountRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.log.Error("failed to decode request body", sl.Err(err))
@@ -43,17 +42,22 @@ func (h *authHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authService.SignIn(r.Context(), data)
+	user, err := h.authService.VerifyAccount(r.Context(), data)
 	if err != nil {
-		if errors.Is(err, auth.ErrUserDoesNotExist) || errors.Is(err, auth.ErrAccountNotVerified) || errors.Is(err, auth.ErrInvalidCredentials) {
-			response.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		if errors.Is(err, auth.ErrUserDoesNotExist) {
+			response.ErrorResponse(w, http.StatusBadRequest, "пользователь не найден")
 			return
 		}
 
+		if errors.Is(err, auth.ErrVerificationTokenDoesNotExist) || errors.Is(err, auth.ErrVerificationTokenExpired) {
+			response.ErrorResponse(w, http.StatusBadRequest, "неверный или истекший токен верификации")
+			return
+		}
+
+		h.log.Error("failed to verify account", sl.Err(err))
 		response.InternalServerErrorResponse(w)
 		return
 	}
 
 	response.SuccessResponse(w, http.StatusOK, user)
-
 }

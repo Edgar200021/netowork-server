@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
+	"github.com/Edgar200021/netowork-server/internal/types"
 	"github.com/Edgar200021/netowork-server/internal/utils/sl"
 	"github.com/Edgar200021/netowork-server/internal/utils/token"
 	"github.com/go-chi/chi/v5/middleware"
@@ -41,7 +42,7 @@ func (s *AuthService) SignUp(ctx context.Context, data dto.CreateUserRequest) er
 
 	tokenExpires := time.Now().Add(s.applicationConfig.VerificationTokenTTL)
 
-	if err := s.transactionRepository.CreateUserAndVerificationToken(ctx, &data, &dto.VerificationTokenData{
+	if err := s.transactionRepository.CreateUserAndVerificationToken(ctx, &data, &types.VerificationTokenData{
 		Token:   token,
 		Expires: tokenExpires,
 	}); err != nil {

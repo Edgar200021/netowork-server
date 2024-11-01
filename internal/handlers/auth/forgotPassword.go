@@ -17,43 +17,37 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var signInRateLimiter = httprate.NewRateLimiter(5, time.Minute * 2)
+var forgotPasswordRateLimiter = httprate.NewRateLimiter(5, time.Hour*24)
 
+func (h *authHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
-func (h *authHandler) SignIn(w http.ResponseWriter, r *http.Request) {
-	if signInRateLimiter.RespondOnLimit(w, r, request.ReadUserIP(r)) {
+	if forgotPasswordRateLimiter.RespondOnLimit(w, r, request.ReadUserIP(r)) {
 		return
 	}
 
-	h.log = h.log.With(slog.String("handler", "signUp"), slog.String("request_id", middleware.GetReqID(r.Context())))
+	h.log = h.log.With(slog.String("handler", "forgotPassword"), slog.String("request_id", middleware.GetReqID(r.Context())))
 
-	var data dto.SignInRequest
-
+	var data dto.ForgotPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.log.Error("failed to decode request body", sl.Err(err))
 		response.InternalServerErrorResponse(w)
 		return
 	}
 
-	h.log.Info("request body decoded", slog.Any("data", data))
-
 	if err := validator.New(validator.WithRequiredStructEnabled()).Struct(data); err != nil {
-		h.log.Error("Invalid request", sl.Err(err))
+		h.log.Error("invalid request", sl.Err(err))
 		response.ValidationErrorResponse(w, err.(validator.ValidationErrors))
 		return
 	}
 
-	user, err := h.authService.SignIn(r.Context(), data)
-	if err != nil {
-		if errors.Is(err, auth.ErrUserDoesNotExist) || errors.Is(err, auth.ErrAccountNotVerified) || errors.Is(err, auth.ErrInvalidCredentials) {
-			response.ErrorResponse(w, http.StatusBadRequest, err.Error())
+	if err := h.authService.ForgotPassword(r.Context(), data); err != nil {
+		if errors.Is(err, auth.ErrUserDoesNotExist) {
+			response.ErrorResponse(w, http.StatusBadRequest, "пользователь не найден")
 			return
 		}
-
 		response.InternalServerErrorResponse(w)
 		return
 	}
 
-	response.SuccessResponse(w, http.StatusOK, user)
-
+	response.SuccessResponse(w, http.StatusOK, nil)
 }

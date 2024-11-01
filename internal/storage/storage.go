@@ -11,8 +11,10 @@ import (
 )
 
 type Store struct {
-	UserRepository        UserRepository
-	TransactionRepository TransactionRepository
+	UserRepository               UserRepository
+	TransactionRepository        TransactionRepository
+	VerificationTokenRepository  VerificationTokenRepository
+	PasswordResetTokenRepository PasswordResetTokenRepository
 }
 
 func New(dbConfig *config.DatabaseConfig, slog *slog.Logger) (*Store, *pgxpool.Pool) {
@@ -35,7 +37,9 @@ func New(dbConfig *config.DatabaseConfig, slog *slog.Logger) (*Store, *pgxpool.P
 	fmt.Println("Connected to the database!!")
 
 	return &Store{
-		UserRepository:        NewUserRepository(connPool, slog),
-		TransactionRepository: NewTransactionRepository(connPool, slog),
+		UserRepository:               NewUserRepository(connPool, slog),
+		TransactionRepository:        NewTransactionRepository(connPool, slog),
+		VerificationTokenRepository:  NewVerificationTokenRepository(connPool, slog),
+		PasswordResetTokenRepository: NewPasswordResetTokenRepository(connPool, slog),
 	}, connPool
 }

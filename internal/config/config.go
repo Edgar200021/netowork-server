@@ -34,7 +34,7 @@ type ApplicationConfig struct {
 	VerificationTokenTTL  time.Duration `yaml:"verification_token_ttl" env-default:"1d"`
 	PasswordResetTokenTTL time.Duration `yaml:"password_reset_token_ttl" env-default:"10m"`
 	VerificationTokenPath string        `yaml:"verification_token_path" env-required:"true"`
-	//PasswordResetLinkPath   string        `yaml:"password_reset_link_path" env-default:"/reset-password"`
+	PasswordResetPath   string        `yaml:"password_reset_path" env-required:"true"`
 }
 
 type SmtpConfig struct {

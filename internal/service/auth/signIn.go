@@ -15,8 +15,6 @@ func (s *AuthService) SignIn(ctx context.Context, data dto.SignInRequest) (*mode
 
 	user, err := s.userRepository.GetByEmail(ctx, data.Email)
 	if err != nil {
-		println("AXXXXXXXX")
-
 		s.log.Error("failed to get user by email", sl.Err(err))
 		return nil, err
 	}
@@ -38,5 +36,3 @@ func (s *AuthService) SignIn(ctx context.Context, data dto.SignInRequest) (*mode
 
 	return user, nil
 }
-
-"fix some errors"

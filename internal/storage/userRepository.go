@@ -17,6 +17,8 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetById(ctx context.Context, id int) (*models.User, error)
 	Create(ctx context.Context, newUser *dto.CreateUserRequest) (int, error)
+	UpdateIsVerified(ctx context.Context, id int, isVerified bool) error
+	DeleteNotVerifiedUsers(ctx context.Context) error
 }
 
 type PgUserRepository struct {
@@ -70,7 +72,7 @@ func (r *PgUserRepository) GetById(ctx context.Context, id int) (*models.User, e
 
 	if err := r.pool.
 		QueryRow(ctx, query, id).
-		Scan(&user.ID, &user.Email, &user.HashedPassword, &user.FirstName, &user.LastName, &user.Role, &user.IsVerified, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		Scan(&user.ID, &user.Email, &user.HashedPassword, &user.FirstName, &user.LastName, &user.Role, &user.CreatedAt, &user.UpdatedAt, &user.IsVerified); err != nil {
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -110,4 +112,39 @@ func (r *PgUserRepository) Create(ctx context.Context, newUser *dto.CreateUserRe
 	}
 
 	return id, nil
+}
+
+func (r *PgUserRepository) UpdateIsVerified(ctx context.Context, id int, isVerified bool) error {
+	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
+	r.log.Info("updating user verification status in database", slog.Int("id", id), slog.Bool("is_verified", isVerified))
+
+	query := `
+        UPDATE users
+        SET is_verified = $1
+        WHERE id = $2
+    `
+
+	if _, err := r.pool.Exec(ctx, query, isVerified, id); err != nil {
+		r.log.Error("failed to execute query", sl.Err(err))
+		return err
+	}
+
+	return nil
+
+}
+
+func (r *PgUserRepository) DeleteNotVerifiedUsers(ctx context.Context) error {
+
+	r.log.Info("deleting not verified users from database")
+
+	query := `
+        DELETE FROM users 
+        WHERE is_verified = false AND created_at < NOW() - INTERVAL '1 day'
+    `
+
+	if _, err := r.pool.Exec(ctx, query); err != nil {
+		return err
+	}
+
+	return nil
 }

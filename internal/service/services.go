@@ -19,7 +19,7 @@ func New(store *storage.Store, applicationConfig *config.ApplicationConfig, smtp
 
 	var (
 		smtpService = sender.New(smtpConfig, applicationConfig)
-		authService = auth.NewAuthService(store.UserRepository, store.TransactionRepository, log, applicationConfig, smtpService)
+		authService = auth.NewAuthService(store.UserRepository, store.VerificationTokenRepository, store.PasswordResetTokenRepository, store.TransactionRepository, log, applicationConfig, smtpService)
 		userService = user.NewUserService(store.UserRepository, log)
 	)
 

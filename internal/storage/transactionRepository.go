@@ -5,13 +5,15 @@ import (
 	"log/slog"
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
+	"github.com/Edgar200021/netowork-server/internal/types"
 	"github.com/Edgar200021/netowork-server/internal/utils/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type TransactionRepository interface {
-	CreateUserAndVerificationToken(ctx context.Context, newUser *dto.CreateUserRequest, verificationToken *dto.VerificationTokenData) error
+	CreateUserAndVerificationToken(ctx context.Context, newUser *dto.CreateUserRequest, verificationToken *types.VerificationTokenData) error
+	UpdateIsVerifiedAndDeleteVerificationToken(ctx context.Context, userId int, isVerified bool, token string) error
 }
 
 type PgTransactionRepository struct {
@@ -26,7 +28,7 @@ func NewTransactionRepository(pool *pgxpool.Pool, log *slog.Logger) *PgTransacti
 	}
 }
 
-func (r *PgTransactionRepository) CreateUserAndVerificationToken(ctx context.Context, newUser *dto.CreateUserRequest, verificationToken *dto.VerificationTokenData) error {
+func (r *PgTransactionRepository) CreateUserAndVerificationToken(ctx context.Context, newUser *dto.CreateUserRequest, verificationToken *types.VerificationTokenData) error {
 	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
 	r.log.Info("insert new user and verification token into database",
 		slog.String("email", newUser.Email),
@@ -77,4 +79,43 @@ func (r *PgTransactionRepository) CreateUserAndVerificationToken(ctx context.Con
 
 	return nil
 
+}
+
+func (r *PgTransactionRepository) UpdateIsVerifiedAndDeleteVerificationToken(ctx context.Context, userId int, isVerified bool, token string) error {
+	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
+	r.log.Info("updating user verification status and deleting verification token from database", slog.Int("user_id", userId), slog.Bool("is_verified", isVerified))
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		r.log.Error("failed to begin transaction", sl.Err(err))
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	userQuery := `
+        UPDATE users
+        SET is_verified = $1
+        WHERE id = $2
+    `
+	if _, err := tx.Exec(ctx, userQuery, isVerified, userId); err != nil {
+		r.log.Error("failed to execute query", sl.Err(err))
+		return err
+	}
+
+	tokenQuery := `
+        DELETE FROM verification_token
+        WHERE token = $1
+    `
+
+	if _, err := tx.Exec(ctx, tokenQuery, token); err != nil {
+		r.log.Error("failed to execute query", sl.Err(err))
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		r.log.Error("failed to commit transaction", sl.Err(err))
+		return err
+	}
+
+	return nil
 }

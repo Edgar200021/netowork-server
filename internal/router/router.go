@@ -2,12 +2,14 @@ package router
 
 import (
 	"log/slog"
+	"time"
 
 	handlers "github.com/Edgar200021/netowork-server/internal/handlers/auth"
 	"github.com/Edgar200021/netowork-server/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 )
 
 func New(services *service.Services, log *slog.Logger) *chi.Mux {
@@ -30,8 +32,11 @@ func New(services *service.Services, log *slog.Logger) *chi.Mux {
 	authHandler := handlers.NewAuthHandler(services.AuthService, log)
 
 	apiRouter.Route("/auth", func(r chi.Router) {
+		r.Use(httprate.LimitByIP(20, time.Hour*24))
 		r.Post("/sign-up", authHandler.SignUp)
+		r.Post("/forgot-password", authHandler.ForgotPassword)
 		r.Post("/sign-in", authHandler.SignIn)
+		r.Patch("/account-verification", authHandler.VerifyAccount)
 	})
 
 	return router
