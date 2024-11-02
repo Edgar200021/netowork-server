@@ -49,7 +49,7 @@ func (s *AuthService) SignUp(ctx context.Context, data dto.CreateUserRequest) er
 		return err
 	}
 
-	if err := s.smtpService.SendVerifyAccountEmail(data.Email, token); err != nil {
+	if err := s.smtpClient.SendVerifyAccountEmail(data.Email, token); err != nil {
 		s.log.Error("failed to send verification email", sl.Err(err))
 		return err
 	}

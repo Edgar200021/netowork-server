@@ -6,47 +6,59 @@ import (
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
 	"github.com/Edgar200021/netowork-server/internal/models"
+	"github.com/Edgar200021/netowork-server/internal/types"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 )
 
-func (s *AuthService) VerifyAccount(ctx context.Context, data dto.VerifyAccountRequest) (*models.User, error) {
+func (s *AuthService) VerifyAccount(ctx context.Context, data dto.VerifyAccountRequest) (*models.User, string, error) {
 
 	s.log = s.log.With("request_id", middleware.GetReqID(ctx))
 
 	token, err := s.verificationTokenRepository.GetByToken(ctx, data.Token)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if token == nil {
 		s.log.Error("verification token not found")
-		return nil, ErrVerificationTokenDoesNotExist
+		return nil, "", ErrVerificationTokenDoesNotExist
 	}
 
 	if token.Expires.Before(time.Now()) {
 		s.log.Error("verification token expired")
 
 		if err := s.verificationTokenRepository.DeleteByToken(ctx, data.Token); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
-		return nil, ErrVerificationTokenExpired
+		return nil, "", ErrVerificationTokenExpired
 	}
 
 	user, err := s.userRepository.GetById(ctx, token.UserID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if user == nil {
 		s.log.Error("user not found")
-		return nil, ErrUserDoesNotExist
+		return nil, "", ErrUserDoesNotExist
 	}
 
 	if err := s.transactionRepository.UpdateIsVerifiedAndDeleteVerificationToken(ctx, token.UserID, true, token.Token); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return user, nil
+	sessionKey := uuid.New().String()
+	expires := time.Now().Add(s.applicationConfig.UserSessionTTL)
+
+	if err := s.redisClient.Set(ctx, sessionKey, types.SessionUser{
+		Id:      user.ID,
+		Expires: expires,
+	}, s.applicationConfig.UserSessionTTL+time.Hour*24); err != nil {
+		return nil, "", err
+	}
+
+	return user, sessionKey, nil
 
 }

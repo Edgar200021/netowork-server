@@ -76,3 +76,11 @@ func InternalServerErrorResponse(w http.ResponseWriter) error {
 
 	return WriteJson(w, http.StatusInternalServerError, response)
 }
+
+func UnauthorizedResponse(w http.ResponseWriter) error {
+	response := map[string]interface{}{
+		"status": "error",
+		"error":  "Не авторизован",
+	}
+	return WriteJson(w, http.StatusUnauthorized, response)
+}

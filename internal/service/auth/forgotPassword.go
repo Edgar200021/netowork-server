@@ -39,7 +39,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, data dto.ForgotPasswor
 		return err
 	}
 
-	if err := s.smtpService.SendResetPasswordEmail(user.Email, token); err != nil {
+	if err := s.smtpClient.SendResetPasswordEmail(user.Email, token); err != nil {
 		return err
 	}
 

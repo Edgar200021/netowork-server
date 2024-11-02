@@ -5,7 +5,8 @@ import (
 	"log/slog"
 
 	"github.com/Edgar200021/netowork-server/internal/config"
-	"github.com/Edgar200021/netowork-server/internal/service/sender"
+	"github.com/Edgar200021/netowork-server/internal/redis"
+	"github.com/Edgar200021/netowork-server/internal/sender"
 	"github.com/Edgar200021/netowork-server/internal/storage"
 )
 
@@ -25,11 +26,18 @@ type AuthService struct {
 	transactionRepository        storage.TransactionRepository
 	log                          *slog.Logger
 	applicationConfig            *config.ApplicationConfig
-	smtpService                  sender.Sender
+	smtpClient                   sender.Sender
+	redisClient                  *redis.RedisClient
 }
 
-func NewAuthService(userRepository storage.UserRepository, verificationTokenRepository storage.VerificationTokenRepository,
-	passwordResetTokenRepository storage.PasswordResetTokenRepository, transactionRepository storage.TransactionRepository, log *slog.Logger, applicationConfig *config.ApplicationConfig, smtpService sender.Sender) *AuthService {
+func NewAuthService(userRepository storage.UserRepository,
+	verificationTokenRepository storage.VerificationTokenRepository,
+	passwordResetTokenRepository storage.PasswordResetTokenRepository,
+	transactionRepository storage.TransactionRepository,
+	log *slog.Logger,
+	applicationConfig *config.ApplicationConfig,
+	smtpClient sender.Sender,
+	redisClient *redis.RedisClient) *AuthService {
 	return &AuthService{
 		userRepository,
 		verificationTokenRepository,
@@ -37,6 +45,7 @@ func NewAuthService(userRepository storage.UserRepository, verificationTokenRepo
 		transactionRepository,
 		log,
 		applicationConfig,
-		smtpService,
+		smtpClient,
+		redisClient,
 	}
 }

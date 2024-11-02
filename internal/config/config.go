@@ -12,12 +12,14 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 type Config struct {
 	HTTPServer  HTTPServerConfig  `yaml:"http_server" env-required:"true"`
 	Application ApplicationConfig `yaml:"application" env-required:"true"`
 	Smtp        SmtpConfig        `yaml:"smtp" env-required:"true"`
+	Redis       RedisConfig       `yaml:"redis" env-required:"true"`
 	Database    DatabaseConfig    `yaml:"database" env-required:"true"`
 }
 
@@ -33,8 +35,10 @@ type ApplicationConfig struct {
 	ClientURL             string        `yaml:"client_url" env-required:"true"`
 	VerificationTokenTTL  time.Duration `yaml:"verification_token_ttl" env-default:"1d"`
 	PasswordResetTokenTTL time.Duration `yaml:"password_reset_token_ttl" env-default:"10m"`
+	UserSessionTTL        time.Duration `yaml:"user_session_ttl" env-default:"720h"`
 	VerificationTokenPath string        `yaml:"verification_token_path" env-required:"true"`
-	PasswordResetPath   string        `yaml:"password_reset_path" env-required:"true"`
+	PasswordResetPath     string        `yaml:"password_reset_path" env-required:"true"`
+	Secure                *bool         `yaml:"secure" env-required:"true"`
 }
 
 type SmtpConfig struct {
@@ -127,5 +131,32 @@ func New() *Config {
 	}
 
 	return &cfg
+
+}
+
+type RedisConfig struct {
+	Host     string  `yaml:"host" env-required:"true"`
+	Port     uint    `yaml:"port" env-required:"true"`
+	Password *string `yaml:"password" env-required:"true"`
+	Database int     `yaml:"database" env-default:"0"`
+}
+
+func (c *RedisConfig) ConnectOptions() *redis.Options {
+	return &redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", c.Host, c.Port),
+		Password: *c.Password,
+		DB:       c.Database,
+	}
+}
+
+func (c *RedisConfig) ConnectionString() (*redis.Options, error) {
+	url := fmt.Sprintf("redis://user:%s@%s:%d/%d", *c.Password, c.Host, c.Port, c.Database)
+
+	opts, err := redis.ParseURL(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return opts, nil
 
 }

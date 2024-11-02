@@ -17,10 +17,10 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var verifyAccontLimiter = httprate.NewRateLimiter(2, time.Hour*24)
+var verifyAccountLimiter = httprate.NewRateLimiter(2, time.Hour*24)
 
 func (h *authHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
-	if verifyAccontLimiter.RespondOnLimit(w, r, request.ReadUserIP(r)) {
+	if verifyAccountLimiter.RespondOnLimit(w, r, request.ReadUserIP(r)) {
 		return
 	}
 
@@ -42,7 +42,7 @@ func (h *authHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authService.VerifyAccount(r.Context(), data)
+	user, sessionKey, err := h.authService.VerifyAccount(r.Context(), data)
 	if err != nil {
 		if errors.Is(err, auth.ErrUserDoesNotExist) {
 			response.ErrorResponse(w, http.StatusBadRequest, "пользователь не найден")
@@ -58,6 +58,15 @@ func (h *authHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 		response.InternalServerErrorResponse(w)
 		return
 	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     UserSessionCookieName,
+		Value:    sessionKey,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+	})
 
 	response.SuccessResponse(w, http.StatusOK, user)
 }

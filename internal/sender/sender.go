@@ -12,23 +12,23 @@ type Sender interface {
 	SendResetPasswordEmail(to, token string) error
 }
 
-type GomailService struct {
+type GomailClient struct {
 	applicationConfig *config.ApplicationConfig
 	client            *gomail.Dialer
 	sender            string
 }
 
-func New(smtpConfig *config.SmtpConfig, applicationConfig *config.ApplicationConfig) *GomailService {
+func New(smtpConfig *config.SmtpConfig, applicationConfig *config.ApplicationConfig) *GomailClient {
 	client := gomail.NewDialer(smtpConfig.Host, smtpConfig.Port, smtpConfig.Username, smtpConfig.Password)
 
-	return &GomailService{
+	return &GomailClient{
 		applicationConfig: applicationConfig,
 		client:            client,
 		sender:            smtpConfig.Sender,
 	}
 }
 
-func (s *GomailService) SendVerifyAccountEmail(to, token string) error {
+func (s *GomailClient) SendVerifyAccountEmail(to, token string) error {
 	m := gomail.NewMessage()
 
 	m.SetHeader("From", s.sender)
@@ -43,7 +43,7 @@ func (s *GomailService) SendVerifyAccountEmail(to, token string) error {
 	return nil
 }
 
-func (s *GomailService) SendResetPasswordEmail(to, token string) error {
+func (s *GomailClient) SendResetPasswordEmail(to, token string) error {
 	m := gomail.NewMessage()
 
 	m.SetHeader("From", s.sender)

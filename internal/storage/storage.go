@@ -15,9 +15,10 @@ type Store struct {
 	TransactionRepository        TransactionRepository
 	VerificationTokenRepository  VerificationTokenRepository
 	PasswordResetTokenRepository PasswordResetTokenRepository
+	pool                         *pgxpool.Pool
 }
 
-func New(dbConfig *config.DatabaseConfig, slog *slog.Logger) (*Store, *pgxpool.Pool) {
+func New(dbConfig *config.DatabaseConfig, slog *slog.Logger) *Store {
 	connPool, err := pgxpool.NewWithConfig(context.Background(), dbConfig.ConnectOptions())
 	if err != nil {
 		log.Fatal("Error while creating connection to the database!!")
@@ -41,5 +42,10 @@ func New(dbConfig *config.DatabaseConfig, slog *slog.Logger) (*Store, *pgxpool.P
 		TransactionRepository:        NewTransactionRepository(connPool, slog),
 		VerificationTokenRepository:  NewVerificationTokenRepository(connPool, slog),
 		PasswordResetTokenRepository: NewPasswordResetTokenRepository(connPool, slog),
-	}, connPool
+		pool:                         connPool,
+	}
+}
+
+func (s *Store) Close() {
+	s.pool.Close()
 }

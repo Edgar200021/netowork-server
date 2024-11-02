@@ -9,7 +9,10 @@ import (
 	"strings"
 
 	"github.com/Edgar200021/netowork-server/internal/config"
+	"github.com/Edgar200021/netowork-server/internal/middlewares"
+	"github.com/Edgar200021/netowork-server/internal/redis"
 	"github.com/Edgar200021/netowork-server/internal/router"
+	"github.com/Edgar200021/netowork-server/internal/sender"
 	"github.com/Edgar200021/netowork-server/internal/service"
 	"github.com/Edgar200021/netowork-server/internal/storage"
 	"github.com/Edgar200021/netowork-server/internal/utils/sl"
@@ -30,10 +33,17 @@ func (a *application) Run() error {
 }
 
 func New(config *config.Config, log *slog.Logger) (*application, func()) {
-	storage, pool := storage.New(&config.Database, log)
+	storage := storage.New(&config.Database, log)
 
-	services := service.New(storage, &config.Application, &config.Smtp, log)
-	router := router.New(services, log)
+	smtpClient := sender.New(&config.Smtp, &config.Application)
+	redisClient, err := redis.New(&config.Redis)
+	if err != nil {
+		panic("failed to connect to redis: " + err.Error())
+	}
+
+	services := service.New(storage, &config.Application, log, smtpClient, redisClient)
+	middlewares := middlewares.New(&config.Application, storage.UserRepository, redisClient, log)
+	router := router.New(middlewares, &config.Application, services, log)
 
 	server := http.Server{
 		Addr:         fmt.Sprintf("%s:%d", config.HTTPServer.Host, config.HTTPServer.Port),
@@ -44,7 +54,8 @@ func New(config *config.Config, log *slog.Logger) (*application, func()) {
 	}
 
 	closeFn := func() {
-		pool.Close()
+		storage.Close()
+		redisClient.Close()
 		server.Shutdown(context.Background())
 	}
 

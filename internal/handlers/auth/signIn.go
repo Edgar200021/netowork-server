@@ -17,8 +17,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var signInRateLimiter = httprate.NewRateLimiter(5, time.Minute * 2)
-
+var signInRateLimiter = httprate.NewRateLimiter(5, time.Minute*2)
 
 func (h *authHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	if signInRateLimiter.RespondOnLimit(w, r, request.ReadUserIP(r)) {
@@ -43,16 +42,27 @@ func (h *authHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authService.SignIn(r.Context(), data)
+	user, sessionKey, err := h.authService.SignIn(r.Context(), data)
 	if err != nil {
 		if errors.Is(err, auth.ErrUserDoesNotExist) || errors.Is(err, auth.ErrAccountNotVerified) || errors.Is(err, auth.ErrInvalidCredentials) {
 			response.ErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
+		h.log.Error("failed to sign in user", sl.Err(err))
+
 		response.InternalServerErrorResponse(w)
 		return
 	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     UserSessionCookieName,
+		Value:    sessionKey,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path: "/",
+	})
 
 	response.SuccessResponse(w, http.StatusOK, user)
 
