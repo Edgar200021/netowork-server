@@ -17,6 +17,7 @@ var (
 	ErrAccountNotVerified            = errors.New("пользователь не подтвердил свою эл. почту")
 	ErrVerificationTokenDoesNotExist = errors.New("токен подтверждения не существует")
 	ErrVerificationTokenExpired      = errors.New("токен подтверждения истек")
+	ErrRedisValueDoesNotExist        = errors.New("значение в редисе не существует")
 )
 
 type AuthService struct {

@@ -9,13 +9,13 @@ import (
 	"github.com/Edgar200021/netowork-server/internal/models"
 	"github.com/Edgar200021/netowork-server/internal/redis"
 	"github.com/Edgar200021/netowork-server/internal/types"
-	"github.com/Edgar200021/netowork-server/internal/utils/sl"
+	"github.com/Edgar200021/netowork-server/pkg/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *AuthService) SignIn(ctx context.Context, data dto.SignInRequest) (*models.User, string, error) {
+func (s *AuthService) SignIn(ctx context.Context, data *dto.SignInRequest) (*models.User, string, error) {
 	s.log = s.log.With("request_id", middleware.GetReqID(ctx))
 
 	user, err := s.userRepository.GetByEmail(ctx, data.Email)

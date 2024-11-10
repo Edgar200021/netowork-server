@@ -8,57 +8,57 @@ import (
 	"net/http"
 	"time"
 
-	handlers "github.com/Edgar200021/netowork-server/internal/handlers/auth"
+	"github.com/Edgar200021/netowork-server/internal/constants"
 	"github.com/Edgar200021/netowork-server/internal/service/auth"
 	"github.com/Edgar200021/netowork-server/internal/types"
-	"github.com/Edgar200021/netowork-server/internal/utils/response"
-	"github.com/Edgar200021/netowork-server/internal/utils/sl"
+	"github.com/Edgar200021/netowork-server/pkg/res"
+	"github.com/Edgar200021/netowork-server/pkg/sl"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func (m *Middleware) Auth(next http.Handler) http.Handler {
+func (m *Middleware) Auth(next http.HandlerFunc) http.HandlerFunc {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		m.log = m.log.With(slog.String("middleware", "auth"), slog.String("request_id", middleware.GetReqID(r.Context())))
 
-		sessionKey, err := r.Cookie(handlers.UserSessionCookieName)
+		sessionKey, err := r.Cookie(constants.UserSessionCookieName)
 
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
 				m.log.Error("user session cookie not found", sl.Err(err))
-				response.UnauthorizedResponse(w)
+				res.UnauthorizedResponse(w)
 				return
 			}
 
 			m.log.Error("failed to read user session cookie", sl.Err(err))
-			response.InternalServerErrorResponse(w)
+			res.InternalServerErrorResponse(w)
 			return
 		}
 
 		sessionUserStr, err := m.redisClient.Get(r.Context(), sessionKey.Value)
 		if err != nil {
 			m.log.Error("failed to get user session from redis", sl.Err(err))
-			response.InternalServerErrorResponse(w)
+			res.InternalServerErrorResponse(w)
 			return
 		}
 
 		if sessionUserStr == "" {
 			m.log.Error("user not found in redis")
-			response.UnauthorizedResponse(w)
+			res.UnauthorizedResponse(w)
 			return
 		}
 
 		var sessionUser types.SessionUser
 		if err := json.Unmarshal([]byte(sessionUserStr), &sessionUser); err != nil {
 			m.log.Error("failed to unmarshal user session from redis", sl.Err(err))
-			response.InternalServerErrorResponse(w)
+			res.InternalServerErrorResponse(w)
 			return
 		}
 
 		user, err := m.userRepository.GetById(r.Context(), sessionUser.Id)
 		if err != nil {
 			m.log.Error("failed to get user from database", sl.Err(err))
-			response.InternalServerErrorResponse(w)
+			res.InternalServerErrorResponse(w)
 			return
 		}
 
@@ -67,11 +67,11 @@ func (m *Middleware) Auth(next http.Handler) http.Handler {
 
 			if err := m.redisClient.Del(r.Context(), sessionKey.Value); err != nil {
 				m.log.Error("failed to delete user session from redis", sl.Err(err))
-				response.InternalServerErrorResponse(w)
+				res.InternalServerErrorResponse(w)
 				return
 			}
 
-			response.UnauthorizedResponse(w)
+			res.UnauthorizedResponse(w)
 			return
 		}
 
@@ -86,19 +86,19 @@ func (m *Middleware) Auth(next http.Handler) http.Handler {
 
 		if err := m.redisClient.Del(r.Context(), sessionKey.Value); err != nil {
 			m.log.Error("failed to delete user session from redis", sl.Err(err))
-			response.InternalServerErrorResponse(w)
+			res.InternalServerErrorResponse(w)
 			return
 		}
 
 		newSessionKey, error := auth.StoreUserSession(r.Context(), m.applicationConfig, m.redisClient, user)
 		if error != nil {
 			m.log.Error("failed to store user session in redis", sl.Err(error))
-			response.InternalServerErrorResponse(w)
+			res.InternalServerErrorResponse(w)
 			return
 		}
 
 		http.SetCookie(w, &http.Cookie{
-			Name:     handlers.UserSessionCookieName,
+			Name:     constants.UserSessionCookieName,
 			Value:    newSessionKey,
 			HttpOnly: true,
 			Secure:   true,

@@ -8,7 +8,8 @@ CREATE TABLE users (
 	last_name TEXT NOT NULL,
 	role TEXT NOT NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	is_verified BOOLEAN NOT NULL DEFAULT false
 );
 -- +goose StatementEnd
 

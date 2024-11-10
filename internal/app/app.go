@@ -15,7 +15,7 @@ import (
 	"github.com/Edgar200021/netowork-server/internal/sender"
 	"github.com/Edgar200021/netowork-server/internal/service"
 	"github.com/Edgar200021/netowork-server/internal/storage"
-	"github.com/Edgar200021/netowork-server/internal/utils/sl"
+	"github.com/Edgar200021/netowork-server/pkg/sl"
 	"github.com/robfig/cron/v3"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *AuthService) VerifyAccount(ctx context.Context, data dto.VerifyAccountRequest) (*models.User, string, error) {
+func (s *AuthService) VerifyAccount(ctx context.Context, data *dto.VerifyAccountRequest) (*models.User, string, error) {
 
 	s.log = s.log.With("request_id", middleware.GetReqID(ctx))
 

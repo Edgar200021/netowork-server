@@ -7,13 +7,13 @@ import (
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
 	"github.com/Edgar200021/netowork-server/internal/types"
-	"github.com/Edgar200021/netowork-server/internal/utils/sl"
-	"github.com/Edgar200021/netowork-server/internal/utils/token"
+	"github.com/Edgar200021/netowork-server/pkg/sl"
+	"github.com/Edgar200021/netowork-server/pkg/token"
 	"github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *AuthService) SignUp(ctx context.Context, data dto.CreateUserRequest) error {
+func (s *AuthService) SignUp(ctx context.Context, data *dto.CreateUserRequest) error {
 	s.log = s.log.With("request_id", middleware.GetReqID(ctx))
 
 	user, err := s.userRepository.GetByEmail(ctx, data.Email)
@@ -42,7 +42,7 @@ func (s *AuthService) SignUp(ctx context.Context, data dto.CreateUserRequest) er
 
 	tokenExpires := time.Now().Add(s.applicationConfig.VerificationTokenTTL)
 
-	if err := s.transactionRepository.CreateUserAndVerificationToken(ctx, &data, &types.VerificationTokenData{
+	if err := s.transactionRepository.CreateUserAndVerificationToken(ctx, data, &types.VerificationTokenData{
 		Token:   token,
 		Expires: tokenExpires,
 	}); err != nil {

@@ -1,13 +1,14 @@
 package handlers
 
 import (
-	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
-	"github.com/Edgar200021/netowork-server/internal/utils/response"
-	"github.com/Edgar200021/netowork-server/internal/utils/sl"
+	"github.com/Edgar200021/netowork-server/pkg/req"
+	"github.com/Edgar200021/netowork-server/pkg/res"
+	"github.com/Edgar200021/netowork-server/pkg/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
 )
@@ -15,19 +16,20 @@ import (
 func (h *authHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	h.log = h.log.With(slog.String("handler", "resetPassword"), slog.String("request_id", middleware.GetReqID(r.Context())))
 
-	var data dto.ResetPasswordRequest
+	data, err := req.HandleBody[dto.ResetPasswordRequest](&w, r)
+	if err != nil {
+		if errors.Is(err, err.(validator.ValidationErrors)) {
+			h.log.Error("invalid request", sl.Err(err))
+			res.ValidationErrorResponse(w, err.(validator.ValidationErrors))
+			return
+		}
 
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.log.Error("failed to decode request body", sl.Err(err))
-		response.InternalServerErrorResponse(w)
+		res.InternalServerErrorResponse(w)
 		return
 	}
 
-	if err := validator.New(validator.WithRequiredStructEnabled()).Struct(data); err != nil {
-		h.log.Error("Invalid request", sl.Err(err))
-		response.ValidationErrorResponse(w, err.(validator.ValidationErrors))
-		return
-	}
+	h.log.Info("request body decoded", slog.Any("data", data))
 
 	if err := h.authService.ResetPassword(r.Context(), data); err != nil {
 

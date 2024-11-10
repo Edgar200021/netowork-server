@@ -7,11 +7,11 @@ import (
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
 	"github.com/Edgar200021/netowork-server/internal/types"
-	"github.com/Edgar200021/netowork-server/internal/utils/token"
+	"github.com/Edgar200021/netowork-server/pkg/token"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func (s *AuthService) ForgotPassword(ctx context.Context, data dto.ForgotPasswordRequest) error {
+func (s *AuthService) ForgotPassword(ctx context.Context, data *dto.ForgotPasswordRequest) error {
 
 	s.log = s.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
 

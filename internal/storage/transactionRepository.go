@@ -6,7 +6,7 @@ import (
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
 	"github.com/Edgar200021/netowork-server/internal/types"
-	"github.com/Edgar200021/netowork-server/internal/utils/sl"
+	"github.com/Edgar200021/netowork-server/pkg/sl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
