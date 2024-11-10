@@ -50,7 +50,7 @@ func (s *AuthService) SignIn(ctx context.Context, data *dto.SignInRequest) (*mod
 func StoreUserSession(ctx context.Context, applicationConfig *config.ApplicationConfig, redisClient *redis.RedisClient, user *models.User) (string, error) {
 
 	sessionKey := uuid.New().String()
-	expires := time.Now().Add(applicationConfig.UserSessionTTL).UTC()
+	expires := time.Now().UTC().Add(applicationConfig.UserSessionTTL)
 
 	if err := redisClient.Set(ctx, sessionKey, types.SessionUser{
 		Id:      user.ID,
