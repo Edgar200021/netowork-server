@@ -28,10 +28,11 @@ func NewAuthHandler(router *chi.Mux, middlewares *middlewares.Middleware, authSe
 	router.Route("/auth", func(r chi.Router) {
 		r.Use(httprate.LimitByIP(50, time.Hour*24))
 		r.Post("/sign-up", handler.SignUp)
-		r.Post("/forgot-password", handler.ForgotPassword)
 		r.Post("/sign-in", handler.SignIn)
 		r.Patch("/account-verification", handler.VerifyAccount)
 		r.Post("/logout", middlewares.Auth(handler.Logout))
+		r.Post("/forgot-password", handler.ForgotPassword)
+		r.Patch("/reset-password", handler.ResetPassword)
 	})
 
 }

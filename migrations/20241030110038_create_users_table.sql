@@ -7,9 +7,10 @@ CREATE TABLE users (
 	first_name TEXT NOT NULL,
 	last_name TEXT NOT NULL,
 	role TEXT NOT NULL,
+	avatar TEXT,
+	is_verified BOOLEAN NOT NULL DEFAULT false,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	is_verified BOOLEAN NOT NULL DEFAULT false
+	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- +goose StatementEnd
 

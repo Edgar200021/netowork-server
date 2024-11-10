@@ -17,6 +17,8 @@ var (
 	ErrAccountNotVerified            = errors.New("пользователь не подтвердил свою эл. почту")
 	ErrVerificationTokenDoesNotExist = errors.New("токен подтверждения не существует")
 	ErrVerificationTokenExpired      = errors.New("токен подтверждения истек")
+    ErrPasswordResetTokenDoesNotExist = errors.New("токен сброса пароля не существует")
+    ErrPasswordResetTokenExpired      = errors.New("токен сброса пароля истек")
 	ErrRedisValueDoesNotExist        = errors.New("значение в редисе не существует")
 )
 

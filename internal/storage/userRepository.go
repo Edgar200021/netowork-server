@@ -18,6 +18,7 @@ type UserRepository interface {
 	GetById(ctx context.Context, id int) (*models.User, error)
 	Create(ctx context.Context, newUser *dto.CreateUserRequest) (int, error)
 	UpdateIsVerified(ctx context.Context, id int, isVerified bool) error
+	UpdatePassword(ctx context.Context, id int, password string) error
 	DeleteNotVerifiedUsers(ctx context.Context) error
 }
 
@@ -46,7 +47,7 @@ func (r *PgUserRepository) GetByEmail(ctx context.Context, email string) (*model
 
 	if err := r.pool.
 		QueryRow(ctx, query, email).
-		Scan(&user.ID, &user.Email, &user.HashedPassword, &user.FirstName, &user.LastName, &user.Role, &user.CreatedAt, &user.UpdatedAt, &user.IsVerified); err != nil {
+		Scan(&user.ID, &user.Email, &user.HashedPassword, &user.FirstName, &user.LastName, &user.Role, &user.Avatar, &user.IsVerified, &user.CreatedAt, &user.UpdatedAt); err != nil {
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -72,7 +73,7 @@ func (r *PgUserRepository) GetById(ctx context.Context, id int) (*models.User, e
 
 	if err := r.pool.
 		QueryRow(ctx, query, id).
-		Scan(&user.ID, &user.Email, &user.HashedPassword, &user.FirstName, &user.LastName, &user.Role, &user.CreatedAt, &user.UpdatedAt, &user.IsVerified); err != nil {
+		Scan(&user.ID, &user.Email, &user.HashedPassword, &user.FirstName, &user.LastName, &user.Role, &user.Avatar, &user.IsVerified, &user.CreatedAt, &user.UpdatedAt); err != nil {
 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -125,6 +126,25 @@ func (r *PgUserRepository) UpdateIsVerified(ctx context.Context, id int, isVerif
     `
 
 	if _, err := r.pool.Exec(ctx, query, isVerified, id); err != nil {
+		r.log.Error("failed to execute query", sl.Err(err))
+		return err
+	}
+
+	return nil
+
+}
+
+func (r *PgUserRepository) UpdatePassword(ctx context.Context, id int, password string) error {
+	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
+	r.log.Info("updating user password in database", slog.Int("id", id))
+
+	query := `
+        UPDATE users
+        SET hashed_password = $1
+        WHERE id = $2
+    `
+
+	if _, err := r.pool.Exec(ctx, query, password, id); err != nil {
 		r.log.Error("failed to execute query", sl.Err(err))
 		return err
 	}

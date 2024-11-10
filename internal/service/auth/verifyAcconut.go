@@ -25,7 +25,7 @@ func (s *AuthService) VerifyAccount(ctx context.Context, data *dto.VerifyAccount
 		return nil, "", ErrVerificationTokenDoesNotExist
 	}
 
-	if token.Expires.Before(time.Now()) {
+	if time.Now().UTC().After(token.Expires) {
 		s.log.Error("verification token expired")
 
 		if err := s.verificationTokenRepository.DeleteByToken(ctx, data.Token); err != nil {

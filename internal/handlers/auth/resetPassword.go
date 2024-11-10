@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
+	"github.com/Edgar200021/netowork-server/internal/service/auth"
 	"github.com/Edgar200021/netowork-server/pkg/req"
 	"github.com/Edgar200021/netowork-server/pkg/res"
 	"github.com/Edgar200021/netowork-server/pkg/sl"
@@ -32,7 +33,21 @@ func (h *authHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	h.log.Info("request body decoded", slog.Any("data", data))
 
 	if err := h.authService.ResetPassword(r.Context(), data); err != nil {
+		if errors.Is(err, auth.ErrPasswordResetTokenDoesNotExist) || errors.Is(err, auth.ErrPasswordResetTokenExpired) {
+			res.ErrorResponse(w, http.StatusBadRequest, "неверный или истекший токен сброса пароля")
+			return
+		}
 
+		if errors.Is(err, auth.ErrUserDoesNotExist) {
+			res.ErrorResponse(w, http.StatusBadRequest, "пользователь не найден")
+			return
+		}
+
+		h.log.Error("failed to reset password", sl.Err(err))
+		res.InternalServerErrorResponse(w)
+		return
 	}
+
+	res.SuccessResponse(w, http.StatusOK, "пароль успешно сброшен")
 
 }

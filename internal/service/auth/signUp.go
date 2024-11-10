@@ -40,7 +40,7 @@ func (s *AuthService) SignUp(ctx context.Context, data *dto.CreateUserRequest) e
 		return err
 	}
 
-	tokenExpires := time.Now().Add(s.applicationConfig.VerificationTokenTTL)
+	tokenExpires := time.Now().UTC().Add(s.applicationConfig.VerificationTokenTTL)
 
 	if err := s.transactionRepository.CreateUserAndVerificationToken(ctx, data, &types.VerificationTokenData{
 		Token:   token,

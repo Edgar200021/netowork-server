@@ -17,6 +17,7 @@ type User struct {
 	FirstName      string    `db:"first_name" json:"first_name"`
 	LastName       string    `db:"last_name" json:"last_name"`
 	Role           UserRole  `db:"role" json:"role"`
+	Avatar         *string    `db:"avatar" json:"avatar"`
 	IsVerified     bool      `db:"is_verified" json:"-"`
 	CreatedAt      time.Time `db:"created_at"  json:"-"`
 	UpdatedAt      time.Time `db:"updated_at"  json:"-"`

@@ -14,6 +14,7 @@ import (
 type TransactionRepository interface {
 	CreateUserAndVerificationToken(ctx context.Context, newUser *dto.CreateUserRequest, verificationToken *types.VerificationTokenData) error
 	UpdateIsVerifiedAndDeleteVerificationToken(ctx context.Context, userId int, isVerified bool, token string) error
+	UpdateUserPasswordAndDeletePasswordResetToken(ctx context.Context, userId int, password string, token string) error
 }
 
 type PgTransactionRepository struct {
@@ -104,6 +105,45 @@ func (r *PgTransactionRepository) UpdateIsVerifiedAndDeleteVerificationToken(ctx
 
 	tokenQuery := `
         DELETE FROM verification_token
+        WHERE token = $1
+    `
+
+	if _, err := tx.Exec(ctx, tokenQuery, token); err != nil {
+		r.log.Error("failed to execute query", sl.Err(err))
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		r.log.Error("failed to commit transaction", sl.Err(err))
+		return err
+	}
+
+	return nil
+}
+
+func (r *PgTransactionRepository) UpdateUserPasswordAndDeletePasswordResetToken(ctx context.Context, userId int, password string, token string) error {
+	r.log = r.log.With(slog.String("request_id", middleware.GetReqID(ctx)))
+	r.log.Info("updating user password and deleting password reset token from database", slog.Int("user_id", userId))
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		r.log.Error("failed to begin transaction", sl.Err(err))
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	userQuery := `
+        UPDATE users
+        SET hashed_password = $1
+        WHERE id = $2
+    `
+	if _, err := tx.Exec(ctx, userQuery, password, userId); err != nil {
+		r.log.Error("failed to execute query", sl.Err(err))
+		return err
+	}
+
+	tokenQuery := `
+        DELETE FROM password_reset_token
         WHERE token = $1
     `
 
