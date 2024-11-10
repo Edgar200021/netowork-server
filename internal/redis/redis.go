@@ -38,7 +38,7 @@ func (c *RedisClient) Get(ctx context.Context, key string) (string, error) {
 	}
 
 	if err != nil {
-		return "nil", err
+		return "", err
 	}
 
 	return val, nil

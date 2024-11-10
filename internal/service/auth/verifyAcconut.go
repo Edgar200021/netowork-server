@@ -6,9 +6,7 @@ import (
 
 	"github.com/Edgar200021/netowork-server/internal/dto"
 	"github.com/Edgar200021/netowork-server/internal/models"
-	"github.com/Edgar200021/netowork-server/internal/types"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/google/uuid"
 )
 
 func (s *AuthService) VerifyAccount(ctx context.Context, data *dto.VerifyAccountRequest) (*models.User, string, error) {
@@ -49,13 +47,8 @@ func (s *AuthService) VerifyAccount(ctx context.Context, data *dto.VerifyAccount
 		return nil, "", err
 	}
 
-	sessionKey := uuid.New().String()
-	expires := time.Now().Add(s.applicationConfig.UserSessionTTL)
-
-	if err := s.redisClient.Set(ctx, sessionKey, types.SessionUser{
-		Id:      user.ID,
-		Expires: expires,
-	}, s.applicationConfig.UserSessionTTL+time.Hour*24); err != nil {
+	sessionKey, err := StoreUserSession(ctx, s.applicationConfig, s.redisClient, user)
+	if err != nil {
 		return nil, "", err
 	}
 

@@ -75,7 +75,7 @@ func (m *Middleware) Auth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if time.Now().Before(sessionUser.Expires) {
+		if time.Now().UTC().Before(sessionUser.Expires) {
 			ctx := context.WithValue(r.Context(), CtxUserKey, user)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
