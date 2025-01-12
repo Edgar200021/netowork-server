@@ -1,0 +1,10 @@
+@host = http://localhost:4000/auth
+
+PATCH  {{host}}/verify
+Content-Type: application/json
+
+{
+	"token": "72081a06f5f9588f312cad60e5dd7094771924cb971204e8e041ac5d1dcc77a0"
+}
+
+###
