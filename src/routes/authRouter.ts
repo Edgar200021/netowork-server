@@ -9,11 +9,20 @@ import {
   sendVerificationEmailSchema,
 } from '../contracts/auth/sendVerificationEmail'
 import {
+  SetNewEmailAddressRequest,
+  setNewEmailAddressRequestSchema,
+} from '../contracts/auth/setNewEmailAddress'
+import {
   VerifyAccountRequest,
   verifyAccountRequestSchema,
 } from '../contracts/auth/verifyAccount'
-import { login, register, verifyAccount } from '../controllers'
-import { sendVerificationEmail } from '../controllers/auth/sendVerificationEmail'
+import {
+  login,
+  register,
+  sendVerificationEmail,
+  setNewEmailAddress,
+  verifyAccount,
+} from '../controllers'
 import { validateRequest } from '../middlewares/validateRequest'
 
 export const authRouter = express.Router()
@@ -34,3 +43,9 @@ authRouter.patch(
   validateRequest(verifyAccountRequestSchema)<VerifyAccountRequest>,
   verifyAccount
 )
+authRouter.patch(
+  '/set-new-email-address',
+  validateRequest(setNewEmailAddressRequestSchema)<SetNewEmailAddressRequest>,
+  setNewEmailAddress
+)
+1

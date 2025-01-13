@@ -1,4 +1,6 @@
 export { login } from './auth/login'
 export { register } from './auth/register'
+export { sendVerifyAccountEmail } from './auth/sendVerifyAccountEmail'
+export { setNewEmailAddress } from './auth/setNewEmailAddress'
 export { verifyAccount } from './auth/verifyAccount'
-export {verifySession} from './auth/verifySession'
+export { verifySession } from './auth/verifySession'

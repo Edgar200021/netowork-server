@@ -5,7 +5,7 @@ import {
   SendVerificationEmailRequest,
   SendVerificationEmailResponse,
 } from '../../contracts/auth/sendVerificationEmail'
-import { sendVerifyAccountEmail } from '../../services/auth/sendVerifyAccountEmail'
+import { sendVerifyAccountEmail } from '../../services'
 
 export const sendVerificationEmail = handleWrapper(
   async (
