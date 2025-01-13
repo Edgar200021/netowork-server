@@ -9,6 +9,10 @@ import {
   registerRequestSchema,
 } from '../contracts/auth/register'
 import {
+  ResetPasswordRequest,
+  resetPasswordSchema,
+} from '../contracts/auth/resetPassword'
+import {
   SendVerificationEmailRequest,
   sendVerificationEmailSchema,
 } from '../contracts/auth/sendVerificationEmail'
@@ -24,6 +28,7 @@ import {
   forgotPassword,
   login,
   register,
+  resetPassword,
   sendVerificationEmail,
   setNewEmailAddress,
   verifyAccount,
@@ -57,4 +62,9 @@ authRouter.post(
   '/forgot-password',
   validateRequest(forgotPasswordSchema)<ForgotPasswordRequest>,
   forgotPassword
+)
+authRouter.patch(
+  '/reset-password',
+  validateRequest(resetPasswordSchema)<ResetPasswordRequest>,
+  resetPassword
 )

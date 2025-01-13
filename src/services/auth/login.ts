@@ -1,4 +1,5 @@
 import { User } from '@prisma/client'
+import argon2 from 'argon2'
 import { Response } from 'express'
 import { prisma, redisClient } from '../../app'
 import { BadRequestError } from '../../common/error'
@@ -13,7 +14,8 @@ export const login = async (
 ): Promise<User> => {
   const user = await prisma.user.findUnique({ where: { email: payload.email } })
 
-  if (!user) throw new BadRequestError('Пользователь не найден')
+  if (!user || !(await argon2.verify(user.hashedPassword, payload.password)))
+    throw new BadRequestError('Неправильные email или пароль')
   if (!user.isVerified)
     throw new BadRequestError('Пользователь не верифицирован')
 
