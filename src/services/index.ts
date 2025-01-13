@@ -1,3 +1,4 @@
+export { forgotPassword } from './auth/forgotPassword'
 export { login } from './auth/login'
 export { register } from './auth/register'
 export { sendVerifyAccountEmail } from './auth/sendVerifyAccountEmail'

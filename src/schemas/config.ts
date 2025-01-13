@@ -37,6 +37,8 @@ const applicationConfig = z.object({
   clientUrl: z.string().nonempty(),
   accountVerificationPath: z.string().nonempty(),
   accountVerificationTtlInMinutes: z.number().min(10),
+  passwordResetPath: z.string().nonempty(),
+  passwordResetTtlInMinutes: z.number().min(10).max(20),
   cookieSecret: z.string().nonempty(),
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
   loginSessionTtlInMinutes: z.number().min(1440),

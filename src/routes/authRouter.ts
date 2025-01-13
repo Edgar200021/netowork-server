@@ -1,4 +1,8 @@
 import express from 'express'
+import {
+  ForgotPasswordRequest,
+  forgotPasswordSchema,
+} from '../contracts/auth/forgotPassword'
 import { LoginRequest, loginSchema } from '../contracts/auth/login'
 import {
   RegisterRequest,
@@ -17,6 +21,7 @@ import {
   verifyAccountRequestSchema,
 } from '../contracts/auth/verifyAccount'
 import {
+  forgotPassword,
   login,
   register,
   sendVerificationEmail,
@@ -48,4 +53,8 @@ authRouter.patch(
   validateRequest(setNewEmailAddressRequestSchema)<SetNewEmailAddressRequest>,
   setNewEmailAddress
 )
-1
+authRouter.post(
+  '/forgot-password',
+  validateRequest(forgotPasswordSchema)<ForgotPasswordRequest>,
+  forgotPassword
+)

@@ -1,5 +1,6 @@
+export { forgotPassword } from './auth/forgotPassword'
 export { login } from './auth/login'
 export { register } from './auth/register'
+export { sendVerificationEmail } from './auth/sendVerificationEmail'
+export { setNewEmailAddress } from './auth/setNewEmailAddress'
 export { verifyAccount } from './auth/verifyAccount'
-export {setNewEmailAddress} from './auth/setNewEmailAddress'
-export {sendVerificationEmail} from './auth/sendVerificationEmail'
