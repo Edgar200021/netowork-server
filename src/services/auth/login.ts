@@ -1,6 +1,6 @@
 import { User } from '@prisma/client'
 import argon2 from 'argon2'
-import { Response } from 'express'
+import { CookieOptions, Response } from 'express'
 import { prisma, redisClient } from '../../app'
 import { BadRequestError } from '../../common/error'
 import { generateRedisLoginSessionKey } from '../../common/lib/redis'
@@ -28,12 +28,17 @@ export const login = async (
     config.application.loginSessionTtlInMinutes * 60
   )
 
-  res.cookie(SESSION_KEY, uuid, {
-    httpOnly: true,
-    secure: config.application.nodeEnv === 'production',
-    path: '/',
-    signed: true,
-  })
+  res.cookie(SESSION_KEY, uuid, cookieOptions())
 
   return user
+}
+
+export const cookieOptions = (): CookieOptions => {
+  return {
+    httpOnly: true,
+    secure: config.application.nodeEnv === 'production',
+    sameSite: 'lax',
+    path: '/',
+    signed: true,
+  }
 }
