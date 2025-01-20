@@ -1,5 +1,7 @@
 import express from 'express'
 import rateLimit from 'express-rate-limit'
+import { pinoHttp } from 'pino-http'
+import { logger } from '../app'
 import {
   ForgotPasswordRequest,
   forgotPasswordSchema,
@@ -35,10 +37,16 @@ import {
   setNewEmailAddress,
   verifyAccount,
 } from '../controllers'
-import { auth } from '../middlewares/auth'
+import { authentication } from '../middlewares/authentication'
 import { validateRequest } from '../middlewares/validateRequest'
 
 export const authRouter = express.Router()
+
+authRouter.use(
+  pinoHttp({
+    logger: logger,
+  })
+)
 
 authRouter.post(
   '/register',
@@ -54,7 +62,7 @@ authRouter.post(
   rateLimit({
     windowMs: 1000 * 60 * 60,
     limit: 50,
-    skipSuccessfulRequests: true,
+    skipSuccessfulRequests: true, 
   }),
   validateRequest(loginSchema)<LoginRequest>,
   login
@@ -105,4 +113,4 @@ authRouter.patch(
   resetPassword
 )
 
-authRouter.post('/logout', auth, logout)
+authRouter.post('/logout', authentication, logout)

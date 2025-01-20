@@ -4,7 +4,7 @@ import { handleWrapper } from '../common/handlerWrapper'
 import { SESSION_KEY } from '../constants/cookie'
 import { verifySession } from '../services'
 
-export const auth = handleWrapper(
+export const authentication = handleWrapper(
   async (req: Request, res: Response, next: NextFunction) => {
     const id: string = req.signedCookies[SESSION_KEY]
 

@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 import { ZodSchema } from 'zod'
+import { logger } from '../app'
 import {
   errorResponse,
   validationErrorResponse,
@@ -15,6 +16,7 @@ export const validateRequest =
     const { success, data, error } = await schema.safeParseAsync(req.body)
 
     if (!success) {
+      logger.error('Validation error', error)
       const errors = Object.entries(error.flatten().fieldErrors).reduce(
         (acc, [key, value]) => {
           if (!value) return acc
@@ -26,6 +28,8 @@ export const validateRequest =
 
       return validationErrorResponse(res, errors)
     }
+
+    logger.info('Data validation passed')
 
     req.body = data
     return next()

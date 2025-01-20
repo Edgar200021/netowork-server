@@ -1,3 +1,4 @@
+export { changeAboutMe } from './users/changeAboutMe';
 export { forgotPassword } from './auth/forgotPassword'
 export { login } from './auth/login'
 export { logout } from './auth/logout'
@@ -6,3 +7,5 @@ export { resetPassword } from './auth/resetPassword'
 export { sendVerificationEmail } from './auth/sendVerificationEmail'
 export { setNewEmailAddress } from './auth/setNewEmailAddress'
 export { verifyAccount } from './auth/verifyAccount'
+export { getMyPortfolio } from './portfolio/getMyPortfolio'
+export { getMe } from './users/getMe'

@@ -45,3 +45,12 @@ export class ValidationError extends AppError {
     this.errors = errors
   }
 }
+
+export class HealthCheckError extends Error {
+  constructor(
+    message: string = 'Health check error',
+    public readonly statusCode: number = 503
+  ) {
+    super(message)
+  }
+}

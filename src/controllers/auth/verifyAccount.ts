@@ -13,9 +13,16 @@ export const verifyAccount = handleWrapper(
     req: Request<{}, {}, VerifyAccountRequest>,
     res: Response<VerifyAccountResponse>
   ) => {
-    const { email, isVerified, role, firstName, lastName } = await verify(
-      req.body
-    )
+    const {
+      email,
+      isVerified,
+      role,
+      firstName,
+      lastName,
+      avatar,
+      aboutMe,
+      createdAt,
+    } = await verify(req.body)
 
     successResponse<Omit<User, 'hashedPassword' | 'id'>>(res, {
       email,
@@ -23,6 +30,9 @@ export const verifyAccount = handleWrapper(
       role,
       firstName,
       lastName,
+      avatar,
+      aboutMe,
+      createdAt,
     })
   }
 )

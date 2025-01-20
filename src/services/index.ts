@@ -1,3 +1,5 @@
+export { changeAboutMe } from './users/chanegAboutMe';
+export { deleteNotVerifiedUsers } from './auth/deleteNotVerifiedUsers'
 export { forgotPassword } from './auth/forgotPassword'
 export { cookieOptions, login } from './auth/login'
 export { logout } from './auth/logout'
@@ -7,3 +9,4 @@ export { sendVerifyAccountEmail } from './auth/sendVerifyAccountEmail'
 export { setNewEmailAddress } from './auth/setNewEmailAddress'
 export { verifyAccount } from './auth/verifyAccount'
 export { verifySession } from './auth/verifySession'
+export { getMyPortfolio } from './portfolio/getMyPortfolio'

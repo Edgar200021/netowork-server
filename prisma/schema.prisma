@@ -20,8 +20,23 @@ model User {
   hashedPassword String 
   firstName String @map("first_name")
   lastName  String  @map("last_name")
+  avatar 	String? 
+  aboutMe 	String? @map("about_me")
   isVerified Boolean @default(false) @map("is_verified")
   role      UserRole
+  createdAt DateTime @default(now()) @map("created_at")
+  portfolioJobs PortfolioJob[]
 
   @@map("users")
+}
+
+
+model PortfolioJob {
+	id  String @id @default(uuid())
+	title String 
+	images String[]
+	userId String @map("user_id")
+	user User @relation(fields: [userId], references: [id])
+
+	@@map("portfolio_job")
 }
