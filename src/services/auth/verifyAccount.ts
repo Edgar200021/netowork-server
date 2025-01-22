@@ -1,10 +1,15 @@
 import { User } from '@prisma/client'
+import { Response } from 'express'
 import { prisma, redisClient } from '../../app'
 import { BadRequestError } from '../../common/error'
 import { generateRedisAccountVerificationKey } from '../../common/lib/redis'
+import { SESSION_KEY } from '../../constants/cookie'
 import { VerifyAccountRequest } from '../../contracts/auth/verifyAccount'
+import { generateSession } from './generateSession'
+import { cookieOptions } from './login'
 
 export const verifyAccount = async (
+  res: Response,
   payload: VerifyAccountRequest
 ): Promise<User> => {
   const key = generateRedisAccountVerificationKey(payload.token),
@@ -24,7 +29,8 @@ export const verifyAccount = async (
     )
   }
 
-  await Promise.all([
+  const [uuid] = await Promise.all([
+    generateSession(user.id),
     prisma.user.update({
       data: {
         isVerified: true,
@@ -35,6 +41,8 @@ export const verifyAccount = async (
     }),
     redisClient.del(key),
   ])
+
+  res.cookie(SESSION_KEY, uuid, cookieOptions())
 
   return user
 }

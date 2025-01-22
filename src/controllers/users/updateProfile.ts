@@ -3,20 +3,20 @@ import { UnauthorizedError } from '../../common/error'
 import { handleWrapper } from '../../common/handlerWrapper'
 import { successResponse } from '../../common/response/response'
 import {
-  ChangeAboutMeRequest,
-  ChangeAboutMeResponse,
-} from '../../contracts/users/changeAboutMe'
-import { changeAboutMe as ca } from '../../services/users/chanegAboutMe'
+  UpdateProfileRequest,
+  UpdateProfileResponse,
+} from '../../contracts/users/updateProfile'
+import { updateProfile as up } from '../../services/users/chanegAboutMe'
 
-export const changeAboutMe = handleWrapper(
+export const updateProfile = handleWrapper(
   async (
-    req: Request<{}, {}, ChangeAboutMeRequest>,
-    res: Response<ChangeAboutMeResponse>
+    req: Request<{}, {}, UpdateProfileRequest>,
+    res: Response<UpdateProfileResponse>
   ) => {
     const user = req.user
     if (!user) throw new UnauthorizedError('Не авторизован')
 
-    await ca(user.id, req.body)
+    await up(user.id, req.body)
 
     successResponse<string>(res, 'Данные обновлены')
   }

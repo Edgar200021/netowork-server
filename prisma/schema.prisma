@@ -36,7 +36,7 @@ model PortfolioJob {
 	title String 
 	images String[]
 	userId String @map("user_id")
-	user User @relation(fields: [userId], references: [id])
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
 	@@map("portfolio_job")
 }

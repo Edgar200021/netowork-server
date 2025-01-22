@@ -22,7 +22,7 @@ CREATE TABLE "portfolio_job" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "images" TEXT[],
-    "userId" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
 
     CONSTRAINT "portfolio_job_pkey" PRIMARY KEY ("id")
 );
@@ -31,4 +31,4 @@ CREATE TABLE "portfolio_job" (
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- AddForeignKey
-ALTER TABLE "portfolio_job" ADD CONSTRAINT "portfolio_job_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "portfolio_job" ADD CONSTRAINT "portfolio_job_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

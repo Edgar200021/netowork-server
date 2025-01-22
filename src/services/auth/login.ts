@@ -1,12 +1,12 @@
 import { User } from '@prisma/client'
 import argon2 from 'argon2'
 import { CookieOptions, Response } from 'express'
-import { prisma, redisClient } from '../../app'
+import { prisma } from '../../app'
 import { BadRequestError } from '../../common/error'
-import { generateRedisLoginSessionKey } from '../../common/lib/redis'
 import { config } from '../../config/config'
 import { SESSION_KEY } from '../../constants/cookie'
 import { LoginRequest } from '../../contracts/auth/login'
+import { generateSession } from './generateSession'
 
 export const login = async (
   res: Response,
@@ -19,14 +19,7 @@ export const login = async (
   if (!user.isVerified)
     throw new BadRequestError('Пользователь не верифицирован')
 
-  const uuid = crypto.randomUUID()
-
-  await redisClient.set(
-    generateRedisLoginSessionKey(uuid.toString()),
-    user.id,
-    'EX',
-    config.application.loginSessionTtlInMinutes * 60
-  )
+  const uuid = await generateSession(user.id)
 
   res.cookie(SESSION_KEY, uuid, cookieOptions())
 

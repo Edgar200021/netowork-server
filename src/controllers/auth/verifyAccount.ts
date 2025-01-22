@@ -22,7 +22,7 @@ export const verifyAccount = handleWrapper(
       avatar,
       aboutMe,
       createdAt,
-    } = await verify(req.body)
+    } = await verify(res, req.body)
 
     successResponse<Omit<User, 'hashedPassword' | 'id'>>(res, {
       email,

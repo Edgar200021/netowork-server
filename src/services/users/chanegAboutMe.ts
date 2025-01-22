@@ -1,13 +1,17 @@
 import { User } from '@prisma/client'
 import { prisma } from '../../app'
-import { ChangeAboutMeRequest } from '../../contracts/users/changeAboutMe'
+import { BadRequestError } from '../../common/error'
+import { UpdateProfileRequest } from '../../contracts/users/updateProfile'
 
-export const changeAboutMe = async (
+export const updateProfile = async (
   userId: User['id'],
-  { aboutMe }: ChangeAboutMeRequest
+  { aboutMe, email, firstName, lastName }: UpdateProfileRequest
 ) => {
+  if (email && (await prisma.user.findUnique({ where: { email } })))
+    throw new BadRequestError('Пользователь с таким email уже существует')
+
   await prisma.user.update({
     where: { id: userId },
-    data: { aboutMe },
+    data: { aboutMe, email, firstName, lastName },
   })
 }

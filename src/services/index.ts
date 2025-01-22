@@ -1,4 +1,4 @@
-export { changeAboutMe } from './users/chanegAboutMe';
+export { changePassword } from './users/changePassword';
 export { deleteNotVerifiedUsers } from './auth/deleteNotVerifiedUsers'
 export { forgotPassword } from './auth/forgotPassword'
 export { cookieOptions, login } from './auth/login'
@@ -10,3 +10,4 @@ export { setNewEmailAddress } from './auth/setNewEmailAddress'
 export { verifyAccount } from './auth/verifyAccount'
 export { verifySession } from './auth/verifySession'
 export { getMyPortfolio } from './portfolio/getMyPortfolio'
+export { updateProfile as changeAboutMe } from './users/chanegAboutMe'

@@ -3,10 +3,14 @@ import rateLimit from 'express-rate-limit'
 import { pinoHttp } from 'pino-http'
 import { logger } from '../app'
 import {
-  ChangeAboutMeRequest,
-  changeAboutMeSchema,
-} from '../contracts/users/changeAboutMe'
-import { changeAboutMe, getMe } from '../controllers'
+  ChangePasswordRequest,
+  changePasswordSchema,
+} from '../contracts/users/changePassword'
+import {
+  UpdateProfileRequest,
+  updateProfileSchema,
+} from '../contracts/users/updateProfile'
+import { changePassword, getMe, updateProfile } from '../controllers'
 import { authentication } from '../middlewares/authentication'
 import { validateRequest } from '../middlewares/validateRequest'
 
@@ -27,11 +31,20 @@ userRouter.get(
   getMe
 )
 userRouter.put(
-  '/change-about-me',
+  '/update-profile',
   rateLimit({
     windowMs: 1000 * 60 * 60 * 24,
     limit: 20,
   }),
-  validateRequest(changeAboutMeSchema)<ChangeAboutMeRequest>,
-  changeAboutMe
+  validateRequest(updateProfileSchema)<UpdateProfileRequest>,
+  updateProfile
+)
+userRouter.put(
+  '/change-password',
+  rateLimit({
+    windowMs: 1000 * 60 * 60 * 24,
+    limit: 10,
+  }),
+  validateRequest(changePasswordSchema)<ChangePasswordRequest>,
+  changePassword
 )

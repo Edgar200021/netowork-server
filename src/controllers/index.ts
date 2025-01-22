@@ -1,4 +1,4 @@
-export { changeAboutMe } from './users/changeAboutMe';
+export { changePassword } from './users/changePassword'
 export { forgotPassword } from './auth/forgotPassword'
 export { login } from './auth/login'
 export { logout } from './auth/logout'
@@ -9,3 +9,4 @@ export { setNewEmailAddress } from './auth/setNewEmailAddress'
 export { verifyAccount } from './auth/verifyAccount'
 export { getMyPortfolio } from './portfolio/getMyPortfolio'
 export { getMe } from './users/getMe'
+export { updateProfile } from './users/updateProfile'
