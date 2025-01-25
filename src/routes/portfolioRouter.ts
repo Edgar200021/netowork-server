@@ -1,7 +1,7 @@
 import express from 'express'
 import { pinoHttp } from 'pino-http'
 import { logger } from '../app'
-import { getMyPortfolio } from '../controllers'
+import { deletePortfolioJob, getMyPortfolio } from '../controllers'
 import { authentication } from '../middlewares/authentication'
 import { authorization } from '../middlewares/authorization'
 export const portfolioRouter = express.Router()
@@ -15,3 +15,4 @@ portfolioRouter.use(
 )
 
 portfolioRouter.get('/my-portfolio', getMyPortfolio)
+portfolioRouter.delete('/:id', deletePortfolioJob)

@@ -3,7 +3,7 @@ import { prisma } from '../../app'
 import { BadRequestError } from '../../common/error'
 import { UpdateProfileRequest } from '../../contracts/users/updateProfile'
 
-export const updateProfile = async (
+export const changeAboutMe = async (
   userId: User['id'],
   { aboutMe, email, firstName, lastName }: UpdateProfileRequest
 ) => {

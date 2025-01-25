@@ -1,3 +1,4 @@
+export { deletePortfolioJob } from './portfolio/deletePortfolioJob';
 export { changePassword } from './users/changePassword'
 export { forgotPassword } from './auth/forgotPassword'
 export { login } from './auth/login'
