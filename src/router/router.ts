@@ -25,7 +25,10 @@ export class Router {
       })
     )
 
-    new AuthHandler(app, services.authService, middlewares)
+    app.use(
+      '/api/v1/auth',
+      new AuthHandler(services.authService, middlewares).router()
+    )
 
     app.use('*', (req, res) => {
       res.status(400).end('404')

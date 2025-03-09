@@ -1,5 +1,5 @@
 import vine from '@vinejs/vine'
-import type { Express, Request, Response } from 'express'
+import type { Request, Response } from 'express'
 import { UnauthorizedError } from '../common/error.js'
 import {
   type LoginRequestDto,
@@ -15,18 +15,19 @@ import type { RegisterResponseDto } from '../dto/auth/register/register-response
 import type { Middlewares } from '../middlewares/middlewares.js'
 import type { AuthService } from '../services/auth.service.js'
 import { asyncWrapper } from '../utils/handlerAsyncWrapper.js'
+import { BaseHandler } from './base.handler.js'
 
-export class AuthHandler {
+export class AuthHandler extends BaseHandler {
   private readonly validators = {
     login: vine.compile(loginSchema),
     register: vine.compile(registerSchema),
   }
 
   constructor(
-    private readonly _app: Express,
     private readonly _authService: AuthService,
     private readonly _middlewares: Middlewares
   ) {
+    super()
     this.bindMethods()
     this.setupRoutes()
   }
@@ -67,22 +68,26 @@ export class AuthHandler {
   }
 
   private setupRoutes() {
-    this._app.post(
-      '/auth/login',
+    this._router.post(
+      '/login',
       this._middlewares.validateRequest(this.validators.login),
       asyncWrapper(this.login)
     )
 
-    this._app.post(
-      '/auth/register',
+    this._router.post(
+      '/register',
       this._middlewares.validateRequest(this.validators.register),
       asyncWrapper(this.register)
     )
 
-    this._app.post(
-      '/auth/logout',
+    this._router.post(
+      '/logout',
       this._middlewares.auth,
       asyncWrapper(this.logout)
     )
+  }
+
+  router() {
+    return this._router
   }
 }
