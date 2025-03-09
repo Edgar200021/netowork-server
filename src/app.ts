@@ -8,6 +8,7 @@ import { Middlewares } from './middlewares/middlewares.js'
 import { Router } from './router/router.js'
 import { Services } from './services/services.js'
 import { Database } from './storage/postgres/database.js'
+import { swaggerDocs } from './swagger.js'
 
 export class App {
   private readonly _server: Server
@@ -47,6 +48,8 @@ export class App {
     )
 
     const app = express()
+
+    swaggerDocs(app, Number(config.application.port))
 
     new Router(app, services, middlewares, config.application)
 

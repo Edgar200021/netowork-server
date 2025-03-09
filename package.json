@@ -43,6 +43,8 @@
     "typescript-eslint": "^8.26.0"
   },
   "dependencies": {
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "@vinejs/vine": "^3.0.0",
     "argon2": "^0.41.1",
     "cookie-parser": "^1.4.7",
@@ -53,6 +55,8 @@
     "js-yaml": "^4.1.0",
     "kysely": "^0.27.6",
     "pg": "^8.13.3",
-    "pino": "^9.6.0"
+    "pino": "^9.6.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   }
 }

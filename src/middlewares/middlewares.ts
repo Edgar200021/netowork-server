@@ -5,7 +5,7 @@ import type { Redis } from 'ioredis'
 import type {
   ErrorResponseDto,
   ValidationErrorResponseDto,
-} from '../common/dto/base.js'
+} from '../common/dto/base.dto.js'
 import { AppError, UnauthorizedError } from '../common/error.js'
 import type { LoggerService } from '../common/services/logger.service.js'
 import type { ApplicationConfig } from '../config.js'

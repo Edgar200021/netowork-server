@@ -1,6 +1,35 @@
 import type { UserRole } from '../../storage/db.js'
 import type { User } from '../../storage/postgres/types/user.types.js'
 
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     UserResponseDto:
+ *       type: object
+ *       properties:
+ *         firstName:
+ *           type: string
+ *         lastName:
+ *           type: string
+ *         email:
+ *           type: string
+ *         role:
+ *           type: string
+ *           enum:
+ *             - client
+ *             - freelancer
+ *             - admin
+ *         aboutMe:
+ *           type: string
+ *           default: null
+ *           nullable: true
+ *         avatar:
+ *           type: string
+ *           default: null
+ *           nullable: true
+ */
+
 export class UserResponseDto {
   readonly firstName: string
   readonly lastName: string

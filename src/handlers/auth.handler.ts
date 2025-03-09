@@ -32,6 +32,55 @@ export class AuthHandler extends BaseHandler {
     this.setupRoutes()
   }
 
+/**
+ * @openapi
+ * /api/v1/auth/login:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Login
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequestDto'
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         headers:
+ *           Set-Cookie:
+ *             description: HTTP-only session cookie
+ *             schema:
+ *               type: string
+ *               example: "session=abcdef123456; HttpOnly; Path=/; Max-Age=3600; Secure"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponseDto'
+ *       400:
+ *         description: Bad request or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/ErrorResponseDto'
+ *                 - $ref: '#/components/schemas/ValidationErrorResponseDto'
+ *             examples:
+ *               BadRequest:
+ *                 summary: Bad request error
+ *                 value:
+ *                   status: "error"
+ *                   error: "Invalid request format"
+ *               ValidationError:
+ *                 summary: Validation error
+ *                 value:
+ *                   status: "error"
+ *                   errors:
+ *                     email: "Email is not valid"
+ *                     password: "Password must be at least 8 characters"
+ */
+
   async login(
     req: Request<unknown, LoginResponseDto, LoginRequestDto>,
     res: Response<LoginResponseDto>
@@ -40,6 +89,49 @@ export class AuthHandler extends BaseHandler {
 
     res.status(200).json({ status: 'success', data: user })
   }
+
+  /**
+   * @openapi
+   * /api/v1/auth/register:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: Register
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/RegisterRequestDto'
+   *     responses:
+   *       201:
+   *         description: Registration successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/RegisterResponseDto'
+   *       400:
+   *         description: Bad request or validation error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - $ref: '#/components/schemas/ErrorResponseDto'
+   *                 - $ref: '#/components/schemas/ValidationErrorResponseDto'
+   *             examples:
+   *               BadRequest:
+   *                 summary: General error
+   *                 value:
+   *                   status: "error"
+   *                   error: "Invalid request format"
+   *               ValidationError:
+   *                 summary: Validation error
+   *                 value:
+   *                   status: "error"
+   *                   errors:
+   *                     email: "Email is already in use"
+   *                     password: "Password must be at least 8 characters"
+   */
 
   async register(
     req: Request<unknown, RegisterResponseDto, RegisterRequestDto>,
@@ -52,6 +144,37 @@ export class AuthHandler extends BaseHandler {
       data: 'Message for verification has been sent to your email address',
     })
   }
+
+  /**
+   * @openapi
+   * /api/v1/auth/logout:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: Logout
+   *     description: Logs out the user by clearing the session cookie.
+   *     security:
+   *       - sessionAuth: []
+   *     responses:
+   *       200:
+   *         description: Logout successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/LogoutResponseDto'
+   *       401:
+   *         description: Unauthorized (User is not logged in)
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponseDto'
+   *     cookies:
+   *       session:
+   *         description: Session token used for authentication.
+   *         required: true
+   *         schema:
+   *           type: string
+   */
 
   async logout(req: Request, res: Response<LogoutResponseDto>) {
     if (!req.user) throw new UnauthorizedError('Unauthorized')

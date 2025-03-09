@@ -9,6 +9,47 @@ import {
 import type { UserRole } from '../../../storage/db.js'
 import type { InferInput } from '@vinejs/vine/types'
 
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     RegisterRequestDto:
+ *       type: object
+ *       required:
+ *         - role
+ *         - firstName
+ *         - lastName
+ *         - email
+ *         - password
+ *         - passwordConfirmation
+ *       properties:
+ *         role:
+ *           type: string
+ *           enum:
+ *             - client
+ *             - freelancer
+ *         firstName:
+ *           type: string
+ *           minLength: 2
+ *           maxLength: 50
+ *         lastName:
+ *           type: string
+ *           minLength: 2
+ *           maxLength: 50
+ *         email:
+ *           type: string
+ *           format: email
+ *         password:
+ *           type: string
+ *           minLength: 8
+ *           default: password
+ *         passwordConfirmation:
+ *           type: string
+ *           minLength: 8
+ *           default: password
+ */
+
 export const registerSchema = vine.object({
   role: vine.enum(['client', 'freelancer'] as Exclude<UserRole, 'admin'>[]),
   firstName: vine
