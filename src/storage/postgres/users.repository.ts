@@ -4,13 +4,7 @@ import type { DB } from '../db.js'
 import type { NewUser, User, UserUpdate } from './types/user.types.js'
 
 export class UsersRepository {
-  private static _instance: null | UsersRepository = null
-
-  constructor(private readonly _db: Kysely<DB>) {
-    if (UsersRepository._instance) return UsersRepository._instance
-
-    UsersRepository._instance = this
-  }
+  constructor(private readonly _db: Kysely<DB>) {}
 
   async getAll(): Promise<User[]> {
     const users = await this._db.selectFrom('users').selectAll().execute()

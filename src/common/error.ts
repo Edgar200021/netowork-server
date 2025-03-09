@@ -4,7 +4,8 @@ export class AppError extends Error {
     private readonly _code: number
   ) {
     super(message)
-    Object.setPrototypeOf(this, AppError.prototype)
+    Object.setPrototypeOf(this, new.target.prototype)
+	Error.captureStackTrace(this)
   }
 
   get code() {
@@ -37,12 +38,6 @@ export class ForbiddenError extends AppError {
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message: string) {
-    super(message, 401)
-  }
-}
-
-export class InvalidCredentialsError extends AppError {
   constructor(message: string) {
     super(message, 401)
   }

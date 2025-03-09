@@ -6,9 +6,7 @@ import type { DB } from '../db.js'
 import { UsersRepository } from './users.repository.js'
 
 export class Database {
-  //@ts-ignore
   private readonly _db: Kysely<DB>
-  //@ts-ignore
   private readonly _usersRepository: UsersRepository
   private static _instance: Database
 
@@ -16,9 +14,6 @@ export class Database {
     config: DatabaseConfig,
     private readonly _loggerService: LoggerService
   ) {
-    if (Database._instance) return Database._instance
-    Database._instance = this
-
     const dialect = new PostgresDialect({
       pool: new pkg.Pool({
         database: config.database,
@@ -29,14 +24,11 @@ export class Database {
         ssl: Boolean(config.ssl),
         max: 10,
       }),
-      onCreateConnection: async connection => {
-        this._loggerService.info('Connected to database', connection)
-      },
     })
 
     this._db = new Kysely<DB>({
       dialect,
-	  plugins: [new CamelCasePlugin()]
+      plugins: [new CamelCasePlugin()],
     })
 
     this._usersRepository = new UsersRepository(this._db)
@@ -44,5 +36,13 @@ export class Database {
 
   get usersRepository() {
     return this._usersRepository
+  }
+
+  async close () {
+	await this._db.destroy()
+  }
+
+  async ping() {
+    await this._db.selectFrom('users').selectAll().execute()
   }
 }

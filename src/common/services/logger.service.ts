@@ -7,9 +7,6 @@ export class LoggerService {
   private readonly _logger: Logger | null = null
 
   constructor(readonly config: Config) {
-    if (LoggerService._instance) return LoggerService._instance
-    LoggerService._instance = this
-
     if (config.application.environment === Environment.Production) {
       this._logger = pino(
         {
@@ -53,15 +50,15 @@ export class LoggerService {
     this._logger?.info(message, args)
   }
 
-  debug(message: string) {
-    this._logger?.debug(message)
+  debug(message: string, ...args: unknown[]) {
+    this._logger?.debug(message, args)
   }
 
-  error(message: string) {
-    this._logger?.error(message)
+  error(message: string, ...args: unknown[]) {
+    this._logger?.error(message, args)
   }
 
-  warn(message: string) {
-    this._logger?.warn(message)
+  warn(message: string, ...args: unknown[]) {
+    this._logger?.warn(message, args)
   }
 }
