@@ -5,7 +5,10 @@ export type SuccessResponseDto<T> = {
 
 export type ErrorResponseDto = {
   status: 'error'
-  message: string
+  error: string
 }
 
-export type ValidationErrorResponseDto = Record<string, string[]>
+export type ValidationErrorResponseDto = {
+  status: 'error'
+  errors: Record<string, string>
+}

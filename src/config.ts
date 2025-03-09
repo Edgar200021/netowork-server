@@ -25,7 +25,7 @@ const databaseConfigSchema = vine.object({
   user: vine.string(),
   password: vine.string(),
   database: vine.string(),
-  ssl: vine.boolean(),
+  ssl: vine.boolean({ strict: true }),
 })
 
 const configSchema = vine.object({
@@ -36,9 +36,7 @@ const configSchema = vine.object({
 
 export type ApplicationConfig = InferInput<typeof applicationConfigSchema>
 export type LoggerConfig = InferInput<typeof loggerConfigSchema>
-export type DatabaseConfig = InferInput<typeof databaseConfigSchema> & {
-  connectionString: () => string
-}
+export type DatabaseConfig = InferInput<typeof databaseConfigSchema>
 export type Config = InferInput<typeof configSchema>
 
 const setMethodsOnConfigs = (config: Config) => {
