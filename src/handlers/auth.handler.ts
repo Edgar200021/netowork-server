@@ -32,55 +32,54 @@ export class AuthHandler extends BaseHandler {
     this.setupRoutes()
   }
 
-/**
- * @openapi
- * /api/v1/auth/login:
- *   post:
- *     tags:
- *       - Authentication
- *     summary: Login
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LoginRequestDto'
- *     responses:
- *       200:
- *         description: Login successful
- *         headers:
- *           Set-Cookie:
- *             description: HTTP-only session cookie
- *             schema:
- *               type: string
- *               example: "session=abcdef123456; HttpOnly; Path=/; Max-Age=3600; Secure"
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/LoginResponseDto'
- *       400:
- *         description: Bad request or validation error
- *         content:
- *           application/json:
- *             schema:
- *               oneOf:
- *                 - $ref: '#/components/schemas/ErrorResponseDto'
- *                 - $ref: '#/components/schemas/ValidationErrorResponseDto'
- *             examples:
- *               BadRequest:
- *                 summary: Bad request error
- *                 value:
- *                   status: "error"
- *                   error: "Invalid request format"
- *               ValidationError:
- *                 summary: Validation error
- *                 value:
- *                   status: "error"
- *                   errors:
- *                     email: "Email is not valid"
- *                     password: "Password must be at least 8 characters"
- */
-
+  /**
+   * @openapi
+   * /api/v1/auth/login:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: Login
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/LoginRequestDto'
+   *     responses:
+   *       200:
+   *         description: Login successful
+   *         headers:
+   *           Set-Cookie:
+   *             description: HTTP-only session cookie
+   *             schema:
+   *               type: string
+   *               example: "session=abcdef123456; HttpOnly; Path=/; Max-Age=3600; Secure"
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/LoginResponseDto'
+   *       400:
+   *         description: Bad request or validation error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - $ref: '#/components/schemas/ErrorResponseDto'
+   *                 - $ref: '#/components/schemas/ValidationErrorResponseDto'
+   *             examples:
+   *               BadRequest:
+   *                 summary: Bad request error
+   *                 value:
+   *                   status: "error"
+   *                   error: "Invalid request format"
+   *               ValidationError:
+   *                 summary: Validation error
+   *                 value:
+   *                   status: "error"
+   *                   errors:
+   *                     email: "Email is not valid"
+   *                     password: "Password must be at least 8 characters"
+   */
   async login(
     req: Request<unknown, LoginResponseDto, LoginRequestDto>,
     res: Response<LoginResponseDto>
@@ -132,7 +131,6 @@ export class AuthHandler extends BaseHandler {
    *                     email: "Email is already in use"
    *                     password: "Password must be at least 8 characters"
    */
-
   async register(
     req: Request<unknown, RegisterResponseDto, RegisterRequestDto>,
     res: Response<RegisterResponseDto>
@@ -175,7 +173,6 @@ export class AuthHandler extends BaseHandler {
    *         schema:
    *           type: string
    */
-
   async logout(req: Request, res: Response<LogoutResponseDto>) {
     if (!req.user) throw new UnauthorizedError('Unauthorized')
 

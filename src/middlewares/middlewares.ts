@@ -41,7 +41,10 @@ export class Middlewares {
 
       const user = await this._usersRepository.getByKey('id', Number(userId))
 
-      if (!user) throw new UnauthorizedError("User doesn't exist")
+      if (!user) {
+        await this._redis.del(session)
+        throw new UnauthorizedError("User doesn't exist")
+      }
 
       req.user = user
       next()

@@ -49,7 +49,6 @@ import type { InferInput } from '@vinejs/vine/types'
  *           minLength: 8
  *           default: password
  */
-
 export const registerSchema = vine.object({
   role: vine.enum(['client', 'freelancer'] as Exclude<UserRole, 'admin'>[]),
   firstName: vine
