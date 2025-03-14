@@ -6,10 +6,11 @@ import type {
   ErrorResponseDto,
   ValidationErrorResponseDto,
 } from '../common/dto/base.dto.js'
-import { AppError, UnauthorizedError } from '../common/error.js'
+import { AppError, ForbiddenError, UnauthorizedError } from '../common/error.js'
 import type { LoggerService } from '../common/services/logger.service.js'
 import type { ApplicationConfig } from '../config.js'
 import { SESSION_COOKIE_NAME } from '../const/cookie.js'
+import type { UserRole } from '../storage/db.js'
 import type { UsersRepository } from '../storage/postgres/users.repository.js'
 
 export class Middlewares {
@@ -50,6 +51,21 @@ export class Middlewares {
       next()
     } catch (error) {
       next(error)
+    }
+  }
+
+  restrict(roles: UserRole[]) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      if (!req.user) {
+        return next(new UnauthorizedError('Unauthorized'))
+      }
+
+      if (roles.indexOf(req.user.role) === -1)
+        return next(
+          new ForbiddenError("You don't have permission to perform this action")
+        )
+
+      return next()
     }
   }
 

@@ -10,8 +10,8 @@ import type { ApplicationConfig } from '../config.js'
 import { SESSION_COOKIE_NAME } from '../const/cookie.js'
 import type { LoginRequestDto } from '../dto/auth/login/login-request.dto.js'
 import type { RegisterRequestDto } from '../dto/auth/register/registerRequest.dto.js'
-import { VerifyAccountRequestDto } from '../dto/auth/verifyAccount/verifyAccountRequest.dto.js'
-import { UserResponseDto } from '../dto/users/user-response.dto'
+import type { VerifyAccountRequestDto } from '../dto/auth/verifyAccount/verifyAccountRequest.dto.js'
+import { UserResponseDto } from '../dto/users/user-response.dto.js'
 import type { User } from '../storage/postgres/types/user.types.js'
 import type { UsersRepository } from '../storage/postgres/users.repository.js'
 import { generateRandomToken } from '../utils/createToken.js'
@@ -95,10 +95,13 @@ export class AuthService {
     const email = await this._redis.get(payload.token)
     if (!email) throw new BadRequestError('Invalid token')
 
-    const user = await this._usersRepository.update('email', email, {
-      isVerified: true,
-      updatedAt: new Date(),
-    })
+    const [user] = await Promise.all([
+      this._usersRepository.update('email', email, {
+        isVerified: true,
+        updatedAt: new Date(),
+      }),
+      this._redis.del(payload.token),
+    ])
 
     if (!user) throw new BadRequestError('User not found')
 
