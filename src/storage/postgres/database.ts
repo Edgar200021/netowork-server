@@ -1,5 +1,5 @@
 import { CamelCasePlugin, Kysely, PostgresDialect } from 'kysely'
-import pkg from 'pg'
+import pg from 'pg'
 import type { LoggerService } from '../../common/services/logger.service.js'
 import type { DatabaseConfig } from '../../config.js'
 import type { DB } from '../db.js'
@@ -15,7 +15,7 @@ export class Database {
     private readonly _loggerService: LoggerService
   ) {
     const dialect = new PostgresDialect({
-      pool: new pkg.Pool({
+      pool: new pg.Pool({
         database: config.database,
         host: config.host,
         user: config.user,

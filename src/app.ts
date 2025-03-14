@@ -82,4 +82,8 @@ export class App {
   get port() {
     return (this._server.address() as AddressInfo).port
   }
+
+  get server() {
+    return this._server
+  }
 }
