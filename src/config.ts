@@ -12,7 +12,12 @@ const applicationConfigSchema = vine.object({
   host: vine.string().ipAddress(),
   environment: vine.enum(Environment),
   cookieSecret: vine.string().minLength(32),
+  clientUrl: vine.string().url(),
+  accountVerificationPath: vine.string(),
   sessionTtlInMinutes: vine.number({ strict: true }).range([60, 43800]),
+  accountVerificationTtlInMinutes: vine
+    .number({ strict: true })
+    .range([60, 1440]),
 })
 
 const loggerConfigSchema = vine.object({
@@ -37,17 +42,31 @@ const redisConfigSchema = vine.object({
   database: vine.number({ strict: true }),
 })
 
+const emailConfigSchema = vine.object({
+  host: vine.string(),
+  port: vine
+    .number({ strict: true })
+    .withoutDecimals()
+    .in([587, 465, 25, 2525]),
+  user: vine.string(),
+  password: vine.string(),
+  secure: vine.boolean({ strict: true }),
+  from: vine.string(),
+})
+
 const configSchema = vine.object({
   application: applicationConfigSchema,
   logger: loggerConfigSchema,
   database: databaseConfigSchema,
   redis: redisConfigSchema,
+  email: emailConfigSchema,
 })
 
 export type ApplicationConfig = InferInput<typeof applicationConfigSchema>
 export type LoggerConfig = InferInput<typeof loggerConfigSchema>
 export type DatabaseConfig = InferInput<typeof databaseConfigSchema>
 export type RedisConfig = InferInput<typeof redisConfigSchema>
+export type EmailConfig = InferInput<typeof emailConfigSchema>
 export type Config = InferInput<typeof configSchema>
 
 const setMethodsOnConfigs = (config: Config) => {

@@ -47,18 +47,18 @@ export class LoggerService {
   }
 
   info(message: string, ...args: unknown[]) {
-    this._logger?.info(message, args)
+    this._logger?.info(message, ...args)
   }
 
   debug(message: string, ...args: unknown[]) {
-    this._logger?.debug(message, args)
+    this._logger?.debug(message, ...args)
   }
 
   error(message: string, ...args: unknown[]) {
-    this._logger?.error(message, args)
+    this._logger?.error(message, ...args)
   }
 
   warn(message: string, ...args: unknown[]) {
-    this._logger?.warn(message, args)
+    this._logger?.warn(message, ...args)
   }
 }

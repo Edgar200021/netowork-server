@@ -10,8 +10,13 @@ import type { LogoutResponseDto } from '../dto/auth/logout/logout-response.dto.j
 import {
   type RegisterRequestDto,
   registerSchema,
-} from '../dto/auth/register/register-request.dto.js'
-import type { RegisterResponseDto } from '../dto/auth/register/register-response.dto.js'
+} from '../dto/auth/register/registerRequest.dto.js'
+import type { RegisterResponseDto } from '../dto/auth/register/registerResponse.dt.js'
+import {
+  type VerifyAccountRequestDto,
+  verifyAccountSchema,
+} from '../dto/auth/verifyAccount/verifyAccountRequest.dto.js'
+import type { VerifyAccountResponseDto } from '../dto/auth/verifyAccount/verifyAccountResponse.dto.js'
 import type { Middlewares } from '../middlewares/middlewares.js'
 import type { AuthService } from '../services/auth.service.js'
 import { asyncWrapper } from '../utils/handlerAsyncWrapper.js'
@@ -21,6 +26,7 @@ export class AuthHandler extends BaseHandler {
   private readonly validators = {
     login: vine.compile(loginSchema),
     register: vine.compile(registerSchema),
+    verifyAccount: vine.compile(verifyAccountSchema),
   }
 
   constructor(
@@ -145,6 +151,56 @@ export class AuthHandler extends BaseHandler {
 
   /**
    * @openapi
+   * /api/v1/auth/verify-account:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: Account Verification
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/VerifyAccountRequestDto'
+   *     responses:
+   *       200:
+   *         description: Account verification successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/VerifyAccountResponseDto'
+   *       400:
+   *         description: Bad request or validation error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - $ref: '#/components/schemas/ErrorResponseDto'
+   *                 - $ref: '#/components/schemas/ValidationErrorResponseDto'
+   *             examples:
+   *               BadRequest:
+   *                 summary: Bad request error
+   *                 value:
+   *                   status: "error"
+   *                   error: "Invalid request format"
+   *               ValidationError:
+   *                 summary: Validation error
+   *                 value:
+   *                   status: "error"
+   *                   errors:
+   *                     token: "Token is not valid"
+   */
+  async verifyAccount(
+    req: Request<unknown, VerifyAccountResponseDto, VerifyAccountRequestDto>,
+    res: Response<VerifyAccountResponseDto>
+  ) {
+    const user = await this._authService.verifYAccount(req.body)
+
+    res.status(200).json({ status: 'success', data: user })
+  }
+
+  /**
+   * @openapi
    * /api/v1/auth/logout:
    *   post:
    *     tags:
@@ -185,6 +241,7 @@ export class AuthHandler extends BaseHandler {
     this.login = this.login.bind(this)
     this.register = this.register.bind(this)
     this.logout = this.logout.bind(this)
+    this.verifyAccount = this.verifyAccount.bind(this)
   }
 
   private setupRoutes() {
@@ -198,6 +255,12 @@ export class AuthHandler extends BaseHandler {
       '/register',
       this._middlewares.validateRequest(this.validators.register),
       asyncWrapper(this.register)
+    )
+
+    this._router.patch(
+      '/account-verification',
+      this._middlewares.validateRequest(this.validators.verifyAccount),
+      asyncWrapper(this.verifyAccount)
     )
 
     this._router.post(

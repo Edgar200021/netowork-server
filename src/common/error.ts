@@ -5,7 +5,7 @@ export class AppError extends Error {
   ) {
     super(message)
     Object.setPrototypeOf(this, new.target.prototype)
-	Error.captureStackTrace(this)
+    Error.captureStackTrace(this)
   }
 
   get code() {

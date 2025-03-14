@@ -1,5 +1,4 @@
-import type { Kysely } from 'kysely'
-import { ReferenceExpression } from 'kysely'
+import type { Kysely, ReferenceExpression } from 'kysely'
 import type { DB } from '../db.js'
 import type { NewUser, User, UserUpdate } from './types/user.types.js'
 
@@ -35,11 +34,18 @@ export class UsersRepository {
     return id
   }
 
-  async update(id: User['id'], userUpdate: UserUpdate) {
-    await this._db
+  async update<T extends keyof Pick<User, 'id' | 'email'>>(
+    key: T,
+    value: User[T],
+    userUpdate: UserUpdate
+  ): Promise<User | undefined> {
+    const user = await this._db
       .updateTable('users')
       .set(userUpdate)
-      .where('id', '=', id)
-      .execute()
+      .where(key as ReferenceExpression<DB, 'users'>, '=', value)
+      .returningAll()
+      .executeTakeFirst()
+
+    return user
   }
 }

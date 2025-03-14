@@ -2,6 +2,7 @@ import express from 'express'
 import { Redis } from 'ioredis'
 import http, { type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
+import { Environment } from './common/enums/environment.enum.js'
 import type { LoggerService } from './common/services/logger.service.js'
 import type { Config } from './config.js'
 import { Middlewares } from './middlewares/middlewares.js'
@@ -49,7 +50,9 @@ export class App {
 
     const app = express()
 
-    swaggerDocs(app, Number(config.application.port))
+    if (config.application.environment === Environment.Development) {
+      swaggerDocs(app, Number(config.application.port))
+    }
 
     new Router(app, services, middlewares, config.application)
 
@@ -71,8 +74,6 @@ export class App {
         this._server.close()
       })
     }
-
-    console.log(this._port)
 
     this._server.listen(this._port, () =>
       this._loggerService.info(`Listening on port ${this._port}`)
