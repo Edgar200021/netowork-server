@@ -1,5 +1,5 @@
 import { expect, describe } from 'vitest'
-import { spawnApp } from '../test-app.js'
+import { spawnApp } from '../testApp.js'
 import { createValidationError } from '../utils.js'
 
 describe('Authentication', () => {

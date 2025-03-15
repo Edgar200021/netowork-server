@@ -26,6 +26,10 @@ export class LoggerService {
             level: 'error',
             stream: destination(config.logger.errorLogsPath!),
           },
+          {
+            level: 'fatal',
+            stream: destination(config.logger.errorLogsPath!),
+          },
         ])
       )
 
@@ -46,19 +50,38 @@ export class LoggerService {
     })
   }
 
-  info(message: string, ...args: unknown[]) {
-    this._logger?.info(message, ...args)
+  info(message: string, ...args: any[]): void
+  info(obj: object, message?: string, ...args: any[]): void
+  info(error: Error, message?: string, ...args: any[]): void
+  info(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
+    this._logger?.info(arg1 as any, arg2, ...args)
   }
 
-  debug(message: string, ...args: unknown[]) {
-    this._logger?.debug(message, ...args)
+  debug(message: string, ...args: any[]): void
+  debug(obj: object, message?: string, ...args: any[]): void
+  debug(error: Error, message?: string, ...args: any[]): void
+  debug(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
+    this._logger?.debug(arg1 as any, arg2, ...args)
   }
 
-  error(message: string, ...args: unknown[]) {
-    this._logger?.error(message, ...args)
+  warn(message: string, ...args: any[]): void
+  warn(obj: object, message?: string, ...args: any[]): void
+  warn(error: Error, message?: string, ...args: any[]): void
+  warn(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
+    this._logger?.warn(arg1 as any, arg2, ...args)
   }
 
-  warn(message: string, ...args: unknown[]) {
-    this._logger?.warn(message, ...args)
+  error(message: string, ...args: any[]): void
+  error(obj: object, message?: string, ...args: any[]): void
+  error(error: Error, message?: string, ...args: any[]): void
+  error(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
+    this._logger?.error(arg1 as any, arg2, ...args)
+  }
+
+  fatal(message: string, ...args: any[]): void
+  fatal(obj: object, message?: string, ...args: any[]): void
+  fatal(error: Error, message?: string, ...args: any[]): void
+  fatal(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
+    this._logger?.fatal(arg1 as any, arg2, ...args)
   }
 }

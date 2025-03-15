@@ -1,5 +1,5 @@
 import type { SuccessResponseDto } from '../../../common/dto/base.dto.js'
-import type { UserResponseDto } from '../../users/user-response.dto.js'
+import type { UserResponseDto } from '../../users/userResponse.dto.js'
 
 /**
  * @openapi

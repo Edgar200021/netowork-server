@@ -26,17 +26,18 @@ export class App {
     const redis = new Redis({
       host: config.redis.host,
       port: Number(config.redis.port),
+      username: config.redis.user,
       password: config.redis.password,
       db: Number(config.redis.database),
     })
 
     database.ping().catch(err => {
-      this._loggerService.error(`Database connection error: ${err}`)
+      this._loggerService.fatal(`Database connection error: ${err}`)
       process.exit(1)
     })
 
     redis.ping().catch(err => {
-      this._loggerService.error(`Redis connection error: ${err}`)
+      this._loggerService.fatal(`Redis connection error: ${err}`)
       process.exit(1)
     })
 
@@ -65,19 +66,39 @@ export class App {
   }
 
   run() {
-    for (const signal of ['SIGTERM', 'SIGINT']) {
-      process.on(signal, async () => {
-        console.log('Shutting down...')
-
-        await this._database.close()
-        this._redis.disconnect()
-        this._server.close()
-      })
-    }
+    this.shutdown(['SIGINT', 'SIGTERM'], 0, () =>
+      console.log('Shutting down...')
+    )
+    this.shutdown(
+      ['uncaughtException', 'unhandledRejection'],
+      1,
+      (error?: Error) => {
+        error
+          ? this._loggerService.fatal(error)
+          : this._loggerService.fatal('Unknown error')
+      }
+    )
 
     this._server.listen(this._port, () =>
       this._loggerService.info(`Listening on port ${this._port}`)
     )
+  }
+
+  private shutdown(
+    signals: (NodeJS.Signals | 'uncaughtException' | 'unhandledRejection')[],
+    exitCode: number,
+    cb?: (err?: Error) => void
+  ) {
+    for (const signal of signals) {
+      process.on(signal, async err => {
+        cb?.(err)
+        await this._database.close()
+        this._redis.disconnect()
+        this._server.close()
+
+        process.exit(exitCode)
+      })
+    }
   }
 
   get port() {

@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, openSync, readFileSync } from 'node:fs'
 import { constants } from 'node:fs/promises'
 import path from 'node:path'
 import { Environment } from './common/enums/environment.enum.js'
-import { LogLevel } from './common/enums/log-level.enum.js'
+import { LogLevel } from './common/enums/logLevel.enum.js'
 
 const applicationConfigSchema = vine.object({
   port: vine.number({ strict: true }).range([0, 65535]),
@@ -38,6 +38,7 @@ const databaseConfigSchema = vine.object({
 const redisConfigSchema = vine.object({
   host: vine.string().ipAddress(),
   port: vine.number({ strict: true }).withoutDecimals().range([0, 65535]),
+  user: vine.string(),
   password: vine.string(),
   database: vine.number({ strict: true }),
 })

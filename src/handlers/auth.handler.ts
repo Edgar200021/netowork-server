@@ -1,12 +1,12 @@
 import vine from '@vinejs/vine'
 import type { Request, Response } from 'express'
 import { UnauthorizedError } from '../common/error.js'
+import type { LoginResponseDto } from '../dto/auth/login/loginResponse.dto.js'
 import {
   type LoginRequestDto,
   loginSchema,
-} from '../dto/auth/login/login-request.dto.js'
-import type { LoginResponseDto } from '../dto/auth/login/login-response.dto.js'
-import type { LogoutResponseDto } from '../dto/auth/logout/logout-response.dto.js'
+} from '../dto/auth/login/loginRequest.dto.js'
+import type { LogoutResponseDto } from '../dto/auth/logout/logoutResponse.dto.js'
 import {
   type RegisterRequestDto,
   registerSchema,

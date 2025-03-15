@@ -8,7 +8,7 @@ import { App } from '../src/app.js'
 import { LoggerService } from '../src/common/services/logger.service.js'
 import { readConfig } from '../src/config.js'
 import type { DB } from '../src/storage/db.js'
-import { setupDb } from './setup-db.js'
+import { setupDb } from './setupDb.js'
 
 export class TestApp {
   constructor(
