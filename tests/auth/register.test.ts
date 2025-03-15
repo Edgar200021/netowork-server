@@ -16,6 +16,8 @@ describe('Authentication', () => {
       })
 
       expect(response.statusCode).toBe(201)
+
+      await app.close()
     })
 
     it('Register with invalid data returns 400 status code', async () => {
@@ -40,7 +42,7 @@ describe('Authentication', () => {
             lastName: 'Doe',
             email: 'test@mail.com',
           },
-          resBody: createValidationError('password', 'passwordConfirmation'),
+          resBody: createValidationError('password'),
         },
         {
           reqBody: {
@@ -50,12 +52,7 @@ describe('Authentication', () => {
             email: 'easatr',
             password: 'passw',
           },
-          resBody: createValidationError(
-            'role',
-            'email',
-            'password',
-            'passwordConfirmation'
-          ),
+          resBody: createValidationError('role', 'email', 'password'),
         },
         {
           reqBody: {
@@ -66,28 +63,23 @@ describe('Authentication', () => {
             password: 'password',
             passwordConfirmation: 'differentPassword',
           },
-          resBody: createValidationError(
-            'role',
-            'email',
-            'password',
-            'passwordConfirmation'
-          ),
+          resBody: createValidationError('password'),
         },
       ]
 
-      await Promise.all([
-        testCases.map(async testCase => {
-          const response = await app.register(testCase.reqBody)
+      for (const testCase of testCases) {
+        const response = await app.register(testCase.reqBody)
 
-          expect(response.status).toBe(400)
-          expect(Object.keys(response.body)).toEqual(
-            Object.keys(testCase.resBody)
-          )
-          expect(Object.keys(response.body.errors)).toEqual(
-            Object.keys(testCase.resBody.errors)
-          )
-        }),
-      ])
+        expect(response.status).toBe(400)
+        expect(Object.keys(response.body)).toEqual(
+          Object.keys(testCase.resBody)
+        )
+        expect(Object.keys(response.body.errors)).toEqual(
+          Object.keys(testCase.resBody.errors)
+        )
+      }
+
+      await app.close()
     })
 
     it('Register with existing email returns 400 status code', async () => {
@@ -107,6 +99,8 @@ describe('Authentication', () => {
 
       expect(response.status).toBe(400)
       expect(Object.keys(createBaseError())).toEqual(Object.keys(response.body))
+
+      await app.close()
     })
 
     it('After registering, data must be stored in the database', async () => {
@@ -137,6 +131,8 @@ describe('Authentication', () => {
       expect(dbData?.lastName).toBe(data.lastName)
       expect(dbData?.password).not.toBe(data.password)
       expect(dbData?.isVerified).toBe(false)
+
+      await app.close()
     })
 
     it('After successful registration, an email should be sent', async () => {
@@ -164,6 +160,7 @@ describe('Authentication', () => {
       expect(
         app.services.emailService.sendVerificationEmail
       ).toHaveBeenCalledWith(data.email, expect.any(String), expect.any(Object))
+      await app.close()
     })
 
     it('After registration, verification token should be saved in Redis', async () => {
@@ -182,6 +179,8 @@ describe('Authentication', () => {
       await app.register(data)
 
       expect(app.redis.set).toHaveBeenCalledTimes(1)
+
+      await app.close()
     })
   })
 })

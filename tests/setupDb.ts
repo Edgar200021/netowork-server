@@ -22,7 +22,7 @@ ts.register({
 export const setupDb = async (
   postgresConfig: DatabaseConfig,
   redisConfig: RedisConfig
-): Promise<{ postgres: Kysely<DB>; redis: Redis }> => {
+): Promise<Kysely<DB>> => {
   try {
     const pool = new pg.Pool({
       host: postgresConfig.host,
@@ -33,22 +33,12 @@ export const setupDb = async (
       max: 10,
     })
 
-    const redis = new Redis({
-      host: redisConfig.host,
-      port: Number(redisConfig.port),
-      password: redisConfig.password,
-      db: Number(redisConfig.database),
-    })
-
     await asyncExec(
       path.join(import.meta.dirname, '../scripts/deleteTestDatabases.sh')
     ).catch(console.error)
 
-    await Promise.all([
-      redis.flushdb(),
-      pool.query(`CREATE DATABASE "${postgresConfig.database}";`),
-      redis.ping(),
-    ])
+    await pool.query(`CREATE DATABASE "${postgresConfig.database}";`)
+      await pool.end()
 
     const mainPool = new pg.Pool({
       host: postgresConfig.host,
@@ -87,10 +77,10 @@ export const setupDb = async (
 
     if (error) {
       console.error('Failed to run migrations', error)
-      process.exit(1)
+      throw new Error('Migration failed')
     }
 
-    return { postgres: db, redis }
+    return db
   } catch (error) {
     console.error('Failed to setup database for testing', error)
     process.exit(1)

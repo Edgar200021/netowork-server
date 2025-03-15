@@ -1,4 +1,5 @@
 import vine from '@vinejs/vine'
+import type { InferInput } from '@vinejs/vine/types'
 import {
   MAX_FIRST_NAME_LENGTH,
   MAX_LAST_NAME_LENGTH,
@@ -7,8 +8,6 @@ import {
   MIN_PASSWORD_LENGTH,
 } from '../../../const/validator.js'
 import type { UserRole } from '../../../storage/db.js'
-import type { InferInput } from '@vinejs/vine/types'
-
 
 /**
  * @openapi
@@ -65,6 +64,5 @@ export const registerSchema = vine.object({
     .minLength(MIN_PASSWORD_LENGTH)
     .confirmed({ confirmationField: 'passwordConfirmation' }),
 })
-
 
 export type RegisterRequestDto = InferInput<typeof registerSchema>

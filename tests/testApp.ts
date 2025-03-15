@@ -56,6 +56,8 @@ export class TestApp {
   }
 
   async close() {
+    await this.database.destroy()
+    this.redis.disconnect()
     await this.app.close()
   }
 }
@@ -69,12 +71,14 @@ export const spawnApp = async (): Promise<TestApp> => {
   settings.redis.database = 15
   settings.database.database = crypto.randomUUID().toString()
 
-  const { postgres, redis } = await setupDb(settings.database, settings.redis)
+  const db = await setupDb(settings.database, settings.redis)
   const app = new App(settings, logger)
+
+  await app.redis.flushdb()
 
   app.run()
 
   const test = supertest(app.server)
 
-  return new TestApp(app, postgres, redis, app.services, test)
+  return new TestApp(app, db, app.redis, app.services, test)
 }

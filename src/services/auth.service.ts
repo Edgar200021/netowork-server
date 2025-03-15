@@ -2,7 +2,7 @@ import type { CookieOptions, Request, Response } from 'express'
 import type { Redis } from 'ioredis'
 import crypto, { type UUID } from 'node:crypto'
 import { Environment } from '../common/enums/environment.enum.js'
-import { AppError, BadRequestError } from '../common/error.js'
+import { AppError, BadRequestError, NotFoundError } from '../common/error.js'
 import type { EmailService } from '../common/services/email.service.js'
 import type { HashingService } from '../common/services/hashing.service.js'
 import type { LoggerService } from '../common/services/logger.service.js'
@@ -131,7 +131,7 @@ export class AuthService {
     const email = await this._redis.get(payload.token)
     if (!email) {
       log.warn({ token: payload.token }, 'Not found token in redis')
-      throw new BadRequestError('Invalid token')
+      throw new NotFoundError('Invalid token')
     }
 
     const [user] = await Promise.all([
@@ -144,7 +144,7 @@ export class AuthService {
 
     if (!user) {
       log.warn({ email }, 'User not found')
-      throw new BadRequestError('User not found')
+      throw new NotFoundError('User not found')
     }
 
     return new UserResponseDto(user)
