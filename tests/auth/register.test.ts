@@ -6,6 +6,7 @@ describe('Authentication', () => {
   describe('Register', () => {
     it('Register with valid data returns 201 status code', async () => {
       const app = await spawnApp()
+
       const response = await app.register({
         role: 'client',
         firstName: 'Thomas',

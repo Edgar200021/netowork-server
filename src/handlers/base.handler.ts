@@ -1,7 +1,10 @@
 import { Router } from 'express'
 
-export class BaseHandler {
+export abstract class BaseHandler {
   protected readonly _router: Router
+
+  protected abstract bindMethods(): void
+  protected abstract setupRoutes(): void
 
   constructor() {
     this._router = Router()

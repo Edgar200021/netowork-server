@@ -44,7 +44,7 @@ describe('Authentication', () => {
         expect(response.body.data).toHaveProperty(property)
       }
 
-      app.close()
+      await app.close()
     })
 
     it('Account Verification with invalid token returns 404 status code', async () => {
@@ -60,6 +60,8 @@ describe('Authentication', () => {
 
       expect(getSpy).toHaveBeenCalledTimes(1)
       expect(getSpy).toHaveBeenCalledWith('invalid-token')
+
+	  await app.close()
     })
   })
 
@@ -80,15 +82,17 @@ describe('Authentication', () => {
 
     expect(token).not.toBeNull()
 
-	await app.redis.expire(token, 0)
+    await app.redis.expire(token, 0)
     const response = await app.verify(token)
 
-	expect(response.statusCode).toBe(404)
-	expect(response.body).toBeTypeOf('object')
-	expect(response.body).toHaveProperty('status')
-	expect(response.body).toHaveProperty('error')
+    expect(response.statusCode).toBe(404)
+    expect(response.body).toBeTypeOf('object')
+    expect(response.body).toHaveProperty('status')
+    expect(response.body).toHaveProperty('error')
 
-	expect(getSpy).toHaveBeenCalledTimes(1)
-	expect(getSpy).toBeCalledWith(token)
+    expect(getSpy).toHaveBeenCalledTimes(1)
+    expect(getSpy).toBeCalledWith(token)
+
+	await app.close()
   })
 })

@@ -24,7 +24,7 @@ export class EmailService {
         pass: password,
       },
       secure: Boolean(secure),
-	  requireTLS:true,
+      requireTLS: true,
       from,
     })
   }
@@ -57,6 +57,37 @@ export class EmailService {
         error
       )
       throw new InternalServerError('Failed to send verification email')
+    }
+  }
+
+  async sendResetPasswordEmail(
+    to: string,
+    token: string,
+    logger?: LoggerService
+  ) {
+    const log = logger ?? this._logger
+    const subject = 'Password Reset'
+    const url = `${this._clientUrl}${this._accountVerificationPath}?token=${encodeURIComponent(token)}`
+
+    const text = `Please click the link to reset your password: ${url}`
+    const html = `<p>Please click the link to reset your password: <a href="${url}">${url}</a></p>`
+
+    try {
+      await this._transport.sendMail({
+        to,
+        subject,
+        text,
+        html,
+      })
+    } catch (error) {
+      log.error(
+        {
+          email: to,
+          error: error instanceof Error ? error.message : error,
+        },
+        'Failed to send reset password email',
+        error
+      )
     }
   }
 }

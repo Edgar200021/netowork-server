@@ -18,6 +18,7 @@ import type { ApplicationConfig } from '../config.js'
 import { SESSION_COOKIE_NAME } from '../const/cookie.js'
 import type { UserRole } from '../storage/db.js'
 import type { UsersRepository } from '../storage/postgres/users.repository.js'
+import { generateUserError } from '../utils/generateUserError.js'
 
 export class Middlewares {
   constructor(
@@ -57,10 +58,13 @@ export class Middlewares {
 
       const user = await this._usersRepository.getByKey('id', Number(userId))
 
-      if (!user) {
-        log.warn({ userId, sessionId: session }, 'User not found')
+      if (!user || !user.isVerified || user.isBanned) {
+        const { message, error } = generateUserError(user)
+
+        log.warn({ userId, sessionId: session }, message)
+
         await this._redis.del(session)
-        throw new UnauthorizedError("User doesn't exist")
+        throw error
       }
 
       req.user = user
@@ -88,11 +92,14 @@ export class Middlewares {
       }
 
       if (roles.indexOf(req.user.role) === -1) {
-		log.warn({user: req.user}, "Does not have permission to perform this action")
+        log.warn(
+          { user: req.user },
+          'Does not have permission to perform this action'
+        )
         return next(
           new ForbiddenError("You don't have permission to perform this action")
         )
-	}
+      }
 
       return next()
     }

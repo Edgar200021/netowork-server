@@ -14,10 +14,12 @@ const applicationConfigSchema = vine.object({
   cookieSecret: vine.string().minLength(32),
   clientUrl: vine.string().url(),
   accountVerificationPath: vine.string(),
+  resetPasswordPath: vine.string(),
   sessionTtlInMinutes: vine.number({ strict: true }).range([60, 43800]),
   accountVerificationTtlInMinutes: vine
     .number({ strict: true })
     .range([60, 1440]),
+  resetPasswordTtlInMinutes: vine.number({ strict: true }).range([10, 15]),
 })
 
 const loggerConfigSchema = vine.object({

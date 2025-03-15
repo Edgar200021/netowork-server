@@ -2,6 +2,11 @@ import vine from '@vinejs/vine'
 import type { Request, Response } from 'express'
 import { UnauthorizedError } from '../common/error.js'
 import {
+  type ForgotPasswordRequestDto,
+  forgotPasswordSchema,
+} from '../dto/auth/forgotPassword/forgotPasswordRequest.dto.js'
+import type { ForgotPasswordResponseDto } from '../dto/auth/forgotPassword/forgotPasswordResponse.dto.js'
+import {
   type LoginRequestDto,
   loginSchema,
 } from '../dto/auth/login/loginRequest.dto.js'
@@ -27,6 +32,7 @@ export class AuthHandler extends BaseHandler {
     login: vine.compile(loginSchema),
     register: vine.compile(registerSchema),
     verifyAccount: vine.compile(verifyAccountSchema),
+    forgotPassword: vine.compile(forgotPasswordSchema),
   }
 
   constructor(
@@ -237,14 +243,67 @@ export class AuthHandler extends BaseHandler {
     res.status(200).json({ status: 'success', data: 'Logout successful' })
   }
 
-  private bindMethods() {
+  /**
+   * @openapi
+   * /api/v1/auth/forgot-password:
+   *   post:
+   *     tags:
+   *       - Authentication
+   *     summary: Forgot Password
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/ForgotPasswordRequestDto'
+   *     responses:
+   *       200:
+   *         description: Email with password reset instructions has been sent to your email
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ForgotPasswordResponseDto'
+   *       400:
+   *         description: Bad request or validation error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - $ref: '#/components/schemas/ErrorResponseDto'
+   *                 - $ref: '#/components/schemas/ValidationErrorResponseDto'
+   *             examples:
+   *               BadRequest:
+   *                 summary: Bad request error
+   *                 value:
+   *                   status: "error"
+   *                   error: "Invalid request format"
+   *               ValidationError:
+   *                 summary: Validation error
+   *                 value:
+   *                   status: "error"
+   *                   errors:
+   *                     email: "Email is not valid"
+   */
+  async forgotPassword(
+    req: Request<unknown, ForgotPasswordResponseDto, ForgotPasswordRequestDto>,
+    res: Response<ForgotPasswordResponseDto>
+  ) {
+    await this._authService.forgotPassword(req.body, req.logger)
+    res.status(200).json({
+      status: 'success',
+      data: 'Email with password reset instructions has been sent to your email',
+    })
+  }
+
+  protected bindMethods() {
     this.login = this.login.bind(this)
     this.register = this.register.bind(this)
     this.logout = this.logout.bind(this)
     this.verifyAccount = this.verifyAccount.bind(this)
+    this.forgotPassword = this.forgotPassword.bind(this)
   }
 
-  private setupRoutes() {
+  protected setupRoutes() {
     this._router.post(
       '/login',
       this._middlewares.validateRequest(this.validators.login),
@@ -261,6 +320,12 @@ export class AuthHandler extends BaseHandler {
       '/account-verification',
       this._middlewares.validateRequest(this.validators.verifyAccount),
       asyncWrapper(this.verifyAccount)
+    )
+
+    this._router.post(
+      '/forgot-password',
+      this._middlewares.validateRequest(this.validators.forgotPassword),
+      asyncWrapper(this.forgotPassword)
     )
 
     this._router.post(

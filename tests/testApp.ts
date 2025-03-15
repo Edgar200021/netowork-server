@@ -48,6 +48,15 @@ export class TestApp {
     return response
   }
 
+  async forgotPassword(body: object) {
+    const response = await this.superTest
+      .post('/api/v1/auth/forgot-password')
+      .set('Content-Type', 'application/json')
+      .send(body)
+
+    return response
+  }
+
   async createAndVerify(body: object) {
     await this.register(body)
     const token = (await this.redis.keys('*'))[0]

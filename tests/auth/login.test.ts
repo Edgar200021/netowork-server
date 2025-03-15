@@ -111,6 +111,8 @@ describe('Authentication', () => {
       expect(response.body).toBeTypeOf('object')
       expect(response.body).toHaveProperty('status')
       expect(response.body).toHaveProperty('error')
+
+	  await app.close()
     })
 
     it('Login with banned account returns 403 status code', async () => {
@@ -142,6 +144,8 @@ describe('Authentication', () => {
       expect(response.body).toBeTypeOf('object')
       expect(response.body).toHaveProperty('status')
       expect(response.body).toHaveProperty('error')
+
+	  await app.close()
     })
   })
 })

@@ -2,12 +2,13 @@ import type { CookieOptions, Request, Response } from 'express'
 import type { Redis } from 'ioredis'
 import crypto, { type UUID } from 'node:crypto'
 import { Environment } from '../common/enums/environment.enum.js'
-import { AppError, BadRequestError, NotFoundError } from '../common/error.js'
+import { BadRequestError, NotFoundError } from '../common/error.js'
 import type { EmailService } from '../common/services/email.service.js'
 import type { HashingService } from '../common/services/hashing.service.js'
 import type { LoggerService } from '../common/services/logger.service.js'
 import type { ApplicationConfig } from '../config.js'
 import { SESSION_COOKIE_NAME } from '../const/cookie.js'
+import type { ForgotPasswordRequestDto } from '../dto/auth/forgotPassword/forgotPasswordRequest.dto.js'
 import type { LoginRequestDto } from '../dto/auth/login/loginRequest.dto.js'
 import type { RegisterRequestDto } from '../dto/auth/register/registerRequest.dto.js'
 import type { VerifyAccountRequestDto } from '../dto/auth/verifyAccount/verifyAccountRequest.dto.js'
@@ -15,6 +16,7 @@ import { UserResponseDto } from '../dto/users/userResponse.dto.js'
 import type { User } from '../storage/postgres/types/user.types.js'
 import type { UsersRepository } from '../storage/postgres/users.repository.js'
 import { generateRandomToken } from '../utils/createToken.js'
+import { generateUserError } from '../utils/generateUserError.js'
 
 export class AuthService {
   constructor(
@@ -39,14 +41,10 @@ export class AuthService {
     log.info(`Authenticating user: ${payload.email}`)
 
     if (!user || !user.isVerified || user.isBanned) {
-      const message = !user
-        ? 'Invalid credentials'
-        : !user.isVerified
-          ? 'User is not verified'
-          : 'User is banned'
-      const code = !user || !user.isVerified ? 400 : 403
+      const { message, error } = generateUserError(user, {notFoundCode: 400})
 
-      throw new AppError(message, code)
+      log.warn({ email: payload.email }, message)
+      throw error
     }
 
     if (!(await this._hashingService.verify(payload.password, user.password))) {
@@ -148,6 +146,35 @@ export class AuthService {
     }
 
     return new UserResponseDto(user)
+  }
+
+  async forgotPassword(
+    payload: ForgotPasswordRequestDto,
+    logger?: LoggerService
+  ): Promise<void> {
+    const log = logger ?? this._logger
+
+    log.info({ email: payload.email }, 'Forgot password')
+
+    const user = await this._usersRepository.getByKey('email', payload.email)
+    if (!user || !user.isVerified || user.isBanned) {
+      const { message, error } = generateUserError(user)
+
+      log.warn({ email: payload.email }, message)
+      throw error
+    }
+
+    const token = generateRandomToken()
+
+    await Promise.all([
+      this._redis.set(
+        token,
+        user.id,
+        'EX',
+        Number(this._applicationConfig.resetPasswordTtlInMinutes) * 60
+      ),
+      this._emailService.sendResetPasswordEmail(payload.email, token, log),
+    ])
   }
 
   private async generateSession(user: User): Promise<UUID> {
