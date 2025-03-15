@@ -1,30 +1,70 @@
-import { Kysely, type Migration, Migrator, PostgresDialect } from 'kysely'
+import { Redis } from 'ioredis'
+import {
+  CamelCasePlugin,
+  Kysely,
+  type Migration,
+  Migrator,
+  PostgresDialect,
+} from 'kysely'
+import { exec } from 'node:child_process'
+import path from 'node:path'
+import { promisify } from 'node:util'
 import pg from 'pg'
 import ts from 'ts-node'
-import type { DatabaseConfig } from '../src/config.js'
+import type { DatabaseConfig, RedisConfig } from '../src/config.js'
 import type { DB } from '../src/storage/db.js'
+const asyncExec = promisify(exec)
 
 ts.register({
   transpileOnly: true,
 })
 
-export const setupDb = async (config: DatabaseConfig): Promise<Kysely<DB>> => {
+export const setupDb = async (
+  postgresConfig: DatabaseConfig,
+  redisConfig: RedisConfig
+): Promise<{ postgres: Kysely<DB>; redis: Redis }> => {
   try {
     const pool = new pg.Pool({
-      host: config.host,
-      user: config.user,
-      port: Number(config.port),
-      password: config.password,
-      ssl: Boolean(config.ssl),
+      host: postgresConfig.host,
+      user: postgresConfig.user,
+      port: Number(postgresConfig.port),
+      password: postgresConfig.password,
+      ssl: Boolean(postgresConfig.ssl),
       max: 10,
     })
 
-    await pool.query(`CREATE DATABASE "${config.database}";`)
+    const redis = new Redis({
+      host: redisConfig.host,
+      port: Number(redisConfig.port),
+      password: redisConfig.password,
+      db: Number(redisConfig.database),
+    })
+
+    await asyncExec(
+      path.join(import.meta.dirname, '../scripts/deleteTestDatabases.sh')
+    ).catch(console.error)
+
+    await Promise.all([
+      redis.flushdb(),
+      pool.query(`CREATE DATABASE "${postgresConfig.database}";`),
+      redis.ping(),
+    ])
+
+    const mainPool = new pg.Pool({
+      host: postgresConfig.host,
+      user: postgresConfig.user,
+      port: Number(postgresConfig.port),
+      password: postgresConfig.password,
+      ssl: Boolean(postgresConfig.ssl),
+      database: postgresConfig.database,
+      max: 10,
+    })
 
     const db = new Kysely<DB>({
       dialect: new PostgresDialect({
-        pool,
+        pool: mainPool,
       }),
+      plugins: [new CamelCasePlugin()],
     })
 
     const migrator = new Migrator({
@@ -50,7 +90,7 @@ export const setupDb = async (config: DatabaseConfig): Promise<Kysely<DB>> => {
       process.exit(1)
     }
 
-    return db
+    return { postgres: db, redis }
   } catch (error) {
     console.error('Failed to setup database for testing', error)
     process.exit(1)

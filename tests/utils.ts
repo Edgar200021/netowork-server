@@ -1,4 +1,9 @@
-import type { ValidationErrorResponseDto } from '../src/common/dto/base.dto.js'
+import type { UserResponseDto } from '../src/dto/users/userResponse.dto.js';
+import type {
+  ErrorResponseDto,
+  SuccessResponseDto,
+  ValidationErrorResponseDto,
+} from '../src/common/dto/base.dto.js'
 
 export const createValidationError = (
   ...fields: string[]
@@ -17,3 +22,16 @@ export const createValidationError = (
     errors,
   }
 }
+
+export const createBaseError = () => {
+  return {
+    status: 'error',
+    error: 'Something went wrong',
+  }
+}
+
+export type ErrorResponse = ErrorResponseDto
+export type ValidationErrorResponse = ValidationErrorResponseDto
+export type SuccessResponse<T> = SuccessResponseDto<T>
+
+export type LoginSuccessResponse = SuccessResponse<UserResponseDto>

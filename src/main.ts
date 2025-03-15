@@ -2,6 +2,7 @@ import { config } from 'dotenv'
 import { App } from './app.js'
 import { LoggerService } from './common/services/logger.service.js'
 import { readConfig } from './config.js'
+
 ;(async () => {
   config()
   const settings = await readConfig()

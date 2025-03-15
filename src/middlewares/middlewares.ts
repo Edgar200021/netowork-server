@@ -2,11 +2,17 @@ import vine, { VineValidator, errors } from '@vinejs/vine'
 import type { SchemaTypes } from '@vinejs/vine/types'
 import type { NextFunction, Request, Response } from 'express'
 import type { Redis } from 'ioredis'
+import { randomUUID } from 'node:crypto'
 import type {
   ErrorResponseDto,
   ValidationErrorResponseDto,
 } from '../common/dto/base.dto.js'
-import { AppError, ForbiddenError, UnauthorizedError } from '../common/error.js'
+import {
+  AppError,
+  ForbiddenError,
+  InternalServerError,
+  UnauthorizedError,
+} from '../common/error.js'
 import type { LoggerService } from '../common/services/logger.service.js'
 import type { ApplicationConfig } from '../config.js'
 import { SESSION_COOKIE_NAME } from '../const/cookie.js'
@@ -17,18 +23,24 @@ export class Middlewares {
   constructor(
     private readonly _usersRepository: UsersRepository,
     private readonly _redis: Redis,
-    private readonly _loggerService: LoggerService,
+    private readonly _logger: LoggerService,
     private readonly _applicationConfig: ApplicationConfig
   ) {
     this.handleErrors = this.handleErrors.bind(this)
     this.sendValidationErrors = this.sendValidationErrors.bind(this)
     this.auth = this.auth.bind(this)
+    this.requestLogger = this.requestLogger.bind(this)
   }
 
   async auth(req: Request, res: Response, next: NextFunction) {
+    const log = req.logger
+
+    log.info('Authenticating user')
+
     const session = req.signedCookies[SESSION_COOKIE_NAME]
     if (!session) {
-      return next()
+      log.warn('Session not found in cookies')
+      return next(new UnauthorizedError('Unauthorized'))
     }
 
     try {
@@ -38,11 +50,15 @@ export class Middlewares {
         Number(this._applicationConfig.sessionTtlInMinutes) * 60
       )
 
-      if (!userId) throw new UnauthorizedError('Unauthorized')
+      if (!userId) {
+        log.warn({ sessionId: session }, 'Session not found in redis')
+        throw new UnauthorizedError('Unauthorized')
+      }
 
       const user = await this._usersRepository.getByKey('id', Number(userId))
 
       if (!user) {
+        log.warn({ userId, sessionId: session }, 'User not found')
         await this._redis.del(session)
         throw new UnauthorizedError("User doesn't exist")
       }
@@ -50,20 +66,33 @@ export class Middlewares {
       req.user = user
       next()
     } catch (error) {
-      next(error)
+      log.error(
+        {
+          sessionId: session,
+          error: error instanceof Error ? error.message : error,
+        },
+        'Unexpected authentication error'
+      )
+      next(new InternalServerError('Something went wrong while authenticating'))
     }
   }
 
   restrict(roles: UserRole[]) {
     return (req: Request, res: Response, next: NextFunction) => {
+      const log = req.logger
+
+      log.info({ roles }, 'Restricting access')
+
       if (!req.user) {
         return next(new UnauthorizedError('Unauthorized'))
       }
 
-      if (roles.indexOf(req.user.role) === -1)
+      if (roles.indexOf(req.user.role) === -1) {
+		log.warn({user: req.user}, "Does not have permission to perform this action")
         return next(
           new ForbiddenError("You don't have permission to perform this action")
         )
+	}
 
       return next()
     }
@@ -93,6 +122,17 @@ export class Middlewares {
     }
   }
 
+  requestLogger(req: Request, res: Response, next: NextFunction) {
+    const reqId = randomUUID().toString()
+    const logger = this._logger.child({ reqId })
+
+    logger.info(`Incoming request: ${req.method} ${req.url}`)
+
+    req.logger = logger
+
+    next()
+  }
+
   handleErrors(
     err: unknown,
     _: Request,
@@ -104,15 +144,16 @@ export class Middlewares {
       return
     }
 
-    const statusCode = err instanceof AppError ? err.code : 500
-    const message =
-      err instanceof AppError ? err.message : 'Something went wrong'
+    if (err instanceof AppError) {
+      res.status(err.code).json({ status: 'error', error: err.message })
+      return
+    }
 
-    this._loggerService.error(
-      `[StatusCode:${statusCode}] - ${(err as Error | AppError)?.message || 'Something went wrong'}`
+    this._logger.error(
+      `[Unhandled Error] ${err instanceof Error ? err.stack : String(err)}`
     )
 
-    res.status(statusCode).json({ status: 'error', error: message })
+    res.status(500).json({ status: 'error', error: 'Something went wrong' })
   }
 
   private sendValidationErrors(

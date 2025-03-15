@@ -38,6 +38,18 @@ export class UsersRepository {
     key: T,
     value: User[T],
     userUpdate: UserUpdate
+  ): Promise<void> {
+    const user = await this._db
+      .updateTable('users')
+      .set(userUpdate)
+      .where(key as ReferenceExpression<DB, 'users'>, '=', value)
+      .execute()
+  }
+
+  async updateAndReturn<T extends keyof Pick<User, 'id' | 'email'>>(
+    key: T,
+    value: User[T],
+    userUpdate: UserUpdate
   ): Promise<User | undefined> {
     const user = await this._db
       .updateTable('users')

@@ -3,10 +3,17 @@ import type { Config } from '../../config.js'
 import { Environment } from '../enums/environment.enum.js'
 
 export class LoggerService {
-  private static _instance: null | LoggerService = null
-  private readonly _logger: Logger | null = null
+  private readonly _logger: Logger
 
-  constructor(readonly config: Config) {
+  constructor(
+    readonly config: Config,
+    loggerInstance?: Logger
+  ) {
+    if (loggerInstance) {
+      this._logger = loggerInstance
+      return
+    }
+
     if (config.application.environment === Environment.Production) {
       this._logger = pino(
         {
@@ -15,7 +22,7 @@ export class LoggerService {
             level: label => ({ level: label.toUpperCase() }),
           },
           timestamp: pino.stdTimeFunctions.isoTime,
-          //  redact: []
+          redact: { paths: ['password'], remove: true },
         },
         multistream([
           {
@@ -54,34 +61,39 @@ export class LoggerService {
   info(obj: object, message?: string, ...args: any[]): void
   info(error: Error, message?: string, ...args: any[]): void
   info(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
-    this._logger?.info(arg1 as any, arg2, ...args)
+    this._logger.info(arg1 as any, arg2, ...args)
   }
 
   debug(message: string, ...args: any[]): void
   debug(obj: object, message?: string, ...args: any[]): void
   debug(error: Error, message?: string, ...args: any[]): void
   debug(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
-    this._logger?.debug(arg1 as any, arg2, ...args)
+    this._logger.debug(arg1 as any, arg2, ...args)
   }
 
   warn(message: string, ...args: any[]): void
   warn(obj: object, message?: string, ...args: any[]): void
   warn(error: Error, message?: string, ...args: any[]): void
   warn(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
-    this._logger?.warn(arg1 as any, arg2, ...args)
+    this._logger.warn(arg1 as any, arg2, ...args)
   }
 
   error(message: string, ...args: any[]): void
   error(obj: object, message?: string, ...args: any[]): void
   error(error: Error, message?: string, ...args: any[]): void
   error(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
-    this._logger?.error(arg1 as any, arg2, ...args)
+    this._logger.error(arg1 as any, arg2, ...args)
   }
 
   fatal(message: string, ...args: any[]): void
   fatal(obj: object, message?: string, ...args: any[]): void
   fatal(error: Error, message?: string, ...args: any[]): void
   fatal(arg1: string | object | Error, arg2?: string, ...args: any[]): void {
-    this._logger?.fatal(arg1 as any, arg2, ...args)
+    this._logger.fatal(arg1 as any, arg2, ...args)
+  }
+
+  child(bindings: Record<string, unknown>): LoggerService {
+    const childLogger = this._logger.child(bindings)
+    return new LoggerService(this.config, childLogger)
   }
 }

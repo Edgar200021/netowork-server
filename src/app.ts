@@ -16,9 +16,10 @@ export class App {
   private readonly _port: number
   private readonly _database: Database
   private readonly _redis: Redis
+  private readonly _services: Services
 
   constructor(
-    readonly config: Config,
+    private readonly config: Config,
     private readonly _loggerService: LoggerService
   ) {
     const database = new Database(config.database, this._loggerService)
@@ -26,7 +27,6 @@ export class App {
     const redis = new Redis({
       host: config.redis.host,
       port: Number(config.redis.port),
-      username: config.redis.user,
       password: config.redis.password,
       db: Number(config.redis.database),
     })
@@ -63,6 +63,7 @@ export class App {
     this._redis = redis
     this._server = server
     this._port = Number(config.application.port)
+    this._services = services
   }
 
   run() {
@@ -92,9 +93,7 @@ export class App {
     for (const signal of signals) {
       process.on(signal, async err => {
         cb?.(err)
-        await this._database.close()
-        this._redis.disconnect()
-        this._server.close()
+        await this.close()
 
         process.exit(exitCode)
       })
@@ -107,5 +106,15 @@ export class App {
 
   get server() {
     return this._server
+  }
+
+  get services() {
+    return this._services
+  }
+
+  async close() {
+    await this._database.close()
+    this._redis.disconnect()
+    this._server.close()
   }
 }

@@ -24,11 +24,17 @@ export class EmailService {
         pass: password,
       },
       secure: Boolean(secure),
+	  requireTLS:true,
       from,
     })
   }
 
-  async sendVerificationEmail(to: string, token: string) {
+  async sendVerificationEmail(
+    to: string,
+    token: string,
+    logger?: LoggerService
+  ) {
+    const log = logger ?? this._logger
     const subject = 'Email Verification'
     const url = `${this._clientUrl}${this._accountVerificationPath}?token=${encodeURIComponent(token)}`
 
@@ -42,8 +48,14 @@ export class EmailService {
         text,
         html,
       })
+
+      log.info(`Verification email sent to ${to} successfully`)
     } catch (error) {
-      this._logger.error('Failed to send verification email', error)
+      log.error(
+        { email: to, error: error instanceof Error ? error.message : error },
+        'Failed to send verification email',
+        error
+      )
       throw new InternalServerError('Failed to send verification email')
     }
   }

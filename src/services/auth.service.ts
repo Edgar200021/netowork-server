@@ -2,7 +2,7 @@ import type { CookieOptions, Request, Response } from 'express'
 import type { Redis } from 'ioredis'
 import crypto, { type UUID } from 'node:crypto'
 import { Environment } from '../common/enums/environment.enum.js'
-import { BadRequestError, NotFoundError } from '../common/error.js'
+import { AppError, BadRequestError } from '../common/error.js'
 import type { EmailService } from '../common/services/email.service.js'
 import type { HashingService } from '../common/services/hashing.service.js'
 import type { LoggerService } from '../common/services/logger.service.js'
@@ -21,7 +21,7 @@ export class AuthService {
     private readonly _applicationConfig: ApplicationConfig,
     private readonly _usersRepository: UsersRepository,
     private readonly _redis: Redis,
-    private readonly _loggerService: LoggerService,
+    private readonly _logger: LoggerService,
     private readonly _hashingService: HashingService,
     private readonly _emailService: EmailService
   ) {
@@ -30,21 +30,31 @@ export class AuthService {
 
   async login(
     payload: LoginRequestDto,
-    res: Response
+    res: Response,
+    logger?: LoggerService
   ): Promise<UserResponseDto> {
+    const log = logger ?? this._logger
     const user = await this._usersRepository.getByKey('email', payload.email)
 
-    if (!user || !user.isVerified || user.isBanned)
-      throw new NotFoundError(
-        !user
-          ? `User with ${payload.email} doesn't exist`
-          : !user.isVerified
-            ? 'User is not verified'
-            : 'User is banned'
-      )
+    log.info(`Authenticating user: ${payload.email}`)
 
-    if (!(await this._hashingService.verify(payload.password, user.password)))
+    if (!user || !user.isVerified || user.isBanned) {
+      const message = !user
+        ? 'Invalid credentials'
+        : !user.isVerified
+          ? 'User is not verified'
+          : 'User is banned'
+      const code = !user || !user.isVerified ? 400 : 403
+
+      throw new AppError(message, code)
+    }
+
+    if (!(await this._hashingService.verify(payload.password, user.password))) {
+      log.warn(
+        `Failed login attempt for ${payload.email} - Invalid credentials`
+      )
       throw new BadRequestError('Invalid credentials')
+    }
 
     const session = await this.generateSession(user)
     res.cookie(SESSION_COOKIE_NAME, session, this.cookieOptions('login'))
@@ -52,15 +62,24 @@ export class AuthService {
     return new UserResponseDto(user)
   }
 
-  async register(payload: RegisterRequestDto): Promise<void> {
+  async register(
+    payload: RegisterRequestDto,
+    logger?: LoggerService
+  ): Promise<void> {
+    const log = logger ?? this._logger
     const user = await this._usersRepository.getByKey('email', payload.email)
 
-    if (user) throw new BadRequestError('User with email already exists')
+    log.info(`Registering user: ${payload.email}`)
 
-    const [hashedPassword, token] = await Promise.all([
-      this._hashingService.hash(payload.password),
-      generateRandomToken(),
-    ])
+    if (user) {
+      log.warn(
+        `Failed registration attempt for ${payload.email} - User with email already exists`
+      )
+      throw new BadRequestError('User with email already exists')
+    }
+
+    const hashedPassword = await this._hashingService.hash(payload.password)
+    const token = generateRandomToken()
 
     await Promise.all([
       this._usersRepository.create({
@@ -70,7 +89,7 @@ export class AuthService {
         lastName: payload.lastName,
         role: payload.role,
       }),
-      this._emailService.sendVerificationEmail(payload.email, token),
+      this._emailService.sendVerificationEmail(payload.email, token, log),
       this._redis.set(
         token,
         payload.email,
@@ -80,9 +99,21 @@ export class AuthService {
     ])
   }
 
-  async logout(req: Request, res: Response): Promise<void> {
+  async logout(
+    req: Request,
+    res: Response,
+    logger?: LoggerService
+  ): Promise<void> {
+    const log = logger ?? this._logger
+    const userId = req.user?.id
+
+    log.info({ userId }, 'Logging out user')
+
     const session = req.signedCookies[SESSION_COOKIE_NAME]
-    if (!session) throw new BadRequestError('session not found')
+    if (!session) {
+      log.warn({ userId }, 'Session not found')
+      throw new BadRequestError('session not found')
+    }
 
     await this._redis.del(session)
 
@@ -90,20 +121,31 @@ export class AuthService {
   }
 
   async verifYAccount(
-    payload: VerifyAccountRequestDto
+    payload: VerifyAccountRequestDto,
+    logger?: LoggerService
   ): Promise<UserResponseDto> {
+    const log = logger ?? this._logger
+
+    log.info({ token: payload.token }, 'Verifying account')
+
     const email = await this._redis.get(payload.token)
-    if (!email) throw new BadRequestError('Invalid token')
+    if (!email) {
+      log.warn({ token: payload.token }, 'Not found token in redis')
+      throw new BadRequestError('Invalid token')
+    }
 
     const [user] = await Promise.all([
-      this._usersRepository.update('email', email, {
+      this._usersRepository.updateAndReturn('email', email, {
         isVerified: true,
         updatedAt: new Date(),
       }),
       this._redis.del(payload.token),
     ])
 
-    if (!user) throw new BadRequestError('User not found')
+    if (!user) {
+      log.warn({ email }, 'User not found')
+      throw new BadRequestError('User not found')
+    }
 
     return new UserResponseDto(user)
   }

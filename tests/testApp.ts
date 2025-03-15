@@ -1,12 +1,14 @@
 import { config } from 'dotenv'
 import type { Kysely } from 'kysely'
 
+import type { Redis } from 'ioredis'
 import crypto from 'node:crypto'
 import supertest from 'supertest'
 import type TestAgent from 'supertest/lib/agent.js'
 import { App } from '../src/app.js'
 import { LoggerService } from '../src/common/services/logger.service.js'
 import { readConfig } from '../src/config.js'
+import type { Services } from '../src/services/services.js'
 import type { DB } from '../src/storage/db.js'
 import { setupDb } from './setupDb.js'
 
@@ -14,12 +16,14 @@ export class TestApp {
   constructor(
     private readonly app: App,
     readonly database: Kysely<DB>,
+    readonly redis: Redis,
+    readonly services: Services,
     private readonly superTest: TestAgent
   ) {}
 
   async login(body: object) {
     const response = await this.superTest
-      .post(`127.0.0.1${this.app.port}/auth/login`)
+      .post('/api/v1/auth/login')
       .set('Content-Type', 'application/json')
       .send(body)
 
@@ -28,11 +32,31 @@ export class TestApp {
 
   async register(body: object) {
     const response = await this.superTest
-      .post(`127.0.0.1${this.app.port}/auth/register`)
+      .post('/api/v1/auth/register')
       .set('Content-Type', 'application/json')
       .send(body)
 
     return response
+  }
+
+  async verify(token: string) {
+    const response = await this.superTest
+      .patch('/api/v1/auth/account-verification')
+      .set('Content-Type', 'application/json')
+      .send({ token })
+
+    return response
+  }
+
+  async createAndVerify(body: object) {
+    await this.register(body)
+    const token = (await this.redis.keys('*'))[0]
+
+    await this.verify(token)
+  }
+
+  async close() {
+    await this.app.close()
   }
 }
 
@@ -42,14 +66,15 @@ export const spawnApp = async (): Promise<TestApp> => {
   const logger = new LoggerService(settings)
 
   settings.application.port = 0
+  settings.redis.database = 15
   settings.database.database = crypto.randomUUID().toString()
 
-  const db = await setupDb(settings.database)
+  const { postgres, redis } = await setupDb(settings.database, settings.redis)
   const app = new App(settings, logger)
 
   app.run()
 
   const test = supertest(app.server)
 
-  return new TestApp(app, db, test)
+  return new TestApp(app, postgres, redis, app.services, test)
 }

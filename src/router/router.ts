@@ -18,12 +18,13 @@ export class Router {
         limit: '10mb',
       })
     )
-    app.use(cookieParser(config.cookieSecret))
-    app.use(
+    app.use([
+      cookieParser(config.cookieSecret),
       cors({
         credentials: true,
-      })
-    )
+      }),
+      middlewares.requestLogger,
+    ])
 
     app.use(
       '/api/v1/auth',
@@ -31,7 +32,10 @@ export class Router {
     )
 
     app.use('*', (req, res) => {
-      res.status(400).end('404')
+      res.status(404).json({
+        status: 'error',
+        error: 'Route not found',
+      })
     })
 
     app.use(middlewares.handleErrors)

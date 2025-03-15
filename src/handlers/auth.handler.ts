@@ -1,11 +1,11 @@
 import vine from '@vinejs/vine'
 import type { Request, Response } from 'express'
 import { UnauthorizedError } from '../common/error.js'
-import type { LoginResponseDto } from '../dto/auth/login/loginResponse.dto.js'
 import {
   type LoginRequestDto,
   loginSchema,
 } from '../dto/auth/login/loginRequest.dto.js'
+import type { LoginResponseDto } from '../dto/auth/login/loginResponse.dto.js'
 import type { LogoutResponseDto } from '../dto/auth/logout/logoutResponse.dto.js'
 import {
   type RegisterRequestDto,
@@ -90,7 +90,7 @@ export class AuthHandler extends BaseHandler {
     req: Request<unknown, LoginResponseDto, LoginRequestDto>,
     res: Response<LoginResponseDto>
   ) {
-    const user = await this._authService.login(req.body, res)
+    const user = await this._authService.login(req.body, res, req.logger)
 
     res.status(200).json({ status: 'success', data: user })
   }
@@ -141,7 +141,7 @@ export class AuthHandler extends BaseHandler {
     req: Request<unknown, RegisterResponseDto, RegisterRequestDto>,
     res: Response<RegisterResponseDto>
   ) {
-    await this._authService.register(req.body)
+    await this._authService.register(req.body, req.logger)
 
     res.status(201).json({
       status: 'success',
@@ -194,7 +194,7 @@ export class AuthHandler extends BaseHandler {
     req: Request<unknown, VerifyAccountResponseDto, VerifyAccountRequestDto>,
     res: Response<VerifyAccountResponseDto>
   ) {
-    const user = await this._authService.verifYAccount(req.body)
+    const user = await this._authService.verifYAccount(req.body, req.logger)
 
     res.status(200).json({ status: 'success', data: user })
   }
@@ -232,7 +232,7 @@ export class AuthHandler extends BaseHandler {
   async logout(req: Request, res: Response<LogoutResponseDto>) {
     if (!req.user) throw new UnauthorizedError('Unauthorized')
 
-    await this._authService.logout(req, res)
+    await this._authService.logout(req, res, req.logger)
 
     res.status(200).json({ status: 'success', data: 'Logout successful' })
   }

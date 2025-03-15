@@ -15,21 +15,21 @@ export class Services {
   constructor(
     private readonly _database: Database,
     private readonly _redis: Redis,
-    logger: LoggerService,
+    private readonly _logger: LoggerService,
     config: Config
   ) {
     this._hashingService = new Argon2Service()
     this._emailService = new EmailService(
       config.application,
       config.email,
-      logger
+      this._logger
     )
 
     this._authService = new AuthService(
       config.application,
       this._database.usersRepository,
       this._redis,
-      logger,
+      this._logger,
       this._hashingService,
       this._emailService
     )
@@ -41,5 +41,13 @@ export class Services {
 
   get hashingService() {
     return this._hashingService
+  }
+
+  get logger() {
+    return this._logger
+  }
+
+  get emailService() {
+    return this._emailService
   }
 }
