@@ -57,11 +57,22 @@ export class TestApp {
     return response
   }
 
+  async resetPassword(body: object) {
+    const response = await this.superTest
+      .patch('/api/v1/auth/reset-password')
+      .set('Content-Type', 'application/json')
+      .send(body)
+
+    return response
+  }
+
   async createAndVerify(body: object) {
     await this.register(body)
     const token = (await this.redis.keys('*'))[0]
 
-    await this.verify(token)
+    const response = await this.verify(token)
+
+    return response
   }
 
   async close() {
@@ -77,14 +88,13 @@ export const spawnApp = async (): Promise<TestApp> => {
   const logger = new LoggerService(settings)
 
   settings.application.port = 0
-  settings.redis.database = 15
+  settings.redis.database = Math.floor(Math.random() * 15) + 1
   settings.database.database = crypto.randomUUID().toString()
 
   const db = await setupDb(settings.database, settings.redis)
   const app = new App(settings, logger)
 
   await app.redis.flushdb()
-
   app.run()
 
   const test = supertest(app.server)

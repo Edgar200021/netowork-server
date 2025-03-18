@@ -18,6 +18,11 @@ import {
 } from '../dto/auth/register/registerRequest.dto.js'
 import type { RegisterResponseDto } from '../dto/auth/register/registerResponse.dt.js'
 import {
+  type ResetPasswordRequestDto,
+  resetPasswordSchema,
+} from '../dto/auth/resetPassword/resetPasswordRequest.dto.js'
+import type { ResetPasswordResponseDto } from '../dto/auth/resetPassword/resetPasswordResponse.dto.js'
+import {
   type VerifyAccountRequestDto,
   verifyAccountSchema,
 } from '../dto/auth/verifyAccount/verifyAccountRequest.dto.js'
@@ -33,6 +38,7 @@ export class AuthHandler extends BaseHandler {
     register: vine.compile(registerSchema),
     verifyAccount: vine.compile(verifyAccountSchema),
     forgotPassword: vine.compile(forgotPasswordSchema),
+    resetPassword: vine.compile(resetPasswordSchema),
   }
 
   constructor(
@@ -295,12 +301,67 @@ export class AuthHandler extends BaseHandler {
     })
   }
 
+  /**
+   * @openapi
+   * /api/v1/auth/reset-password:
+   *   patch:
+   *     tags:
+   *       - Authentication
+   *     summary: Reset Password
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/ResetPasswordRequestDto'
+   *     responses:
+   *       200:
+   *         description: Password reset successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ResetPasswordResponseDto'
+   *       400:	
+   *         description: Bad request or validation error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - $ref: '#/components/schemas/ErrorResponseDto'
+   *                 - $ref: '#/components/schemas/ValidationErrorResponseDto'
+   *             examples:
+   *               BadRequest:
+   *                 summary: Bad request error
+   *                 value:
+   *                   status: "error"
+   *                   error: "Invalid request format"
+   *               ValidationError:
+   *                 summary: Validation error
+   *                 value:
+   *                   status: "error"
+   *                   errors:
+   *                     password: "Password must be at least 8 characters"
+   */
+
+  async resetPassword(
+    req: Request<unknown, ResetPasswordResponseDto, ResetPasswordRequestDto>,
+    res: Response<ResetPasswordResponseDto>
+  ) {
+    await this._authService.resetPassword(req.body, req.logger)
+
+    res.status(200).json({
+      status: 'success',
+      data: 'Password reset successful',
+    })
+  }
+
   protected bindMethods() {
     this.login = this.login.bind(this)
     this.register = this.register.bind(this)
     this.logout = this.logout.bind(this)
     this.verifyAccount = this.verifyAccount.bind(this)
     this.forgotPassword = this.forgotPassword.bind(this)
+    this.resetPassword = this.resetPassword.bind(this)
   }
 
   protected setupRoutes() {
@@ -326,6 +387,12 @@ export class AuthHandler extends BaseHandler {
       '/forgot-password',
       this._middlewares.validateRequest(this.validators.forgotPassword),
       asyncWrapper(this.forgotPassword)
+    )
+
+    this._router.patch(
+      '/reset-password',
+      this._middlewares.validateRequest(this.validators.resetPassword),
+      asyncWrapper(this.resetPassword)
     )
 
     this._router.post(

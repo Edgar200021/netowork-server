@@ -16,7 +16,9 @@ describe('Authentication', () => {
         passwordConfirmation: 'password',
       }
 
-      await app.createAndVerify(data)
+      const verifyResponse = await app.createAndVerify(data)
+      expect(verifyResponse.statusCode).toBe(200)
+
       const response = await app.forgotPassword({
         email: data.email,
       })

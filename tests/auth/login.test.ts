@@ -22,6 +22,7 @@ describe('Authentication', () => {
         password: data.password,
       })
 
+
       expect(response.statusCode).toBe(200)
       expect(response.headers).toHaveProperty('set-cookie')
       expect(response.body).not.toBeUndefined()
@@ -83,6 +84,7 @@ describe('Authentication', () => {
         password: 'password',
       })
 
+
       expect(response.statusCode).toBe(400)
       expect(response.body).toBeTypeOf('object')
       expect(response.body).toHaveProperty('status')
@@ -112,7 +114,7 @@ describe('Authentication', () => {
       expect(response.body).toHaveProperty('status')
       expect(response.body).toHaveProperty('error')
 
-	  await app.close()
+      await app.close()
     })
 
     it('Login with banned account returns 403 status code', async () => {
@@ -140,12 +142,13 @@ describe('Authentication', () => {
         password: data.password,
       })
 
+
       expect(response.statusCode).toBe(400)
       expect(response.body).toBeTypeOf('object')
       expect(response.body).toHaveProperty('status')
       expect(response.body).toHaveProperty('error')
 
-	  await app.close()
+      await app.close()
     })
   })
 })

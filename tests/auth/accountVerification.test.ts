@@ -61,7 +61,7 @@ describe('Authentication', () => {
       expect(getSpy).toHaveBeenCalledTimes(1)
       expect(getSpy).toHaveBeenCalledWith('invalid-token')
 
-	  await app.close()
+      await app.close()
     })
   })
 
@@ -93,6 +93,6 @@ describe('Authentication', () => {
     expect(getSpy).toHaveBeenCalledTimes(1)
     expect(getSpy).toBeCalledWith(token)
 
-	await app.close()
+    await app.close()
   })
 })

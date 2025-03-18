@@ -67,26 +67,9 @@ export class App {
   }
 
   run() {
-    this.shutdown(['SIGINT', 'SIGTERM'], 1, () =>
-      console.log('Shutting down...')
-    )
-    this.shutdown(
-      ['uncaughtException', 'unhandledRejection'],
-      0,
-      (error?: Error) => {
-        error
-          ? this._loggerService.fatal(error)
-          : this._loggerService.fatal('Unknown error')
-      }
-    )
-
-    process.on('warning', warning => {
-      console.log('WARNING', warning)
-    })
-
-    this._server.listen(this._port, () =>
+    this._server.listen(this._port, () => {
       this._loggerService.info(`Listening on port ${this._port}`)
-    )
+    })
   }
 
   private shutdown(

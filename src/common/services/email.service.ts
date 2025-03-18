@@ -6,6 +6,7 @@ import type { LoggerService } from './logger.service.js'
 export class EmailService {
   private readonly _clientUrl: string
   private readonly _accountVerificationPath: string
+  private readonly _resetPasswordPath: string
 
   private readonly _transport: Transporter
   constructor(
@@ -14,6 +15,7 @@ export class EmailService {
     private readonly _logger: LoggerService
   ) {
     this._accountVerificationPath = appConfig.accountVerificationPath
+	this._resetPasswordPath = appConfig.resetPasswordPath
     this._clientUrl = appConfig.clientUrl
 
     this._transport = createTransport({
@@ -67,7 +69,7 @@ export class EmailService {
   ) {
     const log = logger ?? this._logger
     const subject = 'Password Reset'
-    const url = `${this._clientUrl}${this._accountVerificationPath}?token=${encodeURIComponent(token)}`
+    const url = `${this._clientUrl}${this._resetPasswordPath}?token=${encodeURIComponent(token)}`
 
     const text = `Please click the link to reset your password: ${url}`
     const html = `<p>Please click the link to reset your password: <a href="${url}">${url}</a></p>`

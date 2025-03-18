@@ -11,6 +11,7 @@ import { SESSION_COOKIE_NAME } from '../const/cookie.js'
 import type { ForgotPasswordRequestDto } from '../dto/auth/forgotPassword/forgotPasswordRequest.dto.js'
 import type { LoginRequestDto } from '../dto/auth/login/loginRequest.dto.js'
 import type { RegisterRequestDto } from '../dto/auth/register/registerRequest.dto.js'
+import type { ResetPasswordRequestDto } from '../dto/auth/resetPassword/resetPasswordRequest.dto.js'
 import type { VerifyAccountRequestDto } from '../dto/auth/verifyAccount/verifyAccountRequest.dto.js'
 import { UserResponseDto } from '../dto/users/userResponse.dto.js'
 import type { User } from '../storage/postgres/types/user.types.js'
@@ -41,7 +42,7 @@ export class AuthService {
     log.info(`Authenticating user: ${payload.email}`)
 
     if (!user || !user.isVerified || user.isBanned) {
-      const { message, error } = generateUserError(user, {notFoundCode: 400})
+      const { message, error } = generateUserError(user, { notFoundCode: 400 })
 
       log.warn({ email: payload.email }, message)
       throw error
@@ -175,6 +176,38 @@ export class AuthService {
       ),
       this._emailService.sendResetPasswordEmail(payload.email, token, log),
     ])
+  }
+
+  async resetPassword(
+    payload: ResetPasswordRequestDto,
+    logger?: LoggerService
+  ): Promise<void> {
+    const log = logger ?? this._logger
+
+    log.info({ token: payload.token }, 'Reset password')
+
+    const userId = await this._redis.get(payload.token)
+    if (!userId) {
+      log.warn({ token: payload.token }, 'Not found token in redis')
+      throw new NotFoundError('Invalid token')
+    }
+
+    const hashedPassword = await this._hashingService.hash(payload.password)
+    const user = await this._usersRepository.updateAndReturn(
+      'id',
+      Number(userId),
+      {
+        password: hashedPassword,
+      }
+    )
+
+    if (!user) {
+      await this._redis.del(payload.token)
+
+      throw new NotFoundError('User not found')
+    }
+
+    await this._redis.del(payload.token)
   }
 
   private async generateSession(user: User): Promise<UUID> {
