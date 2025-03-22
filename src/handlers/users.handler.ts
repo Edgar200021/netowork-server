@@ -2,6 +2,11 @@ import vine from "@vinejs/vine";
 import type { Request, Response } from "express";
 import { UnauthorizedError } from "../common/error.js";
 import { AVATAR_FILE_NAME } from "../const/multer.js";
+import {
+	type ChangeProfilePasswordRequestDto,
+	changeProfilePasswordSchema,
+} from "../dto/users/changeProfilePassword/changeProfilePasswordRequest.dto.js";
+import type { ChangeProfilePasswordResponseDto } from "../dto/users/changeProfilePassword/changeProfilePasswordResponse.dto.js";
 import type { GetProfileResponseDto } from "../dto/users/getProfile/getMeResponse.dto.js";
 import {
 	type UpdateProfileRequestDto,
@@ -17,6 +22,7 @@ import { BaseHandler } from "./base.handler.js";
 export class UsersHandler extends BaseHandler {
 	protected validators = {
 		updateProfile: vine.compile(updateProfileSchema),
+		changeProfilePassword: vine.compile(changeProfilePasswordSchema),
 	};
 
 	constructor(
@@ -132,9 +138,76 @@ export class UsersHandler extends BaseHandler {
 		});
 	}
 
+	/**
+	 * @openapi
+	 * paths:
+	 *   /users/profile/change-password:
+	 *     patch:
+	 *       tags:
+	 *         - Users
+	 *       summary: Change user password
+	 *       security:
+	 *         - Session: []
+	 *       requestBody:
+	 *         required: true
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               $ref: '#/components/schemas/ChangeProfilePasswordRequestDto'
+	 *       responses:
+	 *         200:
+	 *           description: Success
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ChangeProfilePasswordResponseDto'
+	 *         400:
+	 *           description: Bad request or validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 oneOf:
+	 *                   - $ref: '#/components/schemas/ErrorResponseDto'
+	 *                   - $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 BadRequest:
+	 *                   value:
+	 *                     status: error
+	 *                     error: "Invalid old password"
+	 *                 ValidationError:
+	 *                   value:
+	 *                     status: error
+	 *                     errors:
+	 *                       password: "Password must be at least 8 characters"
+	 *         401:
+	 *           description: Unauthorized (User is not logged in)
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 */
+	async changeProfilePassword(
+		req: Request<
+			unknown,
+			ChangeProfilePasswordResponseDto,
+			ChangeProfilePasswordRequestDto
+		>,
+		res: Response<ChangeProfilePasswordResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+
+		await this._usersService.changeProfilePassword(req.user.id, req.body);
+
+		res.status(200).json({
+			status: "success",
+			data: "Password updated successfully",
+		});
+	}
+
 	protected bindMethods(): void {
 		this.getProfile = this.getProfile.bind(this);
 		this.updateProfile = this.updateProfile.bind(this);
+		this.changeProfilePassword = this.changeProfilePassword.bind(this);
 	}
 
 	protected setupRoutes(): void {
@@ -154,6 +227,12 @@ export class UsersHandler extends BaseHandler {
 			]),
 			this._middlewares.validateRequest(this.validators.updateProfile),
 			asyncWrapper(this.updateProfile),
+		);
+		this._router.patch(
+			"/profile/change-password",
+			this._middlewares.auth,
+			this._middlewares.validateRequest(this.validators.changeProfilePassword),
+			asyncWrapper(this.changeProfilePassword),
 		);
 	}
 }

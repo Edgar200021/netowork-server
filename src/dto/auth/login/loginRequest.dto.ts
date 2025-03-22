@@ -22,8 +22,8 @@ import { MIN_PASSWORD_LENGTH } from '../../../const/validator.js'
  *           default: "password"
  */
 export const loginSchema = vine.object({
-  email: vine.string().email(),
-  password: vine.string().minLength(MIN_PASSWORD_LENGTH),
+  email: vine.string().trim().email(),
+  password: vine.string().trim().minLength(MIN_PASSWORD_LENGTH),
 })
 
 export type LoginRequestDto = InferInput<typeof loginSchema>

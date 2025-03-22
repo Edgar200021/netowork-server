@@ -17,7 +17,7 @@ import { MIN_PASSWORD_LENGTH } from '../../../const/validator.js'
  *           default: "6L2W9@example.com"
  */
 export const forgotPasswordSchema = vine.object({
-  email: vine.string().email(),
+  email: vine.string().trim().email(),
 })
 
 export type ForgotPasswordRequestDto = InferInput<typeof forgotPasswordSchema>

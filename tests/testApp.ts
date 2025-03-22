@@ -119,6 +119,21 @@ export class TestApp {
 
 		return response;
 	}
+
+	async changeProfilePassword(body: object, cookies?: string[]) {
+		const request = this.superTest.patch("/api/v1/users/profile");
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		request.send(body);
+
+		const response = await request;
+
+		return response;
+	}
+
 	async createAndVerify(body: object) {
 		await this.register(body);
 		const token = (await this.redis.keys("*"))[0];

@@ -3,10 +3,12 @@ import type { Redis } from "ioredis";
 import { BadRequestError, UnauthorizedError } from "../common/error.js";
 import type { HashingService } from "../common/services/hashing.service.js";
 import type { ApplicationConfig } from "../config.js";
+import type { ChangeProfilePasswordRequestDto } from "../dto/users/changeProfilePassword/changeProfilePasswordRequest.dto.js";
 import type { UpdateProfileRequestDto } from "../dto/users/updateProfile/updateProfileRequest.dto.js";
 import type { UpdateProfileResponseDto } from "../dto/users/updateProfile/updateProfileResponse.dto.js";
+import type { User } from "../storage/postgres/types/user.types.js";
 import type { UsersRepository } from "../storage/postgres/users.repository.js";
-import { FileUploadResponse } from "../types/cloudinary.js";
+import type { FileUploadResponse } from "../types/cloudinary.js";
 import { generateRandomToken } from "../utils/createToken.js";
 import type { AuthService } from "./auth.service.js";
 import type { EmailService } from "./email.service.js";
@@ -92,6 +94,27 @@ export class UsersService {
 			avatar: fileUploadRes?.imageUrl,
 			avatarId: fileUploadRes?.imageId,
 			updatedAt: new Date(),
+		});
+	}
+
+	async changeProfilePassword(
+		userId: User["id"],
+		payload: ChangeProfilePasswordRequestDto,
+	) {
+		const user = await this._usersRepository.getByKey("id", userId);
+
+		if (
+			!(await this._hashingService.verify(
+				payload.oldPassword,
+				user?.password || "",
+			))
+		)
+			throw new BadRequestError("Invalid old password");
+
+		const hashedPassword = await this._hashingService.hash(payload.newPassword);
+
+		await this._usersRepository.update("id", userId, {
+			password: hashedPassword,
 		});
 	}
 }
