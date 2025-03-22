@@ -4,7 +4,7 @@ import type { SuccessResponseDto } from '../../../common/dto/base.dto.js'
  * @openapi
  * components:
  *   schemas:
- *     LoginResponseDto:
+ *     ResetPasswordResponseDto:
  *       allOf:
  *         - $ref: '#/components/schemas/SuccessResponseDto'
  *         - type: object

@@ -33,7 +33,7 @@ import { asyncWrapper } from '../utils/handlerAsyncWrapper.js'
 import { BaseHandler } from './base.handler.js'
 
 export class AuthHandler extends BaseHandler {
-  private readonly validators = {
+  protected readonly validators = {
     login: vine.compile(loginSchema),
     register: vine.compile(registerSchema),
     verifyAccount: vine.compile(verifyAccountSchema),
@@ -206,7 +206,11 @@ export class AuthHandler extends BaseHandler {
     req: Request<unknown, VerifyAccountResponseDto, VerifyAccountRequestDto>,
     res: Response<VerifyAccountResponseDto>
   ) {
-    const user = await this._authService.verifYAccount(req.body, req.logger)
+    const user = await this._authService.verifyAccount(
+      req.body,
+      res,
+      req.logger
+    )
 
     res.status(200).json({ status: 'success', data: user })
   }
@@ -220,7 +224,7 @@ export class AuthHandler extends BaseHandler {
    *     summary: Logout
    *     description: Logs out the user by clearing the session cookie.
    *     security:
-   *       - sessionAuth: []
+   *       - Session: []
    *     responses:
    *       200:
    *         description: Logout successful
@@ -321,7 +325,7 @@ export class AuthHandler extends BaseHandler {
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/ResetPasswordResponseDto'
-   *       400:	
+   *       400:
    *         description: Bad request or validation error
    *         content:
    *           application/json:
@@ -341,6 +345,7 @@ export class AuthHandler extends BaseHandler {
    *                   status: "error"
    *                   errors:
    *                     password: "Password must be at least 8 characters"
+   *
    */
 
   async resetPassword(
@@ -400,9 +405,5 @@ export class AuthHandler extends BaseHandler {
       this._middlewares.auth,
       asyncWrapper(this.logout)
     )
-  }
-
-  router() {
-    return this._router
   }
 }

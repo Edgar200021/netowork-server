@@ -9,7 +9,17 @@ const options: swaggerJSDoc.Options = {
       title: 'Netowork API',
       version: '1.0.0',
     },
+    components: {
+      securitySchemes: {
+        Session: {
+          type: 'apiKey',
+          name: 'Session',
+          in: 'cookie',
+        },
+      },
+    },
   },
+
   apis: ['src/**/*.handler.ts', 'src/**/*.dto.ts'],
 }
 

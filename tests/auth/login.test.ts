@@ -128,7 +128,7 @@ describe('Authentication', () => {
         passwordConfirmation: 'password',
       }
 
-      await app.register(data)
+      await app.createAndVerify(data)
       await app.database
         .updateTable('users')
         .set({
@@ -143,7 +143,7 @@ describe('Authentication', () => {
       })
 
 
-      expect(response.statusCode).toBe(400)
+      expect(response.statusCode).toBe(403)
       expect(response.body).toBeTypeOf('object')
       expect(response.body).toHaveProperty('status')
       expect(response.body).toHaveProperty('error')

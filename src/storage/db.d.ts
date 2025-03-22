@@ -16,6 +16,7 @@ export type UserRole = "admin" | "client" | "freelancer";
 export interface Users {
   aboutMe: string | null;
   avatar: string | null;
+  avatarId: string | null;
   createdAt: Generated<Timestamp>;
   email: string;
   firstName: string;

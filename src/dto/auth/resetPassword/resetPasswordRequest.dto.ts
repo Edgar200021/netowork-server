@@ -18,6 +18,10 @@ import { MIN_PASSWORD_LENGTH } from '../../../const/validator.js'
  *         password:
  *           type: string
  *           minLength: 8
+ *           default: "password"
+ *         passwordConfirmation:
+ *           type: string
+ * 
  */
 export const resetPasswordSchema = vine.object({
   token: vine.string(),

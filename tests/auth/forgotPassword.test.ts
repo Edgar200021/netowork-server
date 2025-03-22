@@ -29,7 +29,7 @@ describe('Authentication', () => {
       expect(response.body).toHaveProperty('data')
       expect(response.body.data).toBeTypeOf('string')
 
-      expect(setSpy).toHaveBeenCalledTimes(2)
+      expect(setSpy).toHaveBeenCalledTimes(3)
 
       await app.close()
     })
