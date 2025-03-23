@@ -16,7 +16,7 @@ import {
   type RegisterRequestDto,
   registerSchema,
 } from '../dto/auth/register/registerRequest.dto.js'
-import type { RegisterResponseDto } from '../dto/auth/register/registerResponse.dt.js'
+import type { RegisterResponseDto } from '../dto/auth/register/registerResponse.dto.js'
 import {
   type ResetPasswordRequestDto,
   resetPasswordSchema,

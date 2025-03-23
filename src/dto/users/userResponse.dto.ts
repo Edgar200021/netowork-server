@@ -1,5 +1,5 @@
-import type { UserRole } from '../../storage/db.js'
-import type { User } from '../../storage/postgres/types/user.types.js'
+import type { UserRole } from "../../storage/db.js";
+import type { User } from "../../storage/postgres/types/user.types.js";
 
 /**
  * @openapi
@@ -31,21 +31,23 @@ import type { User } from '../../storage/postgres/types/user.types.js'
  */
 
 export class UserResponseDto {
-  readonly firstName: string
-  readonly lastName: string
-  readonly email: string
-  readonly role: UserRole
-  readonly aboutMe: string | null
-  readonly avatar: string | null
+	readonly id: number;
+	readonly firstName: string;
+	readonly lastName: string;
+	readonly email: string;
+	readonly role: UserRole;
+	readonly createdAt: Date;
+	readonly aboutMe: string | null;
+	readonly avatar: string | null;
 
-  constructor(user: User) {
-    this.firstName = user.firstName
-    this.lastName = user.lastName
-    this.email = user.email
-    this.role = user.role
-    this.aboutMe = user.aboutMe
-    this.avatar = user.avatar
-  }
+	constructor(user: User) {
+		this.firstName = user.firstName;
+		this.lastName = user.lastName;
+		this.email = user.email;
+		this.role = user.role;
+		this.aboutMe = user.aboutMe;
+		this.avatar = user.avatar;
+		this.createdAt = user.createdAt;
+		this.id = user.id;
+	}
 }
-
-

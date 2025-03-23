@@ -24,6 +24,9 @@ export class Router {
 			cookieParser(config.cookieSecret),
 			cors({
 				credentials: true,
+				origin: config.clientUrl,
+				methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+				allowedHeaders: ["Content-Type", "Authorization", "Origin", "Cookie"],
 			}),
 			middlewares.requestLogger,
 		]);

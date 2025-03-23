@@ -31,7 +31,13 @@ export class UsersService {
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
-		if (!req.body.email?.trim() && !req.body.aboutMe?.trim() && !req.file)
+		if (
+			!req.body.email?.trim() &&
+			!req.body.aboutMe?.trim() &&
+			!req.body.firstName?.trim() &&
+			!req.body.lastName?.trim() &&
+			!req.file
+		)
 			throw new BadRequestError("No fields to update");
 
 		const log = req.logger;
@@ -74,6 +80,8 @@ export class UsersService {
 				email,
 				isVerified: false,
 				updatedAt: new Date(),
+				...(req.body.firstName && { firstName: req.body.firstName }),
+				...(req.body.lastName && { lastName: req.body.lastName }),
 			});
 			await Promise.all([
 				this._authService.logout(req, res, req.logger),
@@ -94,6 +102,8 @@ export class UsersService {
 			avatar: fileUploadRes?.imageUrl,
 			avatarId: fileUploadRes?.imageId,
 			updatedAt: new Date(),
+			...(req.body.firstName && { firstName: req.body.firstName }),
+			...(req.body.lastName && { lastName: req.body.lastName }),
 		});
 	}
 

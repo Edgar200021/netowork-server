@@ -12,7 +12,7 @@ const applicationConfigSchema = vine.object({
 	host: vine.string().ipAddress(),
 	environment: vine.enum(Environment),
 	cookieSecret: vine.string().minLength(32),
-	clientUrl: vine.string().url(),
+	clientUrl: vine.string(),
 	accountVerificationPath: vine.string(),
 	resetPasswordPath: vine.string(),
 	sessionTtlInMinutes: vine.number({ strict: true }).range([60, 43800]),

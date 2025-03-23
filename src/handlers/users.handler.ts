@@ -37,7 +37,7 @@ export class UsersHandler extends BaseHandler {
 	/**
 	 * @openapi
 	 * paths:
-	 *   /users/profile:
+	 *   api/v1/users/profile:
 	 *     get:
 	 *       tags:
 	 *         - Users
@@ -70,7 +70,7 @@ export class UsersHandler extends BaseHandler {
 	/**
 	 * @openapi
 	 * paths:
-	 *   /users/profile:
+	 *   api/v1/users/profile:
 	 *     patch:
 	 *       tags:
 	 *         - Users
@@ -94,6 +94,12 @@ export class UsersHandler extends BaseHandler {
 	 *                   type: string
 	 *                   format: binary
 	 *                   description: User's avatar image file (JPG, PNG, max 5MB)
+	 *                 firstName:
+	 *                   type: string
+	 *                   maxLength: 50
+	 *                 lastName:
+	 *                   type: string
+	 *                   maxLength: 50
 	 *       responses:
 	 *         200:
 	 *           description: Success
@@ -141,7 +147,7 @@ export class UsersHandler extends BaseHandler {
 	/**
 	 * @openapi
 	 * paths:
-	 *   /users/profile/change-password:
+	 *   api/v1/users/profile/change-password:
 	 *     patch:
 	 *       tags:
 	 *         - Users

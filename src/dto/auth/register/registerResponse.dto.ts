@@ -1,5 +1,4 @@
-import type { SuccessResponseDto } from '../../../common/dto/base.dto.js'
-
+import type { SuccessResponseDto } from "../../../common/dto/base.dto.js";
 
 /**
  * @openapi
@@ -13,4 +12,4 @@ import type { SuccessResponseDto } from '../../../common/dto/base.dto.js'
  *             data:
  *               type: string
  */
-export type RegisterResponseDto = SuccessResponseDto<string>
+export type RegisterResponseDto = SuccessResponseDto<string>;
