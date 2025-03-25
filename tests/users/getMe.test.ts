@@ -1,10 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
-import { spawnApp } from "../testApp.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type TestApp, spawnApp } from "../testApp.js";
 
 describe("Users", () => {
+	let app: TestApp;
+	beforeEach(async () => {
+		app = await spawnApp();
+		return new Promise((res) => setTimeout(res, 2000));
+	});
+
+	afterEach(async () => {
+		await app.close();
+		return new Promise((res) => setTimeout(res, 2000));
+	});
+	
 	describe("Get Me", () => {
 		it("Should return 200 status code when user is logged in", async () => {
-			const app = await spawnApp();
 			const getSpy = vi.spyOn(app.redis, "get");
 			const setSpy = vi.spyOn(app.redis, "set");
 
@@ -27,7 +37,7 @@ describe("Users", () => {
 			expect(response.status).toBe(200);
 
 			expect(getSpy).toBeCalledTimes(1);
-			expect(setSpy).toBeCalledTimes(2);
+			expect(setSpy).toBeCalledTimes(3);
 
 			expect(response.body).toBeTypeOf("object");
 			expect(response.body).toHaveProperty("status");
@@ -38,12 +48,9 @@ describe("Users", () => {
 			expect(response.body.data).toHaveProperty("email");
 			expect(response.body.data).toHaveProperty("avatar");
 			expect(response.body.data).toHaveProperty("aboutMe");
-
-			await app.close();
 		});
 
 		it("Should return 401 status code when user is not authorized", async () => {
-			const app = await spawnApp();
 			const setSpy = vi.spyOn(app.redis, "set");
 
 			const data = {
@@ -61,9 +68,7 @@ describe("Users", () => {
 			const response = await app.getMe();
 			expect(response.status).toBe(401);
 
-			expect(setSpy).toBeCalledTimes(1);
-
-			await app.close();
+			expect(setSpy).toBeCalledTimes(2);
 		});
 	});
 });

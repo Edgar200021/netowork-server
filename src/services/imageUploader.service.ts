@@ -1,6 +1,5 @@
 import { type UploadApiOptions, v2 as cloudinary } from "cloudinary";
 import { stat, unlink } from "node:fs/promises";
-import { Readable } from "node:stream";
 import { InternalServerError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
 import type { CloudinaryConfig } from "../config.js";
@@ -24,26 +23,20 @@ export class ImageUploader {
 
 	async uploadImageFromBuffer(image: Buffer): Promise<FileUploadResponse> {
 		return new Promise((res, rej) => {
-			let rStream: Readable;
-
-			const stream = cloudinary.uploader.upload_stream(
-				ImageUploader.CLOUDINARY_BASE_OPTIONS,
-				(err, result) => {
+			cloudinary.uploader
+				.upload_stream(ImageUploader.CLOUDINARY_BASE_OPTIONS, (err, result) => {
 					if (err || !result) {
-						rStream.destroy();
 						return err
 							? rej(err)
 							: rej("Something went wrong with file upload");
 					}
 
-					rStream.destroy();
 					return res({
 						imageUrl: result.secure_url,
 						imageId: result.public_id,
 					});
-				},
-			);
-			rStream = Readable.from(image).pipe(stream);
+				})
+				.end(image);
 		});
 	}
 

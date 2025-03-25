@@ -1,11 +1,20 @@
-import { describe, expect, it } from "vitest";
-import { spawnApp } from "../testApp.js";
-import { createValidationError } from "../utils.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type TestApp, spawnApp } from "../testApp.js";
+import { createValidationError } from '../utils.js';
 
 describe("Users", () => {
+	let app: TestApp;
+	beforeEach(async () => {
+		app = await spawnApp();
+		return new Promise((res) => setTimeout(res, 2000));
+	});
+
+	afterEach(async () => {
+		await app.close();
+		return new Promise((res) => setTimeout(res, 2000));
+	});
 	describe("Change Profile Password", () => {
 		it("Should return 200 status code when data is valid", async () => {
-			const app = await spawnApp();
 			const data = {
 				role: "client",
 				firstName: "Thomas",
@@ -32,12 +41,9 @@ describe("Users", () => {
 			expect(response.body).toHaveProperty("status");
 			expect(response.body).toHaveProperty("data");
 			expect(response.body.data).toBeTypeOf("string");
-
-			await app.close();
 		});
 
 		it("Should return 400 status code when data is invalid", async () => {
-			const app = await spawnApp();
 			const data = {
 				role: "client",
 				firstName: "Thomas",
@@ -50,7 +56,7 @@ describe("Users", () => {
 			const testCases = [
 				{
 					reqBody: {
-						oldPassword: "oldPassword",
+						oldPassword: data.password,
 					},
 					resBody: createValidationError("newPassword"),
 				},
@@ -58,10 +64,7 @@ describe("Users", () => {
 					reqBody: {
 						newPassword: "newPassword",
 					},
-					resBody: createValidationError(
-						"oldPassword",
-						"newPasswordConfirmation",
-					),
+					resBody: createValidationError("oldPassword", "newPassword"),
 				},
 				{
 					reqBody: {
@@ -95,16 +98,14 @@ describe("Users", () => {
 				expect(Object.keys(response.body)).toEqual(
 					Object.keys(testCase.resBody),
 				);
+
 				expect(Object.keys(response.body.errors)).toEqual(
 					Object.keys(testCase.resBody.errors),
 				);
 			}
-
-			await app.close();
 		});
 
 		it("Should return 400 status code when password is wrong", async () => {
-			const app = await spawnApp();
 			const data = {
 				role: "client",
 				firstName: "Thomas",
@@ -130,8 +131,6 @@ describe("Users", () => {
 			expect(response.body).toBeTypeOf("object");
 			expect(response.body).toHaveProperty("status");
 			expect(response.body).toHaveProperty("error");
-
-			await app.close();
 		});
 	});
 });

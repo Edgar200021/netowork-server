@@ -20,6 +20,7 @@ const applicationConfigSchema = vine.object({
 		.number({ strict: true })
 		.range([60, 1440]),
 	resetPasswordTtlInMinutes: vine.number({ strict: true }).range([10, 15]),
+	registeredEmailTtlInMinutes: vine.number({ strict: true }).range([60, 1440]),
 });
 
 const loggerConfigSchema = vine.object({

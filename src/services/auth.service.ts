@@ -6,11 +6,15 @@ import { BadRequestError, NotFoundError } from "../common/error.js";
 import type { HashingService } from "../common/services/hashing.service.js";
 import type { LoggerService } from "../common/services/logger.service.js";
 import type { ApplicationConfig } from "../config.js";
-import { SESSION_COOKIE_NAME } from "../const/cookie.js";
+import {
+	REGISTERED_EMAIL_COOKIE_NAME,
+	SESSION_COOKIE_NAME,
+} from "../const/cookie.js";
 import type { ForgotPasswordRequestDto } from "../dto/auth/forgotPassword/forgotPasswordRequest.dto.js";
 import type { LoginRequestDto } from "../dto/auth/login/loginRequest.dto.js";
 import type { RegisterRequestDto } from "../dto/auth/register/registerRequest.dto.js";
 import type { ResetPasswordRequestDto } from "../dto/auth/resetPassword/resetPasswordRequest.dto.js";
+import type { SetNewEmailRequestDto } from "../dto/auth/setNewEmail/setNewEmailRequest.dto.js";
 import type { VerifyAccountRequestDto } from "../dto/auth/verifyAccount/verifyAccountRequest.dto.js";
 import { UserResponseDto } from "../dto/users/userResponse.dto.js";
 import type { User } from "../storage/postgres/types/user.types.js";
@@ -64,6 +68,7 @@ export class AuthService {
 
 	async register(
 		payload: RegisterRequestDto,
+		res: Response,
 		log: LoggerService,
 	): Promise<void> {
 		const user = await this._usersRepository.getByKey("email", payload.email);
@@ -79,6 +84,7 @@ export class AuthService {
 
 		const hashedPassword = await this._hashingService.hash(payload.password);
 		const token = generateRandomToken();
+		const registeredEmailToken = generateRandomToken();
 
 		await Promise.all([
 			this._usersRepository.create({
@@ -93,9 +99,21 @@ export class AuthService {
 				token,
 				payload.email,
 				"EX",
-				Number(this._applicationConfig.sessionTtlInMinutes) * 60,
+				Number(this._applicationConfig.accountVerificationTtlInMinutes) * 60,
+			),
+			this._redis.set(
+				registeredEmailToken,
+				payload.email,
+				"EX",
+				Number(this._applicationConfig.registeredEmailTtlInMinutes) * 60,
 			),
 		]);
+
+		res.cookie(
+			REGISTERED_EMAIL_COOKIE_NAME,
+			registeredEmailToken,
+			this.cookieOptions("registeredEmail"),
+		);
 	}
 
 	async logout<T, U, R>(
@@ -189,8 +207,6 @@ export class AuthService {
 			throw new NotFoundError("Invalid token");
 		}
 
-		log.info({ userId }, "USER_ID IN RESET PASSWORD");
-
 		const hashedPassword = await this._hashingService.hash(payload.password);
 		const user = await this._usersRepository.updateAndReturn(
 			"id",
@@ -209,6 +225,94 @@ export class AuthService {
 		await this._redis.del(payload.token);
 	}
 
+	async sendVerificationEmail(
+		token: string,
+		log: LoggerService,
+	): Promise<void> {
+		log.info({ token }, "Sending verification email");
+
+		const email = await this._redis.get(token);
+		if (!email) {
+			log.warn({ token }, "Not found token in redis");
+			throw new NotFoundError("Invalid token");
+		}
+
+		const user = await this._usersRepository.getByKey("email", email);
+		if (!user || user.isVerified) {
+			const message = !user ? "User not found" : "User is already verified";
+			log.warn({ email }, message);
+
+			await this._redis.del(token);
+
+			throw !user ? new NotFoundError(message) : new BadRequestError(message);
+		}
+
+		const verificationToken = generateRandomToken();
+
+		await Promise.all([
+			this._emailService.sendVerificationEmail(email, verificationToken, log),
+			this._redis.set(
+				verificationToken,
+				email,
+				"EX",
+				Number(this._applicationConfig.accountVerificationTtlInMinutes) * 60,
+			),
+			this._redis.del(token),
+		]);
+	}
+
+	async setNewEmail(
+		token: string,
+		payload: SetNewEmailRequestDto,
+		log: LoggerService,
+	): Promise<void> {
+		log.info({ token }, "Set new email");
+
+		const oldEmail = await this._redis.get(token);
+		if (!oldEmail) {
+			log.warn({ token }, "Not found token in redis");
+			throw new NotFoundError("Invalid token");
+		}
+
+		const user = await this._usersRepository.getByKey("email", oldEmail);
+		if (!user || user.isVerified) {
+			const message = !user ? "User not found" : "User is already verified";
+			log.warn({ oldEmail }, message);
+
+			await this._redis.del(token);
+
+			throw !user ? new NotFoundError(message) : new BadRequestError(message);
+		}
+
+		const existingUser = await this._usersRepository.getByKey(
+			"email",
+			payload.newEmail,
+		);
+		if (existingUser)
+			throw new BadRequestError(`User with ${payload.newEmail} already exists`);
+
+		await this._usersRepository.update("email", oldEmail, {
+			email: payload.newEmail,
+		});
+
+		const verificationToken = generateRandomToken();
+
+		await Promise.all([
+			this._emailService.sendVerificationEmail(
+				payload.newEmail,
+				verificationToken,
+				log,
+			),
+			this._redis.set(
+				verificationToken,
+				payload.newEmail,
+				"EX",
+				Number(this._applicationConfig.accountVerificationTtlInMinutes) * 60,
+			),
+			this._redis.del(token),
+		]);
+	}
+
 	private async generateSession(user: User): Promise<UUID> {
 		const uuid = crypto.randomUUID();
 
@@ -222,24 +326,25 @@ export class AuthService {
 		return uuid;
 	}
 
-	private cookieOptions(type: "login" | "logout"): CookieOptions {
-		if (type === "login")
-			return {
-				path: "/",
-				httpOnly: true,
-				sameSite: "lax",
-				secure: this._applicationConfig.environment === Environment.Production,
-				signed: true,
-				maxAge: Number(this._applicationConfig.sessionTtlInMinutes) * 60000,
-			};
-
-		return {
+	private cookieOptions(
+		type: "login" | "logout" | "registeredEmail",
+	): CookieOptions {
+		const cookie: CookieOptions = {
 			path: "/",
 			httpOnly: true,
 			sameSite: "lax",
 			secure: this._applicationConfig.environment === Environment.Production,
 			signed: true,
-			maxAge: 0,
+			maxAge:
+				Number(
+					type === "login"
+						? this._applicationConfig.sessionTtlInMinutes
+						: type === "logout"
+							? 0
+							: this._applicationConfig.registeredEmailTtlInMinutes,
+				) * 60000,
 		};
+
+		return cookie;
 	}
 }

@@ -1,11 +1,21 @@
-import { describe, expect, it, vi } from "vitest";
-import { spawnApp } from "../testApp.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type TestApp, spawnApp } from "../testApp.js";
 import { createBaseError, createValidationError } from "../utils.js";
 
 describe("Authentication", () => {
+	let app: TestApp;
+	beforeEach(async () => {
+		app = await spawnApp();
+		return new Promise((res) => setTimeout(res, 2000));
+	});
+
+	afterEach(async () => {
+		await app.close();
+		return new Promise((res) => setTimeout(res, 2000));
+	});
+	
 	describe("Reset Password", () => {
 		it("Reset Password with valid data returns 200 status code", async () => {
-			const app = await spawnApp();
 			const setSpy = vi.spyOn(app.redis, "set");
 			const getSpy = vi.spyOn(app.redis, "get");
 
@@ -39,15 +49,11 @@ describe("Authentication", () => {
 			expect(response.body).toHaveProperty("data");
 			expect(response.body.data).toBeTypeOf("string");
 
-			expect(setSpy).toBeCalledTimes(3);
+			expect(setSpy).toBeCalledTimes(4);
 			expect(getSpy).toBeCalledTimes(2);
-
-			await app.close();
 		});
 
 		it("Reset Password with invalid data returns 404 status code", async () => {
-			const app = await spawnApp();
-
 			const data = {
 				role: "client",
 				email: "test@mail.com",
@@ -58,7 +64,7 @@ describe("Authentication", () => {
 			};
 
 			await app.createAndVerify(data);
-			const validToken = (await app.redis.keys("*"))[0];
+			const validToken = (await app.redis.keys("*"))[1];
 
 			const testCases = [
 				{

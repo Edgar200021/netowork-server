@@ -75,6 +75,29 @@ export class TestApp {
 		return response;
 	}
 
+	async sendVerificationEmail(cookies?: string[]) {
+		const response = this.superTest
+			.post("/api/v1/auth/send-verification-email")
+			.set("Content-Type", "application/json");
+
+		if (cookies) {
+			response.set("Cookie", cookies);
+		}
+
+		await response;
+
+		return response;
+	}
+
+	async setNewEmail(body: object) {
+		const response = await this.superTest
+			.patch("/api/v1/auth/set-new-email-address")
+			.set("Content-Type", "application/json")
+			.send(body);
+
+		return response;
+	}
+
 	async getMe(cookies?: string[]) {
 		const request = this.superTest
 			.get("/api/v1/users/profile")
@@ -94,17 +117,18 @@ export class TestApp {
 			email?: string;
 			aboutMe?: string;
 			avatar?: string;
+			firstName?: string;
+			lastName?: string;
 		},
 		cookies?: string[],
 	) {
 		const request = this.superTest.patch("/api/v1/users/profile");
 
-		if (body.email) {
-			request.field("email", body.email);
-		}
-
-		if (body.aboutMe) {
-			request.field("aboutMe", body.aboutMe);
+		for (const key in body) {
+			if (key === "avatar") continue;
+			if (body[key as keyof typeof body]) {
+				request.field(key, body[key as keyof typeof body]!);
+			}
 		}
 
 		if (body.avatar) {
@@ -121,7 +145,9 @@ export class TestApp {
 	}
 
 	async changeProfilePassword(body: object, cookies?: string[]) {
-		const request = this.superTest.patch("/api/v1/users/profile");
+		const request = this.superTest
+			.patch("/api/v1/users/profile/change-password")
+			.set("Content-Type", "application/json");
 
 		if (cookies) {
 			request.set("Cookie", cookies);

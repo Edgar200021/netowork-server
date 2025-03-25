@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["**/node_modules/**/*", "**/dist/**/*", "**/migrations/**/*"]
+    "ignore": ["**/node_modules/**/*", "**/dist/**/*", "**/migrations/**/*", "src/common/services/logger.service.ts"]
   },
   "formatter": {
     "enabled": true,
@@ -17,6 +17,7 @@
     "enabled": true
   },
   "linter": {
+	"ignore": ["**/node_modules/**/*", "**/dist/**/*", "**/migrations/**/*"],
     "enabled": true,
     "rules": {
       "recommended": true

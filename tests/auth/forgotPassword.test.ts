@@ -1,68 +1,68 @@
-import { describe, expect, it, vi } from 'vitest'
-import { spawnApp } from '../testApp.js'
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type TestApp, spawnApp } from "../testApp.js";
 
-describe('Authentication', () => {
-  describe('Forgot Password', () => {
-    it('Forgot Password with valid data returns 200 status code', async () => {
-      const app = await spawnApp()
-      const setSpy = vi.spyOn(app.redis, 'set')
+describe("Authentication", () => {
+	let app: TestApp;
+	beforeEach(async () => {
+		app = await spawnApp();
+		return new Promise((res) => setTimeout(res, 2000));
+	});
 
-      const data = {
-        role: 'client',
-        email: 'test@mail.com',
-        firstName: 'John',
-        lastName: 'Doe',
-        password: 'password',
-        passwordConfirmation: 'password',
-      }
+	afterEach(async () => {
+		await app.close();
+		return new Promise((res) => setTimeout(res, 2000));
+	});
 
-      const verifyResponse = await app.createAndVerify(data)
-      expect(verifyResponse.statusCode).toBe(200)
+	describe("Forgot Password", () => {
+		it("Forgot Password with valid data returns 200 status code", async () => {
+			const setSpy = vi.spyOn(app.redis, "set");
 
-      const response = await app.forgotPassword({
-        email: data.email,
-      })
+			const data = {
+				role: "client",
+				email: "test@mail.com",
+				firstName: "John",
+				lastName: "Doe",
+				password: "password",
+				passwordConfirmation: "password",
+			};
 
-      expect(response.statusCode).toBe(200)
-      expect(response.body).toBeTypeOf('object')
-      expect(response.body).toHaveProperty('status')
-      expect(response.body).toHaveProperty('data')
-      expect(response.body.data).toBeTypeOf('string')
+			const verifyResponse = await app.createAndVerify(data);
+			expect(verifyResponse.statusCode).toBe(200);
 
-      expect(setSpy).toHaveBeenCalledTimes(3)
+			const response = await app.forgotPassword({
+				email: data.email,
+			});
 
-      await app.close()
-    })
+			expect(response.statusCode).toBe(200);
+			expect(response.body).toBeTypeOf("object");
+			expect(response.body).toHaveProperty("status");
+			expect(response.body).toHaveProperty("data");
+			expect(response.body.data).toBeTypeOf("string");
 
-    it('Forgot Password with invalid email returns 400 status code', async () => {
-      const app = await spawnApp()
+			expect(setSpy).toHaveBeenCalledTimes(4);
+		});
 
-      const response = await app.forgotPassword({
-        email: 'invalid-email',
-      })
+		it("Forgot Password with invalid email returns 400 status code", async () => {
+			const response = await app.forgotPassword({
+				email: "invalid-email",
+			});
 
-      expect(response.statusCode).toBe(400)
-      expect(response.body).toBeTypeOf('object')
-      expect(response.body).toHaveProperty('status')
-      expect(response.body).toHaveProperty('errors')
-      expect(response.body.errors).toHaveProperty('email')
+			expect(response.statusCode).toBe(400);
+			expect(response.body).toBeTypeOf("object");
+			expect(response.body).toHaveProperty("status");
+			expect(response.body).toHaveProperty("errors");
+			expect(response.body.errors).toHaveProperty("email");
+		});
 
-      await app.close()
-    })
+		it("Forgot Password with not registered email returns 404 status code", async () => {
+			const response = await app.forgotPassword({
+				email: "test@mail.com",
+			});
 
-    it('Forgot Password with not registered email returns 404 status code', async () => {
-      const app = await spawnApp()
-
-      const response = await app.forgotPassword({
-        email: 'test@mail.com',
-      })
-
-      expect(response.statusCode).toBe(404)
-      expect(response.body).toBeTypeOf('object')
-      expect(response.body).toHaveProperty('status')
-      expect(response.body).toHaveProperty('error')
-
-      await app.close()
-    })
-  })
-})
+			expect(response.statusCode).toBe(404);
+			expect(response.body).toBeTypeOf("object");
+			expect(response.body).toHaveProperty("status");
+			expect(response.body).toHaveProperty("error");
+		});
+	});
+});
