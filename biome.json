@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["**/node_modules/**/*", "**/dist/**/*", "**/migrations/**/*", "src/common/services/logger.service.ts"]
+    "ignore": ["**/node_modules/**/*", "**/dist/**/*", "src/common/services/logger.service.ts"]
   },
   "formatter": {
     "enabled": true,

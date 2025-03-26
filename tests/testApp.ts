@@ -202,7 +202,7 @@ export const spawnApp = async (): Promise<TestApp> => {
 	settings.redis.database = Math.floor(Math.random() * 15);
 	settings.database.database = crypto.randomUUID().toString();
 
-	const db = await setupDb(settings.database, settings.redis);
+	const db = await setupDb(settings.database);
 	const app = new App(settings, logger);
 
 	await app.redis.select(settings.redis.database);

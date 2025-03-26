@@ -4,10 +4,12 @@ import type { LoggerService } from "../../common/services/logger.service.js";
 import type { DatabaseConfig } from "../../config.js";
 import type { DB } from "../db.js";
 import { UsersRepository } from "./users.repository.js";
+import { WorksRepository } from "./works.repository.js";
 
 export class Database {
 	private readonly _db: Kysely<DB>;
 	private readonly _usersRepository: UsersRepository;
+	private readonly _worksRepository: WorksRepository;
 
 	constructor(
 		config: DatabaseConfig,
@@ -31,6 +33,7 @@ export class Database {
 		});
 
 		this._usersRepository = new UsersRepository(this._db);
+		this._worksRepository = new WorksRepository(this._db);
 	}
 
 	get usersRepository() {

@@ -29,6 +29,25 @@ export interface Users {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface WorkImages {
+  createdAt: Generated<Timestamp>;
+  id: Generated<number>;
+  imageId: string;
+  imageUrl: string;
+  updatedAt: Generated<Timestamp>;
+  workId: number;
+}
+
+export interface Works {
+  createdAt: Generated<Timestamp>;
+  id: Generated<number>;
+  title: string;
+  updatedAt: Generated<Timestamp>;
+  userId: number;
+}
+
 export interface DB {
   users: Users;
+  workImages: WorkImages;
+  works: Works;
 }
