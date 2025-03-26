@@ -257,7 +257,6 @@ export class AuthService {
 				"EX",
 				Number(this._applicationConfig.accountVerificationTtlInMinutes) * 60,
 			),
-			this._redis.del(token),
 		]);
 	}
 
@@ -288,6 +287,7 @@ export class AuthService {
 			"email",
 			payload.newEmail,
 		);
+
 		if (existingUser)
 			throw new BadRequestError(`User with ${payload.newEmail} already exists`);
 

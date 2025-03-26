@@ -11,6 +11,7 @@ const app = new App(settings, logger)
 
 app.run()
 
+
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, async () => {
     console.log('Shutting down...')

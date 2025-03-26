@@ -68,32 +68,33 @@ describe("Authentication", () => {
 			expect(getSpy).toHaveBeenCalledTimes(1);
 			expect(getSpy).toHaveBeenCalledWith("invalid-token");
 		});
-	});
-	it("Account Verification with expired token returns 404 status code", async () => {
-		const getSpy = vi.spyOn(app.redis, "get");
 
-		await app.register({
-			role: "client",
-			firstName: "Thomas",
-			lastName: "Thomson",
-			email: "test@mail.com",
-			password: "password",
-			passwordConfirmation: "password",
+		it("Account Verification with expired token returns 404 status code", async () => {
+			const getSpy = vi.spyOn(app.redis, "get");
+
+			await app.register({
+				role: "client",
+				firstName: "Thomas",
+				lastName: "Thomson",
+				email: "test@mail.com",
+				password: "password",
+				passwordConfirmation: "password",
+			});
+
+			const token = (await app.redis.keys("*"))[0];
+
+			expect(token).not.toBeNull();
+
+			await app.redis.expire(token, 0);
+			const response = await app.verify(token);
+
+			expect(response.statusCode).toBe(404);
+			expect(response.body).toBeTypeOf("object");
+			expect(response.body).toHaveProperty("status");
+			expect(response.body).toHaveProperty("error");
+
+			expect(getSpy).toHaveBeenCalledTimes(1);
+			expect(getSpy).toBeCalledWith(token);
 		});
-
-		const token = (await app.redis.keys("*"))[0];
-
-		expect(token).not.toBeNull();
-
-		await app.redis.expire(token, 0);
-		const response = await app.verify(token);
-
-		expect(response.statusCode).toBe(404);
-		expect(response.body).toBeTypeOf("object");
-		expect(response.body).toHaveProperty("status");
-		expect(response.body).toHaveProperty("error");
-
-		expect(getSpy).toHaveBeenCalledTimes(1);
-		expect(getSpy).toBeCalledWith(token);
 	});
 });

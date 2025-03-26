@@ -140,7 +140,7 @@ describe("Users", () => {
 				);
 			}
 
-			expect(setSpy).toBeCalledTimes(4);
+			expect(setSpy).toBeCalledTimes(3);
 			expect(getSpy).toBeCalledTimes(1);
 		});
 

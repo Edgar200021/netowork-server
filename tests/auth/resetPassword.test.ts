@@ -36,7 +36,7 @@ describe("Authentication", () => {
 			});
 			expect(forgotPasswordResponse.statusCode).toBe(200);
 
-			const token = (await app.redis.keys("*"))[1];
+			const token = (await app.redis.keys("*"))[0];
 			const response = await app.resetPassword({
 				token,
 				password: "newPassword",
@@ -64,7 +64,7 @@ describe("Authentication", () => {
 			};
 
 			await app.createAndVerify(data);
-			const validToken = (await app.redis.keys("*"))[1];
+			const validToken = (await app.redis.keys("*"))[0];
 
 			const testCases = [
 				{

@@ -89,11 +89,18 @@ export class TestApp {
 		return response;
 	}
 
-	async setNewEmail(body: object) {
-		const response = await this.superTest
+	async setNewEmail(body: object, cookies?: string[]) {
+		const response = this.superTest
 			.patch("/api/v1/auth/set-new-email-address")
-			.set("Content-Type", "application/json")
-			.send(body);
+			.set("Content-Type", "application/json");
+
+		if (cookies) {
+			response.set("Cookie", cookies);
+		}
+
+		response.send(body);
+
+		await response;
 
 		return response;
 	}

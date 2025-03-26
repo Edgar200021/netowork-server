@@ -32,7 +32,7 @@ describe("Authentication", () => {
 			);
 			expect(response.statusCode).toBe(200);
 		});
-
+		
 		it("Should return 400 status code when account already verified", async () => {
 			const data = {
 				role: "client",
