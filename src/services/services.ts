@@ -8,10 +8,12 @@ import { AuthService } from "./auth.service.js";
 import { EmailService } from "./email.service.js";
 import { ImageUploader } from "./imageUploader.service.js";
 import { UsersService } from "./users.service.js";
+import { WorksService } from "./works.service.js";
 
 export class Services {
 	private readonly _authService: AuthService;
 	private readonly _usersService: UsersService;
+	private readonly _worksService: WorksService;
 	private readonly _hashingService: HashingService;
 	private readonly _emailService: EmailService;
 	private readonly _imageUploader: ImageUploader;
@@ -43,6 +45,11 @@ export class Services {
 			this._imageUploader,
 			config.application,
 		);
+
+		this._worksService = new WorksService(
+			this._database.worksRepository,
+			this._imageUploader,
+		);
 	}
 
 	get authService() {
@@ -52,6 +59,11 @@ export class Services {
 	get usersService() {
 		return this._usersService;
 	}
+
+	get worksService() {
+		return this._worksService;
+	}
+
 
 	get hashingService() {
 		return this._hashingService;

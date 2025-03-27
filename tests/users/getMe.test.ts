@@ -5,14 +5,14 @@ describe("Users", () => {
 	let app: TestApp;
 	beforeEach(async () => {
 		app = await spawnApp();
-		return new Promise((res) => setTimeout(res, 2000));
+		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 2000));
+		return new Promise((res) => setTimeout(res, 4000));
 	});
-	
+
 	describe("Get Me", () => {
 		it("Should return 200 status code when user is logged in", async () => {
 			const getSpy = vi.spyOn(app.redis, "get");

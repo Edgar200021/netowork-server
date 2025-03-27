@@ -5,18 +5,18 @@ import {
 	MAX_LAST_NAME_LENGTH,
 } from "../../src/const/validator.js";
 import { type TestApp, spawnApp } from "../testApp.js";
-import { createValidationError } from "../utils.js";
+import { createValidationError, imagePath } from "../utils.js";
 
 describe("Users", () => {
 	let app: TestApp;
 	beforeEach(async () => {
 		app = await spawnApp();
-		return new Promise((res) => setTimeout(res, 2000));
+		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 2000));
+		return new Promise((res) => setTimeout(res, 4000));
 	});
 	describe("Update Profile", () => {
 		it("Should return 200 status code when data is valid", async () => {
@@ -86,6 +86,44 @@ describe("Users", () => {
 
 			expect(user).not.toBeUndefined();
 			expect(user?.isVerified).toBe(false);
+		});
+
+		it("Should has avatar when avatar is uploaded", async () => {
+			const setSpy = vi.spyOn(app.redis, "set");
+			const getSpy = vi.spyOn(app.redis, "get");
+
+			const data = {
+				role: "client",
+				firstName: "Thomas",
+				lastName: "Thomson",
+				email: "test@mail.com",
+				password: "password",
+				passwordConfirmation: "password",
+			};
+
+			const verifyResponse = await app.createAndVerify(data);
+			expect(verifyResponse.statusCode).toBe(200);
+
+			const res = await app.updateProfile(
+				{
+					avatar: imagePath,
+				},
+				verifyResponse.get("Set-Cookie"),
+			);
+
+			expect(res.statusCode).toBe(200);
+
+			expect(setSpy).toBeCalledTimes(3);
+			expect(getSpy).toBeCalledTimes(1);
+
+			const user = await app.database
+				.selectFrom("users")
+				.where("email", "=", data.email)
+				.select("avatar")
+				.executeTakeFirst();
+
+			expect(user).not.toBeUndefined();
+			expect(user?.avatar).not.toBeNull();
 		});
 
 		it("Should return 400 status code when data is invalid", async () => {

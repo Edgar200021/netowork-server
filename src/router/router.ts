@@ -5,6 +5,7 @@ import helmet from "helmet";
 import type { ApplicationConfig } from "../config.js";
 import { AuthHandler } from "../handlers/auth.handler.js";
 import { UsersHandler } from "../handlers/users.handler.js";
+import { WorksHandler } from "../handlers/works.handler.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
 import type { Services } from "../services/services.js";
 
@@ -38,6 +39,10 @@ export class Router {
 		app.use(
 			"/api/v1/users",
 			new UsersHandler(middlewares, services.usersService).router,
+		);
+		app.use(
+			"/api/v1/works",
+			new WorksHandler(middlewares, services.worksService).router,
 		);
 
 		app.use("*", (req, res) => {

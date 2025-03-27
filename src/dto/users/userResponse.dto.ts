@@ -8,6 +8,8 @@ import type { User } from "../../storage/postgres/types/user.types.js";
  *     UserResponseDto:
  *       type: object
  *       properties:
+ *         id:
+ *           type: number
  *         firstName:
  *           type: string
  *         lastName:
@@ -28,6 +30,9 @@ import type { User } from "../../storage/postgres/types/user.types.js";
  *           type: string
  *           default: null
  *           nullable: true
+ *         createdAt:
+ *           type: string
+ *           format: date-time
  */
 
 export class UserResponseDto {

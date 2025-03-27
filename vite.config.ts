@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
 	test: {
@@ -6,8 +6,8 @@ export default defineConfig({
 		hookTimeout: 120_000,
 		poolOptions: {
 			threads: {
-				singleThread: true
-			}
-		}
-	}
-})
+				singleThread: true,
+			},
+		},
+	},
+});

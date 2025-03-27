@@ -32,8 +32,8 @@ export class UsersService {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
 		if (Object.keys(req.body).length === 0 && !req.file) {
-			console.log("REQ_BODY ---------------------------------------------\n", req.body)
-			throw new BadRequestError("No fields to update");}
+			throw new BadRequestError("No fields to update");
+		}
 
 		const log = req.logger;
 		const { email, aboutMe } = req.body;

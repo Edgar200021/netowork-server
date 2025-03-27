@@ -40,6 +40,10 @@ export class Database {
 		return this._usersRepository;
 	}
 
+	get worksRepository() {
+		return this._worksRepository;
+	}
+
 	async close() {
 		await this._db.destroy();
 	}

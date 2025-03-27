@@ -1,17 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type TestApp, spawnApp } from "../testApp.js";
-import { createValidationError } from '../utils.js';
+import { createValidationError } from "../utils.js";
 
 describe("Users", () => {
 	let app: TestApp;
 	beforeEach(async () => {
 		app = await spawnApp();
-		return new Promise((res) => setTimeout(res, 2000));
+		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 2000));
+		return new Promise((res) => setTimeout(res, 4000));
 	});
 	describe("Change Profile Password", () => {
 		it("Should return 200 status code when data is valid", async () => {

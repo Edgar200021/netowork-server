@@ -20,6 +20,7 @@ import { SESSION_COOKIE_NAME } from "../const/cookie.js";
 import { INVALID_FILENAME_ERROR_CODE } from "../const/multer.js";
 import type { UserRole } from "../storage/db.js";
 import type { UsersRepository } from "../storage/postgres/users.repository.js";
+import type { NonEmptyArray } from "../types/common.js";
 import type { AllowedMimeTypes } from "../types/mimeTypes.js";
 import { generateUserError } from "../utils/generateUserError.js";
 
@@ -86,7 +87,7 @@ export class Middlewares {
 
 			if (roles.indexOf(req.user.role) === -1) {
 				log.warn(
-					{ user: req.user },
+					{ email: req.user.email, role: req.user.role },
 					"Does not have permission to perform this action",
 				);
 				return next(
@@ -135,9 +136,24 @@ export class Middlewares {
 		next();
 	}
 
-	uploadFile(name: string, mimeTypes?: AllowedMimeTypes[]) {
+	uploadFile(
+		name: string,
+		{
+			single,
+			mimeTypes,
+			fileCount,
+		}: {
+			single: boolean;
+			mimeTypes?: NonEmptyArray<AllowedMimeTypes>;
+			fileCount?: number;
+		},
+	) {
 		return (req: Request, res: Response, next: NextFunction) => {
-			const upload = this._multer.single(name);
+			const upload = this._multer[single ? "single" : "array"](
+				name,
+				fileCount ?? 1,
+			);
+
 
 			upload(req, res, (err) => {
 				if (err) {
@@ -145,18 +161,31 @@ export class Middlewares {
 						err instanceof MulterError &&
 						err.code === INVALID_FILENAME_ERROR_CODE
 					) {
-						return next(new BadRequestError("Invalid file name"));
+						return next(new BadRequestError("Invalid field name"));
 					}
 
 					return next(err);
 				}
 
 				if (
+					single &&
 					req.file &&
 					mimeTypes &&
 					!mimeTypes.includes(req.file.mimetype as AllowedMimeTypes)
 				) {
 					return next(new BadRequestError("Invalid file type"));
+				}
+
+				if (!single && req.files && mimeTypes) {
+					const files = Array.isArray(req.files) ? req.files : req.files[name];
+
+					if (
+						files.length > 0 &&
+						!files.every((f) =>
+							mimeTypes.includes(f.mimetype as AllowedMimeTypes),
+						)
+					)
+						return next(new BadRequestError("Invalid file type"));
 				}
 
 				next();

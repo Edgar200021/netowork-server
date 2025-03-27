@@ -1,5 +1,6 @@
 import type { Kysely, ReferenceExpression } from "kysely";
 import type { DB } from "../db.js";
+import type { User } from "./types/user.types.js";
 import type {
 	NewWork,
 	NewWorkImage,
@@ -46,26 +47,52 @@ export class WorksRepository {
 		return work;
 	}
 
+	async getByUserId<T extends keyof Omit<Work, "userId"> = "id">(
+		userId: User["id"],
+		key: T,
+		value: Work[T],
+	): Promise<Work | undefined> {
+		const work = await this._db
+			.selectFrom("works")
+			.leftJoin("workImages as wi", "wi.workId", "works.id")
+			.select([
+				"works.id",
+				"works.title",
+				"works.createdAt",
+				"works.updatedAt",
+				"works.userId",
+			])
+			.select((eb) =>
+				eb.fn.agg<string[]>("array_agg", ["wi.imageUrl"]).as("images"),
+			)
+			.where("works.userId", "=", userId)
+			.where(key as ReferenceExpression<DB, "works">, "=", value)
+			.groupBy("works.id")
+			.executeTakeFirst();
+
+		return work;
+	}
+
 	async create(
-		work: NewWork,
+		newWork: NewWork,
 		workImages: Pick<NewWorkImage, "imageId" | "imageUrl">[],
-	): Promise<Work["id"]> {
-		const id = await this._db.transaction().execute(async (trx) => {
-			const { id } = await trx
+	): Promise<Work & { images: string[] }> {
+		const work = await this._db.transaction().execute(async (trx) => {
+			const result = await trx
 				.insertInto("works")
-				.values(work)
-				.returning("id")
+				.values(newWork)
+				.returningAll()
 				.executeTakeFirstOrThrow();
 
 			await trx
 				.insertInto("workImages")
-				.values(workImages.map((w) => ({ ...w, workId: id })))
+				.values(workImages.map((w) => ({ ...w, workId: result.id })))
 				.execute();
 
-			return id;
+			return { ...result, images: workImages.map((w) => w.imageUrl) };
 		});
 
-		return id;
+		return work;
 	}
 
 	async update<T extends keyof Pick<Work, "id" | "userId">>(

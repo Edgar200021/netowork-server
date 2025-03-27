@@ -225,12 +225,10 @@ export class UsersHandler extends BaseHandler {
 		this._router.patch(
 			"/profile",
 			this._middlewares.auth,
-			this._middlewares.uploadFile(AVATAR_FILE_NAME, [
-				"image/jpg",
-				"image/jpeg",
-				"image/png",
-				"image/webp",
-			]),
+			this._middlewares.uploadFile(AVATAR_FILE_NAME, {
+				single: true,
+				mimeTypes: ["image/jpg", "image/jpeg", "image/png", "image/webp"],
+			}),
 			this._middlewares.validateRequest(this.validators.updateProfile),
 			asyncWrapper(this.updateProfile),
 		);

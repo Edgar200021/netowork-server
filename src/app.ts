@@ -36,7 +36,7 @@ export class App {
 		database.ping().catch((err) => {
 			this._loggerService.fatal(`Database connection error: ${err}`);
 			process.exit(1);
-		});  
+		});
 
 		redis.ping().catch((err) => {
 			this._loggerService.fatal(`Redis connection error: ${err}`);

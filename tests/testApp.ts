@@ -8,6 +8,7 @@ import type TestAgent from "supertest/lib/agent.js";
 import { App } from "../src/app.js";
 import { LoggerService } from "../src/common/services/logger.service.js";
 import { readConfig } from "../src/config.js";
+import { AVATAR_FILE_NAME, WORK_IMAGES_FILE_NAME } from "../src/const/multer.js";
 import type { Services } from "../src/services/services.js";
 import type { DB } from "../src/storage/db.js";
 import { setupDb } from "./setupDb.js";
@@ -139,7 +140,7 @@ export class TestApp {
 		}
 
 		if (body.avatar) {
-			request.attach("avatar", body.avatar);
+			request.attach(AVATAR_FILE_NAME, body.avatar);
 		}
 
 		if (cookies) {
@@ -161,6 +162,34 @@ export class TestApp {
 		}
 
 		request.send(body);
+
+		const response = await request;
+
+		return response;
+	}
+
+	async createWork(
+		body: {
+			title?: string;
+			files?: string[];
+		},
+		cookies?: string[],
+	) {
+		const request = this.superTest.post("/api/v1/works");
+
+		if (body.title) {
+			request.field("title", body.title);
+		}
+
+		if (body.files) {
+			for (const file of body.files) {
+				request.attach(WORK_IMAGES_FILE_NAME, file);
+			}
+		}
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
 
 		const response = await request;
 
