@@ -4,7 +4,7 @@ import type { Work } from "../../storage/postgres/types/userWorks.types.js";
  * @openapi
  * components:
  *   schemas:
- *     UserResponseDto:
+ *     WorkResponseDto:
  *       type: object
  *       properties:
  *         id:

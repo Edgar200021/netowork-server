@@ -148,6 +148,24 @@ describe("Works", () => {
 			expect(result2.body).toHaveProperty("error");
 		});
 
+		it("Should return 403 status code when user is not freelancer", async () => {
+			const verifyResult = await app.createAndVerify({
+				...data,
+				role: "client",
+			});
+			expect(verifyResult.statusCode).toBe(200);
+
+			const result = await app.createWork(
+				{
+					title: "title",
+					files: [imagePath, imagePath],
+				},
+				verifyResult.get("Set-Cookie"),
+			);
+
+			expect(result.statusCode).toBe(403);
+		});
+
 		it("Should saved work in database when work is created", async () => {
 			const verifyResult = await app.createAndVerify(data);
 			expect(verifyResult.statusCode).toBe(200);

@@ -44,4 +44,17 @@ export class WorksService {
 
 		return new WorkResponseDto(work);
 	}
+
+	async getWorks(
+		userId: User["id"],
+		log: LoggerService,
+	): Promise<WorkResponseDto[]> {
+		log.info({ userId }, "Getting works");
+
+		const works = await this._worksRepository.getAll({
+			userId: { value: userId, op: "=" },
+		});
+
+		return works.map((w) => new WorkResponseDto(w));
+	}
 }

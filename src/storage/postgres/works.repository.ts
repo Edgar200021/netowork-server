@@ -1,4 +1,8 @@
-import type { Kysely, ReferenceExpression } from "kysely";
+import type {
+	ComparisonOperatorExpression,
+	Kysely,
+	ReferenceExpression,
+} from "kysely";
 import type { DB } from "../db.js";
 import type { User } from "./types/user.types.js";
 import type {
@@ -11,15 +15,36 @@ import type {
 export class WorksRepository {
 	constructor(private readonly _db: Kysely<DB>) {}
 
-	async getAll(): Promise<Work[]> {
-		const works = await this._db
-			.selectFrom("works as w")
-			.leftJoin("workImages as wi", "wi.workId", "w.id")
-			.select(["w.id", "w.title", "w.createdAt", "w.updatedAt", "w.userId"])
+	async getAll(
+		filters?: Partial<{
+			[key in keyof Work]: {
+				value: Work[key];
+				op: ComparisonOperatorExpression;
+			};
+		}>,
+	): Promise<(Work & { images: string[] })[]> {
+		let query = this._db
+			.selectFrom("works")
+			.leftJoin("workImages as wi", "wi.workId", "works.id")
+			.select([
+				"works.id",
+				"works.title",
+				"works.createdAt",
+				"works.updatedAt",
+				"works.userId",
+			])
 			.select((eb) =>
 				eb.fn.agg<string[]>("array_agg", ["wi.imageUrl"]).as("images"),
 			)
-			.execute();
+			.groupBy("works.id");
+
+		if (filters && Object.keys(filters).length > 0) {
+			for (const [key, { value, op }] of Object.entries(filters)) {
+				query = query.where(key as ReferenceExpression<DB, "works">, op, value);
+			}
+		}
+
+		const works = await query.execute();
 
 		return works;
 	}
