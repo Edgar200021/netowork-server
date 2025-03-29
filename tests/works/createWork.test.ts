@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
+import type { ValidationErrorResponseDto } from '../../src/services/common/dto/base.dto.js';
 import {
 	WORK_IMAGES_FILE_NAME,
 	WORK_IMAGES_MAX_COUNT,
@@ -42,7 +42,6 @@ describe("Works", () => {
 				verifyResult.get("Set-Cookie"),
 			);
 
-			console.log(result);
 
 			expect(result.statusCode).toBe(201);
 		});

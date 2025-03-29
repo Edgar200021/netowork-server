@@ -1,7 +1,5 @@
-
-import type { SuccessResponseDto } from '../../../common/dto/base.dto.js'
-import type { WorkResponseDto } from '../workResponse.dto.js'
-
+import type { SuccessResponseDto } from "../../../services/common/dto/base.dto.js";
+import type { WorkResponseDto } from "../workResponse.dto.js";
 
 /**
  * @openapi
@@ -17,4 +15,4 @@ import type { WorkResponseDto } from '../workResponse.dto.js'
  *               items:
  *                 $ref: '#/components/schemas/WorkResponseDto'
  */
-export type GetWorksResponseDto = SuccessResponseDto<WorkResponseDto[]>
+export type GetWorksResponseDto = SuccessResponseDto<WorkResponseDto[]>;

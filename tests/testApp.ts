@@ -1,19 +1,19 @@
 import { config } from "dotenv";
 import type { Kysely } from "kysely";
 
-import type { Redis } from "ioredis";
 import crypto from "node:crypto";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent.js";
 import { App } from "../src/app.js";
-import { LoggerService } from "../src/common/services/logger.service.js";
 import { readConfig } from "../src/config.js";
 import {
 	AVATAR_FILE_NAME,
 	WORK_IMAGES_FILE_NAME,
 } from "../src/const/multer.js";
+import { LoggerService } from "../src/services/common/services/logger.service.js";
 import type { Services } from "../src/services/services.js";
 import type { DB } from "../src/storage/db.js";
+import type { Redis } from "../src/storage/redis/redis.js";
 import { setupDb } from "./setupDb.js";
 
 export class TestApp {
@@ -201,6 +201,18 @@ export class TestApp {
 
 	async getWorks(cookies?: string[]) {
 		const request = this.superTest.get("/api/v1/works");
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
+	async deleteWork(workId?: number, cookies?: string[]) {
+		const request = this.superTest.delete(`/api/v1/works/${workId ?? ""}`);
 
 		if (cookies) {
 			request.set("Cookie", cookies);

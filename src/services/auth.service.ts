@@ -1,10 +1,5 @@
 import type { CookieOptions, Request, Response } from "express";
-import type { Redis } from "ioredis";
 import crypto, { type UUID } from "node:crypto";
-import { Environment } from "../common/enums/environment.enum.js";
-import { BadRequestError, NotFoundError } from "../common/error.js";
-import type { HashingService } from "../common/services/hashing.service.js";
-import type { LoggerService } from "../common/services/logger.service.js";
 import type { ApplicationConfig } from "../config.js";
 import {
 	REGISTERED_EMAIL_COOKIE_NAME,
@@ -17,16 +12,21 @@ import type { ResetPasswordRequestDto } from "../dto/auth/resetPassword/resetPas
 import type { SetNewEmailRequestDto } from "../dto/auth/setNewEmail/setNewEmailRequest.dto.js";
 import type { VerifyAccountRequestDto } from "../dto/auth/verifyAccount/verifyAccountRequest.dto.js";
 import { UserResponseDto } from "../dto/users/userResponse.dto.js";
+import type { Database } from "../storage/postgres/database.js";
 import type { User } from "../storage/postgres/types/user.types.js";
-import type { UsersRepository } from "../storage/postgres/users.repository.js";
+import type { Redis } from "../storage/redis/redis.js";
 import { generateRandomToken } from "../utils/createToken.js";
 import { generateUserError } from "../utils/generateUserError.js";
+import { Environment } from "./common/enums/environment.enum.js";
+import { BadRequestError, NotFoundError } from "./common/error.js";
+import type { HashingService } from "./common/services/hashing.service.js";
+import type { LoggerService } from "./common/services/logger.service.js";
 import type { EmailService } from "./email.service.js";
 
 export class AuthService {
 	constructor(
 		private readonly _applicationConfig: ApplicationConfig,
-		private readonly _usersRepository: UsersRepository,
+		private readonly _database: Database,
 		private readonly _redis: Redis,
 		private readonly _hashingService: HashingService,
 		private readonly _emailService: EmailService,
@@ -39,9 +39,13 @@ export class AuthService {
 		res: Response,
 		log: LoggerService,
 	): Promise<UserResponseDto> {
-		const user = await this._usersRepository.getByKey("email", payload.email);
-
 		log.info(`Authenticating user: ${payload.email}`);
+
+		const user = await this._database
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", payload.email)
+			.executeTakeFirst();
 
 		if (!user || !user.isVerified || user.isBanned) {
 			const { message, error } = generateUserError(user, {
@@ -71,9 +75,13 @@ export class AuthService {
 		res: Response,
 		log: LoggerService,
 	): Promise<void> {
-		const user = await this._usersRepository.getByKey("email", payload.email);
-
 		log.info(`Registering user: ${payload.email}`);
+
+		const user = await this._database
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", payload.email)
+			.executeTakeFirst();
 
 		if (user) {
 			log.warn(
@@ -86,14 +94,18 @@ export class AuthService {
 		const token = generateRandomToken();
 		const registeredEmailToken = generateRandomToken();
 
-		await Promise.all([
-			this._usersRepository.create({
+		await this._database
+			.insertInto("users")
+			.values({
 				email: payload.email,
 				password: hashedPassword,
 				firstName: payload.firstName,
 				lastName: payload.lastName,
 				role: payload.role,
-			}),
+			})
+			.execute();
+
+		await Promise.all([
 			this._emailService.sendVerificationEmail(payload.email, token, log),
 			this._redis.set(
 				token,
@@ -150,10 +162,15 @@ export class AuthService {
 		}
 
 		const [user] = await Promise.all([
-			this._usersRepository.updateAndReturn("email", email, {
-				isVerified: true,
-				updatedAt: new Date(),
-			}),
+			this._database
+				.updateTable("users")
+				.set({
+					isVerified: true,
+					updatedAt: new Date(),
+				})
+				.where("email", "=", email)
+				.returningAll()
+				.executeTakeFirst(),
 			this._redis.del(payload.token),
 		]);
 
@@ -174,7 +191,11 @@ export class AuthService {
 	): Promise<void> {
 		log.info({ email: payload.email }, "Forgot password");
 
-		const user = await this._usersRepository.getByKey("email", payload.email);
+		const user = await this._database
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", payload.email)
+			.executeTakeFirst();
 		if (!user || !user.isVerified || user.isBanned) {
 			const { message, error } = generateUserError(user);
 
@@ -208,13 +229,14 @@ export class AuthService {
 		}
 
 		const hashedPassword = await this._hashingService.hash(payload.password);
-		const user = await this._usersRepository.updateAndReturn(
-			"id",
-			Number(userId),
-			{
+		const user = await this._database
+			.updateTable("users")
+			.set({
 				password: hashedPassword,
-			},
-		);
+			})
+			.where("id", "=", Number(userId))
+			.returning(["id"])
+			.executeTakeFirst();
 
 		if (!user) {
 			await this._redis.del(payload.token);
@@ -237,7 +259,11 @@ export class AuthService {
 			throw new NotFoundError("Invalid token");
 		}
 
-		const user = await this._usersRepository.getByKey("email", email);
+		const user = await this._database
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", email)
+			.executeTakeFirst();
 		if (!user || user.isVerified) {
 			const message = !user ? "User not found" : "User is already verified";
 			log.warn({ email }, message);
@@ -273,7 +299,11 @@ export class AuthService {
 			throw new NotFoundError("Invalid token");
 		}
 
-		const user = await this._usersRepository.getByKey("email", oldEmail);
+		const user = await this._database
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", oldEmail)
+			.executeTakeFirst();
 		if (!user || user.isVerified) {
 			const message = !user ? "User not found" : "User is already verified";
 			log.warn({ oldEmail }, message);
@@ -283,17 +313,20 @@ export class AuthService {
 			throw !user ? new NotFoundError(message) : new BadRequestError(message);
 		}
 
-		const existingUser = await this._usersRepository.getByKey(
-			"email",
-			payload.newEmail,
-		);
+		const existingUser = await this._database
+			.selectFrom("users")
+			.selectAll()
+			.where("email", "=", payload.newEmail)
+			.executeTakeFirst();
 
 		if (existingUser)
 			throw new BadRequestError(`User with ${payload.newEmail} already exists`);
 
-		await this._usersRepository.update("email", oldEmail, {
-			email: payload.newEmail,
-		});
+		await this._database
+			.updateTable("users")
+			.set({ email: payload.newEmail })
+			.where("email", "=", oldEmail)
+			.execute();
 
 		const verificationToken = generateRandomToken();
 

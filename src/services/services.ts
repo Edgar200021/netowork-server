@@ -1,10 +1,10 @@
-import type { Redis } from "ioredis";
-import { Argon2Service } from "../common/services/argon2.service.js";
-import type { HashingService } from "../common/services/hashing.service.js";
-import type { LoggerService } from "../common/services/logger.service.js";
 import type { Config } from "../config.js";
 import type { Database } from "../storage/postgres/database.js";
+import  type { Redis } from '../storage/redis/redis.js';
 import { AuthService } from "./auth.service.js";
+import { Argon2Service } from "./common/services/argon2.service.js";
+import type { HashingService } from "./common/services/hashing.service.js";
+import type { LoggerService } from "./common/services/logger.service.js";
 import { EmailService } from "./email.service.js";
 import { ImageUploader } from "./imageUploader.service.js";
 import { UsersService } from "./users.service.js";
@@ -30,14 +30,14 @@ export class Services {
 
 		this._authService = new AuthService(
 			config.application,
-			this._database.usersRepository,
+			this._database,
 			this._redis,
 			this._hashingService,
 			this._emailService,
 		);
 
 		this._usersService = new UsersService(
-			this._database.usersRepository,
+			this._database,
 			this._hashingService,
 			this._authService,
 			this._emailService,
@@ -46,10 +46,7 @@ export class Services {
 			config.application,
 		);
 
-		this._worksService = new WorksService(
-			this._database.worksRepository,
-			this._imageUploader,
-		);
+		this._worksService = new WorksService(this._database, this._imageUploader);
 	}
 
 	get authService() {
@@ -63,7 +60,6 @@ export class Services {
 	get worksService() {
 		return this._worksService;
 	}
-
 
 	get hashingService() {
 		return this._hashingService;

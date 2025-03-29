@@ -1,32 +1,32 @@
 import vine, { VineValidator, errors } from "@vinejs/vine";
 import type { SchemaTypes } from "@vinejs/vine/types";
 import type { NextFunction, Request, Response } from "express";
-import type { Redis } from "ioredis";
 import { type Multer, MulterError } from "multer";
 import { randomUUID } from "node:crypto";
-import type {
+import type { ApplicationConfig } from "../config.js";
+import { SESSION_COOKIE_NAME } from "../const/cookie.js";
+import { INVALID_FILENAME_ERROR_CODE } from "../const/multer.js";
+import {
 	ErrorResponseDto,
 	ValidationErrorResponseDto,
-} from "../common/dto/base.dto.js";
+} from "../services/common/dto/base.dto.js";
 import {
 	AppError,
 	BadRequestError,
 	ForbiddenError,
 	UnauthorizedError,
-} from "../common/error.js";
-import type { LoggerService } from "../common/services/logger.service.js";
-import type { ApplicationConfig } from "../config.js";
-import { SESSION_COOKIE_NAME } from "../const/cookie.js";
-import { INVALID_FILENAME_ERROR_CODE } from "../const/multer.js";
+} from "../services/common/error.js";
+import type { LoggerService } from "../services/common/services/logger.service.js";
 import type { UserRole } from "../storage/db.js";
-import type { UsersRepository } from "../storage/postgres/users.repository.js";
+import type { Database } from "../storage/postgres/database.js";
+import type { Redis } from "../storage/redis/redis.js";
 import type { NonEmptyArray } from "../types/common.js";
 import type { AllowedMimeTypes } from "../types/mimeTypes.js";
 import { generateUserError } from "../utils/generateUserError.js";
 
 export class Middlewares {
 	constructor(
-		private readonly _usersRepository: UsersRepository,
+		private readonly _database: Database,
 		private readonly _redis: Redis,
 		private readonly _multer: Multer,
 		private readonly _logger: LoggerService,
@@ -60,7 +60,11 @@ export class Middlewares {
 			return next(new UnauthorizedError("Unauthorized"));
 		}
 
-		const user = await this._usersRepository.getByKey("id", Number(userId));
+		const user = await this._database
+			.selectFrom("users")
+			.selectAll()
+			.where("id", "=", Number(userId))
+			.executeTakeFirst();
 
 		if (!user || !user.isVerified || user.isBanned) {
 			const { message, error } = generateUserError(user);
@@ -101,24 +105,40 @@ export class Middlewares {
 		};
 	}
 
-	validateRequest(
-		validatorOrSchema: VineValidator<SchemaTypes, undefined> | SchemaTypes,
-	): (req: Request, res: Response, next: NextFunction) => void {
+	validateRequest({
+		bodyValidatorOrSchema,
+		paramsValidatorOrSchema,
+	}: {
+		bodyValidatorOrSchema?: VineValidator<SchemaTypes, undefined> | SchemaTypes;
+		paramsValidatorOrSchema?:
+			| VineValidator<SchemaTypes, undefined>
+			| SchemaTypes;
+	}): (req: Request, res: Response, next: NextFunction) => void {
 		return async (req: Request, _: Response, next: NextFunction) => {
 			try {
-				if (validatorOrSchema instanceof VineValidator) {
-					await validatorOrSchema.validate(req.body, {
-						meta: undefined,
-					});
-
-					return next();
+				if (bodyValidatorOrSchema) {
+					bodyValidatorOrSchema instanceof VineValidator
+						? await bodyValidatorOrSchema.validate(req.body, {
+								meta: undefined,
+							})
+						: await vine.validate({
+								schema: bodyValidatorOrSchema,
+								data: req.body,
+							});
 				}
 
-				await vine.validate({
-					schema: validatorOrSchema,
-					data: req.body,
-				});
-				next();
+				if (paramsValidatorOrSchema) {
+					paramsValidatorOrSchema instanceof VineValidator
+						? await paramsValidatorOrSchema.validate(req.params, {
+								meta: undefined,
+							})
+						: await vine.validate({
+								schema: paramsValidatorOrSchema,
+								data: req.params,
+							});
+				}
+
+				return next();
 			} catch (error) {
 				next(error);
 			}
@@ -204,7 +224,7 @@ export class Middlewares {
 		}
 
 		if (err instanceof AppError) {
-			res.status(err.code).json({ status: "error", error: err.message });
+			res.status(err.code).json(new ErrorResponseDto(err.message));
 			return;
 		}
 
@@ -212,7 +232,7 @@ export class Middlewares {
 			`[Unhandled Error] ${err instanceof Error ? err.stack : String(err)}`,
 		);
 
-		res.status(500).json({ status: "error", error: "Something went wrong" });
+		res.status(500).json(new ErrorResponseDto("Something went wrong"));
 	}
 
 	private sendValidationErrors(
@@ -227,6 +247,6 @@ export class Middlewares {
 
 		return res
 			.status(400)
-			.json({ status: "error", errors: Object.fromEntries(map) });
+			.json(new ValidationErrorResponseDto(Object.fromEntries(map)));
 	}
 }

@@ -1,6 +1,5 @@
 import vine from "@vinejs/vine";
 import type { Request, Response } from "express";
-import { UnauthorizedError } from "../common/error.js";
 import { AVATAR_FILE_NAME } from "../const/multer.js";
 import {
 	type ChangeProfilePasswordRequestDto,
@@ -15,6 +14,8 @@ import {
 import type { UpdateProfileResponseDto } from "../dto/users/updateProfile/updateProfileResponse.dto.js";
 import { UserResponseDto } from "../dto/users/userResponse.dto.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
+import { SuccessResponseDto } from "../services/common/dto/base.dto.js";
+import { UnauthorizedError } from "../services/common/error.js";
 import type { UsersService } from "../services/users.service.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
@@ -61,10 +62,7 @@ export class UsersHandler extends BaseHandler {
 	async getProfile(req: Request, res: Response<GetProfileResponseDto>) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
-		res.status(200).json({
-			status: "success",
-			data: new UserResponseDto(req.user),
-		});
+		res.status(200).json(new SuccessResponseDto(new UserResponseDto(req.user)));
 	}
 
 	/**
@@ -138,10 +136,9 @@ export class UsersHandler extends BaseHandler {
 	) {
 		await this._usersService.updateProfile(req, res);
 
-		res.status(200).json({
-			status: "success",
-			data: "Profile updated successfully",
-		});
+		res
+			.status(200)
+			.json(new SuccessResponseDto("Profile updated successfully"));
 	}
 
 	/**
@@ -202,12 +199,11 @@ export class UsersHandler extends BaseHandler {
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
-		await this._usersService.changeProfilePassword(req.user.id, req.body);
+		await this._usersService.changeProfilePassword(req.user, req.body);
 
-		res.status(200).json({
-			status: "success",
-			data: "Password updated successfully",
-		});
+		res
+			.status(200)
+			.json(new SuccessResponseDto("Password updated successfully"));
 	}
 
 	protected bindMethods(): void {
@@ -229,13 +225,13 @@ export class UsersHandler extends BaseHandler {
 				single: true,
 				mimeTypes: ["image/jpg", "image/jpeg", "image/png", "image/webp"],
 			}),
-			this._middlewares.validateRequest(this.validators.updateProfile),
+			this._middlewares.validateRequest({bodyValidatorOrSchema:this.validators.updateProfile}),
 			asyncWrapper(this.updateProfile),
 		);
 		this._router.patch(
 			"/profile/change-password",
 			this._middlewares.auth,
-			this._middlewares.validateRequest(this.validators.changeProfilePassword),
+			this._middlewares.validateRequest({bodyValidatorOrSchema:this.validators.changeProfilePassword}),
 			asyncWrapper(this.changeProfilePassword),
 		);
 	}

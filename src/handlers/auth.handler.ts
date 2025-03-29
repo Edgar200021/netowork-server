@@ -1,6 +1,5 @@
 import vine from "@vinejs/vine";
 import type { Request, Response } from "express";
-import { NotFoundError, UnauthorizedError } from "../common/error.js";
 import { REGISTERED_EMAIL_COOKIE_NAME } from "../const/cookie.js";
 import {
 	type ForgotPasswordRequestDto,
@@ -36,6 +35,8 @@ import {
 import type { VerifyAccountResponseDto } from "../dto/auth/verifyAccount/verifyAccountResponse.dto.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
 import type { AuthService } from "../services/auth.service.js";
+import { SuccessResponseDto } from "../services/common/dto/base.dto.js";
+import { NotFoundError, UnauthorizedError } from "../services/common/error.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
 
@@ -112,7 +113,7 @@ export class AuthHandler extends BaseHandler {
 	) {
 		const user = await this._authService.login(req.body, res, req.logger);
 
-		res.status(200).json({ status: "success", data: user });
+		res.status(200).json(new SuccessResponseDto(user));
 	}
 
 	/**
@@ -163,10 +164,13 @@ export class AuthHandler extends BaseHandler {
 	) {
 		await this._authService.register(req.body, res, req.logger);
 
-		res.status(201).json({
-			status: "success",
-			data: "Message for verification has been sent to your email address",
-		});
+		res
+			.status(201)
+			.json(
+				new SuccessResponseDto(
+					"Message for verification has been sent to your email address",
+				),
+			);
 	}
 
 	/**
@@ -220,7 +224,7 @@ export class AuthHandler extends BaseHandler {
 			req.logger,
 		);
 
-		res.status(200).json({ status: "success", data: user });
+		res.status(200).json(new SuccessResponseDto(user));
 	}
 
 	/**
@@ -258,7 +262,7 @@ export class AuthHandler extends BaseHandler {
 
 		await this._authService.logout(req, res, req.logger);
 
-		res.status(200).json({ status: "success", data: "Logout successful" });
+		res.status(200).json(new SuccessResponseDto("Logout successful"));
 	}
 
 	/**
@@ -307,10 +311,13 @@ export class AuthHandler extends BaseHandler {
 		res: Response<ForgotPasswordResponseDto>,
 	) {
 		await this._authService.forgotPassword(req.body, req.logger);
-		res.status(200).json({
-			status: "success",
-			data: "Email with password reset instructions has been sent to your email",
-		});
+		res
+			.status(200)
+			.json(
+				new SuccessResponseDto(
+					"Email with password reset instructions has been sent to your email",
+				),
+			);
 	}
 
 	/**
@@ -361,10 +368,7 @@ export class AuthHandler extends BaseHandler {
 	) {
 		await this._authService.resetPassword(req.body, req.logger);
 
-		res.status(200).json({
-			status: "success",
-			data: "Password reset successful",
-		});
+		res.status(200).json(new SuccessResponseDto("Password reset successful"));
 	}
 
 	/**
@@ -411,10 +415,9 @@ export class AuthHandler extends BaseHandler {
 
 		await this._authService.sendVerificationEmail(token, req.logger);
 
-		res.status(200).json({
-			status: "success",
-			data: "Verification email sent successfully",
-		});
+		res
+			.status(200)
+			.json(new SuccessResponseDto("Verification email sent successfully"));
 	}
 
 	async setNewEmail(
@@ -426,10 +429,13 @@ export class AuthHandler extends BaseHandler {
 
 		await this._authService.setNewEmail(token, req.body, req.logger);
 
-		res.status(200).json({
-			status: "success",
-			data: "Email updated and verification email sent successfully",
-		});
+		res
+			.status(200)
+			.json(
+				new SuccessResponseDto(
+					"Email updated and verification email sent successfully",
+				),
+			);
 	}
 
 	protected bindMethods() {
@@ -446,31 +452,41 @@ export class AuthHandler extends BaseHandler {
 	protected setupRoutes() {
 		this._router.post(
 			"/login",
-			this._middlewares.validateRequest(this.validators.login),
+			this._middlewares.validateRequest({
+				bodyValidatorOrSchema: this.validators.login,
+			}),
 			asyncWrapper(this.login),
 		);
 
 		this._router.post(
 			"/register",
-			this._middlewares.validateRequest(this.validators.register),
+			this._middlewares.validateRequest({
+				bodyValidatorOrSchema: this.validators.register,
+			}),
 			asyncWrapper(this.register),
 		);
 
 		this._router.patch(
 			"/account-verification",
-			this._middlewares.validateRequest(this.validators.verifyAccount),
+			this._middlewares.validateRequest({
+				bodyValidatorOrSchema: this.validators.verifyAccount,
+			}),
 			asyncWrapper(this.verifyAccount),
 		);
 
 		this._router.post(
 			"/forgot-password",
-			this._middlewares.validateRequest(this.validators.forgotPassword),
+			this._middlewares.validateRequest({
+				bodyValidatorOrSchema: this.validators.forgotPassword,
+			}),
 			asyncWrapper(this.forgotPassword),
 		);
 
 		this._router.patch(
 			"/reset-password",
-			this._middlewares.validateRequest(this.validators.resetPassword),
+			this._middlewares.validateRequest({
+				bodyValidatorOrSchema: this.validators.resetPassword,
+			}),
 			asyncWrapper(this.resetPassword),
 		);
 
@@ -481,7 +497,9 @@ export class AuthHandler extends BaseHandler {
 
 		this._router.patch(
 			"/set-new-email-address",
-			this._middlewares.validateRequest(this.validators.setNewEmail),
+			this._middlewares.validateRequest({
+				bodyValidatorOrSchema: this.validators.setNewEmail,
+			}),
 			asyncWrapper(this.setNewEmail),
 		);
 

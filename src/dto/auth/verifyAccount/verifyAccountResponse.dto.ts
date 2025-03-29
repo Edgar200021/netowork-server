@@ -1,5 +1,5 @@
-import type { SuccessResponseDto } from '../../../common/dto/base.dto.js'
-import type { UserResponseDto } from '../../users/userResponse.dto.js'
+import type { SuccessResponseDto } from "../../../services/common/dto/base.dto.js";
+import type { UserResponseDto } from "../../users/userResponse.dto.js";
 
 /**
  * @openapi
@@ -13,4 +13,4 @@ import type { UserResponseDto } from '../../users/userResponse.dto.js'
  *             data:
  *               $ref: '#/components/schemas/UserResponseDto'
  */
-export type VerifyAccountResponseDto = SuccessResponseDto<UserResponseDto>
+export type VerifyAccountResponseDto = SuccessResponseDto<UserResponseDto>;

@@ -1,11 +1,11 @@
 import { type UploadApiOptions, v2 as cloudinary } from "cloudinary";
 import { stat, unlink } from "node:fs/promises";
-import { InternalServerError } from "../common/error.js";
-import type { LoggerService } from "../common/services/logger.service.js";
 import type { CloudinaryConfig } from "../config.js";
 import { CLOUDINARY_UPLOAD_FOLDER } from "../const/cloudinary.js";
 import type { FileUploadResponse } from "../types/cloudinary.js";
 import { isErrnoException } from "../utils/guards.js";
+import { InternalServerError } from "./common/error.js";
+import type { LoggerService } from "./common/services/logger.service.js";
 
 export class ImageUploader {
 	static readonly CLOUDINARY_BASE_OPTIONS: UploadApiOptions = {
@@ -21,14 +21,13 @@ export class ImageUploader {
 		});
 	}
 
-	async uploadImageFromBuffer(image: Buffer): Promise<FileUploadResponse> {
+	async uploadImageFromBuffer(image: Buffer, log: LoggerService): Promise<FileUploadResponse> {
 		return new Promise((res, rej) => {
 			cloudinary.uploader
 				.upload_stream(ImageUploader.CLOUDINARY_BASE_OPTIONS, (err, result) => {
 					if (err || !result) {
-						return err
-							? rej(err)
-							: rej("Something went wrong with file upload");
+						log.error({ err }, "Something went wrong with file upload");
+						return rej(new InternalServerError("Something went wrong with file upload"));
 					}
 
 					return res({

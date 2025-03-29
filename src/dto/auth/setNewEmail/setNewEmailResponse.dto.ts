@@ -1,4 +1,4 @@
-import type { SuccessResponseDto } from "../../../common/dto/base.dto.js";
+import type { SuccessResponseDto } from "../../../services/common/dto/base.dto.js";
 
 /**
  * @openapi

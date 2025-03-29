@@ -1,22 +1,22 @@
 import type { Request, Response } from "express";
-import type { Redis } from "ioredis";
-import { BadRequestError, UnauthorizedError } from "../common/error.js";
-import type { HashingService } from "../common/services/hashing.service.js";
 import type { ApplicationConfig } from "../config.js";
 import type { ChangeProfilePasswordRequestDto } from "../dto/users/changeProfilePassword/changeProfilePasswordRequest.dto.js";
 import type { UpdateProfileRequestDto } from "../dto/users/updateProfile/updateProfileRequest.dto.js";
 import type { UpdateProfileResponseDto } from "../dto/users/updateProfile/updateProfileResponse.dto.js";
+import type { Database } from "../storage/postgres/database.js";
 import type { User } from "../storage/postgres/types/user.types.js";
-import type { UsersRepository } from "../storage/postgres/users.repository.js";
+import type { Redis } from "../storage/redis/redis.js";
 import type { FileUploadResponse } from "../types/cloudinary.js";
 import { generateRandomToken } from "../utils/createToken.js";
 import type { AuthService } from "./auth.service.js";
+import { BadRequestError, UnauthorizedError } from "./common/error.js";
+import type { HashingService } from "./common/services/hashing.service.js";
 import type { EmailService } from "./email.service.js";
 import type { ImageUploader } from "./imageUploader.service.js";
 
 export class UsersService {
 	constructor(
-		private readonly _usersRepository: UsersRepository,
+		private readonly _database: Database,
 		private readonly _hashingService: HashingService,
 		private readonly _authService: AuthService,
 		private readonly _emailService: EmailService,
@@ -45,7 +45,12 @@ export class UsersService {
 		log.info({ userId }, "Updating profile");
 
 		if (email) {
-			const userExists = await this._usersRepository.getByKey("email", email);
+			const userExists = await this._database
+				.selectFrom("users")
+				.select(["id"])
+				.where("email", "=", email)
+				.executeTakeFirst();
+
 			if (userExists && userExists.id !== userId) {
 				log.warn({ email }, "User with email already exists");
 				throw new BadRequestError("User with email already exists");
@@ -60,6 +65,7 @@ export class UsersService {
 		if (file) {
 			fileUploadRes = await this._imageUploader.uploadImageFromBuffer(
 				file.buffer,
+				log,
 			);
 			if (req.user.avatar && req.user.avatarId)
 				await this._imageUploader.deleteImage(req.user.avatarId);
@@ -68,16 +74,21 @@ export class UsersService {
 		if (email && isNewEmail) {
 			const token = generateRandomToken();
 
-			await this._usersRepository.update("id", userId, {
-				aboutMe,
-				avatar: fileUploadRes?.imageUrl,
-				avatarId: fileUploadRes?.imageId,
-				email,
-				isVerified: false,
-				updatedAt: new Date(),
-				...(req.body.firstName && { firstName: req.body.firstName }),
-				...(req.body.lastName && { lastName: req.body.lastName }),
-			});
+			await this._database
+				.updateTable("users")
+				.set({
+					aboutMe,
+					avatar: fileUploadRes?.imageUrl,
+					avatarId: fileUploadRes?.imageId,
+					email,
+					isVerified: false,
+					updatedAt: new Date(),
+					...(req.body.firstName && { firstName: req.body.firstName }),
+					...(req.body.lastName && { lastName: req.body.lastName }),
+				})
+				.where("id", "=", userId)
+				.execute();
+
 			await Promise.all([
 				this._authService.logout(req, res, req.logger),
 				this._emailService.sendVerificationEmail(email, token, log),
@@ -92,34 +103,37 @@ export class UsersService {
 			return;
 		}
 
-		await this._usersRepository.update("id", userId, {
-			aboutMe,
-			avatar: fileUploadRes?.imageUrl,
-			avatarId: fileUploadRes?.imageId,
-			updatedAt: new Date(),
-			...(req.body.firstName && { firstName: req.body.firstName }),
-			...(req.body.lastName && { lastName: req.body.lastName }),
-		});
+		await this._database
+			.updateTable("users")
+			.set({
+				aboutMe,
+				avatar: fileUploadRes?.imageUrl,
+				avatarId: fileUploadRes?.imageId,
+				updatedAt: new Date(),
+				...(req.body.firstName && { firstName: req.body.firstName }),
+				...(req.body.lastName && { lastName: req.body.lastName }),
+			})
+			.where("id", "=", userId)
+			.execute();
 	}
 
 	async changeProfilePassword(
-		userId: User["id"],
+		user: User,
 		payload: ChangeProfilePasswordRequestDto,
 	) {
-		const user = await this._usersRepository.getByKey("id", userId);
-
 		if (
-			!(await this._hashingService.verify(
-				payload.oldPassword,
-				user?.password || "",
-			))
+			!(await this._hashingService.verify(payload.oldPassword, user.password))
 		)
 			throw new BadRequestError("Invalid old password");
 
 		const hashedPassword = await this._hashingService.hash(payload.newPassword);
 
-		await this._usersRepository.update("id", userId, {
-			password: hashedPassword,
-		});
+		await this._database
+			.updateTable("users")
+			.set({
+				password: hashedPassword,
+			})
+			.where("id", "=", user.id)
+			.execute();
 	}
 }

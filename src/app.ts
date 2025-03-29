@@ -1,16 +1,16 @@
 import express from "express";
-import { Redis } from "ioredis";
 import multer from "multer";
 import http, { type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { Environment } from "./common/enums/environment.enum.js";
-import type { LoggerService } from "./common/services/logger.service.js";
 import type { Config } from "./config.js";
 import { FILES_MAX_SIZE } from "./const/multer.js";
 import { Middlewares } from "./middlewares/middlewares.js";
 import { Router } from "./router/router.js";
+import { Environment } from "./services/common/enums/environment.enum.js";
+import type { LoggerService } from "./services/common/services/logger.service.js";
 import { Services } from "./services/services.js";
 import { Database } from "./storage/postgres/database.js";
+import { Redis } from "./storage/redis/redis.js";
 import { swaggerDocs } from "./swagger.js";
 
 export class App {
@@ -26,13 +26,7 @@ export class App {
 	) {
 		const database = new Database(config.database, this._loggerService);
 
-		const redis = new Redis({
-			host: config.redis.host,
-			port: Number(config.redis.port),
-			password: config.redis.password,
-			db: Number(config.redis.database),
-		});
-
+		const redis = new Redis(config.redis);
 		database.ping().catch((err) => {
 			this._loggerService.fatal(`Database connection error: ${err}`);
 			process.exit(1);
@@ -52,7 +46,7 @@ export class App {
 
 		const services = new Services(database, redis, this._loggerService, config);
 		const middlewares = new Middlewares(
-			database.usersRepository,
+			database,
 			redis,
 			fileUploader,
 			this._loggerService,

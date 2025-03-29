@@ -4,7 +4,7 @@ import type { SuccessResponseDto } from "../../../services/common/dto/base.dto.j
  * @openapi
  * components:
  *   schemas:
- *     LoginResponseDto:
+ *     DeleteWorkResponseDto:
  *       allOf:
  *         - $ref: '#/components/schemas/SuccessResponseDto'
  *         - type: object
@@ -12,4 +12,4 @@ import type { SuccessResponseDto } from "../../../services/common/dto/base.dto.j
  *             data:
  *               type: string
  */
-export type ForgotPasswordResponseDto = SuccessResponseDto<string>;
+export type DeleteWorkResponseDto = SuccessResponseDto<string>;
