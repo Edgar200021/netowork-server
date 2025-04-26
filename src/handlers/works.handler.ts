@@ -22,6 +22,8 @@ import {
 	UnauthorizedError,
 } from "../services/common/error.js";
 import type { WorksService } from "../services/works.service.js";
+import type { NonEmptyArray } from "../types/common.js";
+import type { AllowedMimeTypes } from "../types/mimeTypes.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
 
@@ -106,8 +108,10 @@ export class WorksHandler extends BaseHandler {
 			? req.files
 			: req.files?.[WORK_IMAGES_FILE_NAME];
 
-		if (!files || files.length <= 0)
+		if (!files || files.length <= 0) {
+			req.logger.warn("No files uploaded");
 			throw new BadRequestError("No files uploaded");
+		}
 
 		const data = await this._workService.createWork(
 			req.user.id,
@@ -202,7 +206,7 @@ export class WorksHandler extends BaseHandler {
 	 *             application/json:
 	 *               schema:
 	 *                 $ref: '#/components/schemas/ErrorResponseDto'
-	 * 
+	 *
 	 */
 	async deleteWork(
 		req: Request<DeleteWorkRequestDto, DeleteWorkResponseDto>,
@@ -234,7 +238,7 @@ export class WorksHandler extends BaseHandler {
 					"image/png",
 					"image/jpg",
 					"image/webp",
-				],
+				] as NonEmptyArray<AllowedMimeTypes>,
 				single: false,
 				fileCount: WORK_IMAGES_MAX_COUNT,
 			}),

@@ -1,7 +1,8 @@
 import type { Config } from "../config.js";
 import type { Database } from "../storage/postgres/database.js";
-import  type { Redis } from '../storage/redis/redis.js';
+import type { Redis } from "../storage/redis/redis.js";
 import { AuthService } from "./auth.service.js";
+import { CategoryService } from "./category.service.js";
 import { Argon2Service } from "./common/services/argon2.service.js";
 import type { HashingService } from "./common/services/hashing.service.js";
 import type { LoggerService } from "./common/services/logger.service.js";
@@ -17,6 +18,7 @@ export class Services {
 	private readonly _hashingService: HashingService;
 	private readonly _emailService: EmailService;
 	private readonly _imageUploader: ImageUploader;
+	private readonly _categoryService: CategoryService;
 
 	constructor(
 		private readonly _database: Database,
@@ -47,6 +49,7 @@ export class Services {
 		);
 
 		this._worksService = new WorksService(this._database, this._imageUploader);
+		this._categoryService = new CategoryService(this._database);
 	}
 
 	get authService() {
@@ -71,5 +74,9 @@ export class Services {
 
 	get emailService() {
 		return this._emailService;
+	}
+
+	get categoryService() {
+		return this._categoryService;
 	}
 }

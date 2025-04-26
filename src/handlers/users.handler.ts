@@ -17,6 +17,8 @@ import type { Middlewares } from "../middlewares/middlewares.js";
 import { SuccessResponseDto } from "../services/common/dto/base.dto.js";
 import { UnauthorizedError } from "../services/common/error.js";
 import type { UsersService } from "../services/users.service.js";
+import type { NonEmptyArray } from "../types/common.js";
+import type { AllowedMimeTypes } from "../types/mimeTypes.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
 
@@ -223,15 +225,24 @@ export class UsersHandler extends BaseHandler {
 			this._middlewares.auth,
 			this._middlewares.uploadFile(AVATAR_FILE_NAME, {
 				single: true,
-				mimeTypes: ["image/jpg", "image/jpeg", "image/png", "image/webp"],
+				mimeTypes: [
+					"image/jpg",
+					"image/jpeg",
+					"image/png",
+					"image/webp",
+				] as NonEmptyArray<AllowedMimeTypes>,
 			}),
-			this._middlewares.validateRequest({bodyValidatorOrSchema:this.validators.updateProfile}),
+			this._middlewares.validateRequest({
+				bodyValidatorOrSchema: this.validators.updateProfile,
+			}),
 			asyncWrapper(this.updateProfile),
 		);
 		this._router.patch(
 			"/profile/change-password",
 			this._middlewares.auth,
-			this._middlewares.validateRequest({bodyValidatorOrSchema:this.validators.changeProfilePassword}),
+			this._middlewares.validateRequest({
+				bodyValidatorOrSchema: this.validators.changeProfilePassword,
+			}),
 			asyncWrapper(this.changeProfilePassword),
 		);
 	}

@@ -4,7 +4,6 @@ import {
 	MAX_WORK_TITLE_LENGTH,
 	MIN_WORK_TITLE_LENGTH,
 } from "../../../const/validator.js";
-
 export const createWorkSchema = vine.object({
 	title: vine
 		.string()

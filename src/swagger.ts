@@ -19,7 +19,6 @@ const options: swaggerJSDoc.Options = {
       },
     },
   },
-
   apis: ['src/**/*.handler.ts', 'src/**/*.dto.ts'],
 }
 

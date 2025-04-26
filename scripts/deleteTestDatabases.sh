@@ -14,9 +14,15 @@ DB_NAME=$(echo $DATABASE_URL | sed -E 's|.*/([^/?]+).*|\1|')
 export PGPASSWORD=$DB_PASSWORD
 DB_LIST=$(psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -t -c "SELECT datname FROM pg_database WHERE datname NOT IN ('postgres', 'template0', 'template1', '$DB_NAME');")
 
+UUID_REGEX='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+
 for DB in $DB_LIST; do
-  echo "Database deleting: $DB"
-  psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "DROP DATABASE \"$DB\";"
+  if [[ $DB =~ $UUID_REGEX ]]; then
+    echo "Database deleting: $DB"
+    psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "DROP DATABASE \"$DB\";"
+  else
+    echo "Skipping non-UUID database: $DB"
+  fi
 done
 
-echo "Databases deleted."
+echo "UUID databases deleted."

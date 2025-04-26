@@ -1,6 +1,5 @@
-import vine from '@vinejs/vine'
-import type { InferInput } from '@vinejs/vine/types'
-import { MIN_PASSWORD_LENGTH } from '../../../const/validator.js'
+import vine from "@vinejs/vine";
+import type { InferInput } from "@vinejs/vine/types";
 
 /**
  * @openapi
@@ -17,7 +16,7 @@ import { MIN_PASSWORD_LENGTH } from '../../../const/validator.js'
  *           default: "6L2W9@example.com"
  */
 export const forgotPasswordSchema = vine.object({
-  email: vine.string().trim().email(),
-})
+	email: vine.string().trim().email(),
+});
 
-export type ForgotPasswordRequestDto = InferInput<typeof forgotPasswordSchema>
+export type ForgotPasswordRequestDto = InferInput<typeof forgotPasswordSchema>;
