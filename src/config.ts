@@ -4,8 +4,8 @@ import yaml from "js-yaml";
 import { existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { constants } from "node:fs/promises";
 import path from "node:path";
-import { Environment } from "./services/common/enums/environment.enum.js";
-import { LogLevel } from "./services/common/enums/logLevel.enum.js";
+import { Environment } from "./common/enums/environment.enum.js";
+import { LogLevel } from "./common/enums/logLevel.enum.js";
 
 const applicationConfigSchema = vine.object({
 	port: vine.number({ strict: true }).range([0, 65535]),

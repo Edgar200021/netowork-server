@@ -1,5 +1,5 @@
 import { type Logger, destination, multistream, pino } from "pino";
-import type { Config } from "../../../config.js";
+import type { Config } from "../../config.js";
 import { Environment } from "../enums/environment.enum.js";
 
 export class LoggerService {

@@ -1,11 +1,11 @@
 import type { SuccessResponseDto } from "../../../common/dto/base.dto.js";
-import type { CategoryResponseDto } from "../categoryResponse.dto.js";
+import type { TaskResponseDto } from "../taskResponse.dto.js";
 
 /**
  * @openapi
  * components:
  *   schemas:
- *     GetAllCategoriesResponseDto:
+ *     GetAllTasksResponseDto:
  *       allOf:
  *         - $ref: '#/components/schemas/SuccessResponseDto'
  *         - type: object
@@ -13,9 +13,6 @@ import type { CategoryResponseDto } from "../categoryResponse.dto.js";
  *             data:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/CategoryResponseDto'
- *
+ *                 $ref: '#/components/schemas/TaskResponseDto'
  */
-export type GetAllCategoriesResponseDto = SuccessResponseDto<
-	CategoryResponseDto[]
->;
+export type GetAllTasksResponseDto = SuccessResponseDto<TaskResponseDto[]>;

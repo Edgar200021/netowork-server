@@ -14,7 +14,12 @@ import type { Category } from "../../storage/postgres/types/category.type.js";
  *         subCategories:
  *           type: array
  *           items:
- *             type: string
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: number
+ *               name:
+ *                 type: string
  */
 export class CategoryResponseDto {
 	readonly id: number;

@@ -49,7 +49,7 @@ import type {UserRole} from '../../../storage/db.js';
  *           default: password
  */
 export const registerSchema = vine.object({
-  role: vine.enum(['client', 'freelancer'] as Exclude<UserRole, 'admin'>[] as const),
+  role: vine.enum(['client', 'freelancer'] as Exclude<UserRole, 'admin'>[]),
   firstName: vine
     .string()
     .trim()

@@ -1,7 +1,7 @@
 import { type Transporter, createTransport } from "nodemailer";
+import { InternalServerError } from "../common/error.js";
+import type { LoggerService } from "../common/services/logger.service.js";
 import type { ApplicationConfig, EmailConfig } from "../config.js";
-import { InternalServerError } from "./common/error.js";
-import type { LoggerService } from "./common/services/logger.service.js";
 
 export class EmailService {
 	private readonly _clientUrl: string;

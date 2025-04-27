@@ -1,4 +1,4 @@
-import { AppError } from "../services/common/error.js";
+import { AppError } from "../common/error.js";
 import type { User } from "../storage/postgres/types/user.types.js";
 
 export type UserError = {

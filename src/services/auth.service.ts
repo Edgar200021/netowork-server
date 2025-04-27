@@ -1,5 +1,9 @@
 import type { CookieOptions, Request, Response } from "express";
 import crypto, { type UUID } from "node:crypto";
+import { Environment } from "../common/enums/environment.enum.js";
+import { BadRequestError, NotFoundError } from "../common/error.js";
+import type { HashingService } from "../common/services/hashing.service.js";
+import type { LoggerService } from "../common/services/logger.service.js";
 import type { ApplicationConfig } from "../config.js";
 import {
 	REGISTERED_EMAIL_COOKIE_NAME,
@@ -17,10 +21,6 @@ import type { User } from "../storage/postgres/types/user.types.js";
 import type { Redis } from "../storage/redis/redis.js";
 import { generateRandomToken } from "../utils/createToken.js";
 import { generateUserError } from "../utils/generateUserError.js";
-import { Environment } from "./common/enums/environment.enum.js";
-import { BadRequestError, NotFoundError } from "./common/error.js";
-import type { HashingService } from "./common/services/hashing.service.js";
-import type { LoggerService } from "./common/services/logger.service.js";
 import type { EmailService } from "./email.service.js";
 
 export class AuthService {

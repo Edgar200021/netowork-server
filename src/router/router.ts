@@ -5,6 +5,7 @@ import helmet from "helmet";
 import type { ApplicationConfig } from "../config.js";
 import { AuthHandler } from "../handlers/auth.handler.js";
 import { CategoryHandler } from "../handlers/category.handler.js";
+import { TaskHandler } from "../handlers/task.handler.js";
 import { UsersHandler } from "../handlers/users.handler.js";
 import { WorksHandler } from "../handlers/works.handler.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
@@ -48,6 +49,11 @@ export class Router {
 		app.use(
 			"/api/v1/categories",
 			new CategoryHandler(middlewares, services.categoryService).router,
+		);
+
+		app.use(
+			"/api/v1/tasks",
+			new TaskHandler(middlewares, services.taskService).router,
 		);
 
 		app.use("*", (req, res) => {

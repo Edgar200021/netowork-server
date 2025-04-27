@@ -1,5 +1,7 @@
 import vine from "@vinejs/vine";
 import type { Request, Response } from "express";
+import { SuccessResponseDto } from "../common/dto/base.dto.js";
+import { BadRequestError, UnauthorizedError } from "../common/error.js";
 import {
 	WORK_IMAGES_FILE_NAME,
 	WORK_IMAGES_MAX_COUNT,
@@ -16,14 +18,9 @@ import {
 import type { DeleteWorkResponseDto } from "../dto/works/deleteWork/deleteWorkResponse.dto.js";
 import type { GetWorksResponseDto } from "../dto/works/getWorks/getWorksResponse.dto.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
-import { SuccessResponseDto } from "../services/common/dto/base.dto.js";
-import {
-	BadRequestError,
-	UnauthorizedError,
-} from "../services/common/error.js";
 import type { WorksService } from "../services/works.service.js";
 import type { NonEmptyArray } from "../types/common.js";
-import type { AllowedMimeTypes } from "../types/mimeTypes.js";
+import type { AllowedMimeTypesValues } from "../types/mimeTypes.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
 
@@ -62,8 +59,13 @@ export class WorksHandler extends BaseHandler {
 	 *                 title:
 	 *                   type: string
 	 *                   maxLength: 50
+	 *                   minLength: 5
+	 *                   required: true
 	 *                 images:
 	 *                   type: array
+	 *                   maxLength: 5
+	 *                   minLength: 1
+	 *                   required: true
 	 *                   items:
 	 *                     type: string
 	 *                     format: binary
@@ -238,12 +240,13 @@ export class WorksHandler extends BaseHandler {
 					"image/png",
 					"image/jpg",
 					"image/webp",
-				] as NonEmptyArray<AllowedMimeTypes>,
+				] as NonEmptyArray<AllowedMimeTypesValues>,
 				single: false,
 				fileCount: WORK_IMAGES_MAX_COUNT,
 			}),
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.createWork,
+				validatorOrSchema: this.validators.createWork,
+				type: "body"
 			}),
 			asyncWrapper(this.create),
 		);
@@ -260,7 +263,8 @@ export class WorksHandler extends BaseHandler {
 			this._middlewares.auth,
 			this._middlewares.restrict(["freelancer"]),
 			this._middlewares.validateRequest({
-				paramsValidatorOrSchema: this.validators.deleteWork,
+				validatorOrSchema: this.validators.deleteWork,
+				type: "params"
 			}),
 			asyncWrapper(this.deleteWork),
 		);

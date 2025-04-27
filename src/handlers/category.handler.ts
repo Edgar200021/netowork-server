@@ -28,6 +28,33 @@ export class CategoryHandler extends BaseHandler {
 		);
 	}
 
+	/**
+	 * @openapi
+	 * /api/v1/categories:
+	 *   get:
+	 *     tags:
+	 *       - Categories
+	 *     summary: Get all categories
+	 *     description: Get all categories
+	 *     responses:
+	 *       200:
+	 *         description: Success
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               $ref: '#/components/schemas/GetAllCategoriesResponseDto'
+	 *       401:
+	 *         description: Unauthorized
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 status:
+	 *                   type: string
+	 *                 error:
+	 *                   type: string
+	 */
 	async getAllCategories(
 		req: Request<unknown, GetAllCategoriesResponseDto>,
 		res: Response<GetAllCategoriesResponseDto>,

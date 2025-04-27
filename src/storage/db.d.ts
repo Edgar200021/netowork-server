@@ -6,73 +6,76 @@
 import type { ColumnType } from "kysely";
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-	? ColumnType<S, I | undefined, U>
-	: ColumnType<T, T | undefined, T>;
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
+
+export type TaskStatus = "completed" | "in_progress" | "open";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type UserRole = "admin" | "client" | "freelancer";
 
 export interface Category {
-	createdAt: Generated<Timestamp>;
-	id: Generated<number>;
-	name: string;
-	parentId: number | null;
-	updatedAt: Generated<Timestamp>;
+  createdAt: Generated<Timestamp>;
+  id: Generated<number>;
+  name: string;
+  parentId: number | null;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface Task {
-	categoryId: number | null;
-	clientId: number;
-	createdAt: Generated<Timestamp>;
-	description: string;
-	fileIds: Generated<string[]>;
-	fileUrls: Generated<string[]>;
-	freelancerId: number | null;
-	id: Generated<number>;
-	price: number;
-	subcategoryId: number | null;
-	title: string;
-	updatedAt: Generated<Timestamp>;
+  categoryId: number;
+  clientId: number;
+  createdAt: Generated<Timestamp>;
+  description: string;
+  fileIds: Generated<string[]>;
+  fileUrls: Generated<string[]>;
+  freelancerId: number | null;
+  id: Generated<number>;
+  price: number;
+  status: Generated<TaskStatus>;
+  subcategoryId: number;
+  title: string;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface Users {
-	aboutMe: string | null;
-	avatar: string | null;
-	avatarId: string | null;
-	createdAt: Generated<Timestamp>;
-	email: string;
-	firstName: string;
-	id: Generated<number>;
-	isBanned: Generated<boolean>;
-	isVerified: Generated<boolean>;
-	lastName: string;
-	password: string;
-	role: UserRole;
-	updatedAt: Generated<Timestamp>;
+  aboutMe: string | null;
+  avatar: string | null;
+  avatarId: string | null;
+  createdAt: Generated<Timestamp>;
+  email: string;
+  firstName: string;
+  id: Generated<number>;
+  isBanned: Generated<boolean>;
+  isVerified: Generated<boolean>;
+  lastName: string;
+  password: string;
+  role: UserRole;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface WorkImages {
-	createdAt: Generated<Timestamp>;
-	id: Generated<number>;
-	imageId: string;
-	imageUrl: string;
-	updatedAt: Generated<Timestamp>;
-	workId: number;
+  createdAt: Generated<Timestamp>;
+  id: Generated<number>;
+  imageId: string;
+  imageUrl: string;
+  updatedAt: Generated<Timestamp>;
+  workId: number;
 }
 
 export interface Works {
-	createdAt: Generated<Timestamp>;
-	id: Generated<number>;
-	title: string;
-	updatedAt: Generated<Timestamp>;
-	userId: number;
+  createdAt: Generated<Timestamp>;
+  id: Generated<number>;
+  title: string;
+  updatedAt: Generated<Timestamp>;
+  userId: number;
 }
 
 export interface DB {
-	category: Category;
-	task: Task;
-	users: Users;
-	workImages: WorkImages;
-	works: Works;
+  category: Category;
+  task: Task;
+  users: Users;
+  workImages: WorkImages;
+  works: Works;
 }

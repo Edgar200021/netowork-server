@@ -1,5 +1,7 @@
 import vine from "@vinejs/vine";
 import type { Request, Response } from "express";
+import { SuccessResponseDto } from "../common/dto/base.dto.js";
+import { UnauthorizedError } from "../common/error.js";
 import { AVATAR_FILE_NAME } from "../const/multer.js";
 import {
 	type ChangeProfilePasswordRequestDto,
@@ -14,11 +16,9 @@ import {
 import type { UpdateProfileResponseDto } from "../dto/users/updateProfile/updateProfileResponse.dto.js";
 import { UserResponseDto } from "../dto/users/userResponse.dto.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
-import { SuccessResponseDto } from "../services/common/dto/base.dto.js";
-import { UnauthorizedError } from "../services/common/error.js";
 import type { UsersService } from "../services/users.service.js";
 import type { NonEmptyArray } from "../types/common.js";
-import type { AllowedMimeTypes } from "../types/mimeTypes.js";
+import type { AllowedMimeTypesValues } from "../types/mimeTypes.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
 
@@ -70,7 +70,7 @@ export class UsersHandler extends BaseHandler {
 	/**
 	 * @openapi
 	 * paths:
-	 *   api/v1/users/profile:
+	 *   /api/v1/users/profile:
 	 *     patch:
 	 *       tags:
 	 *         - Users
@@ -82,24 +82,14 @@ export class UsersHandler extends BaseHandler {
 	 *         content:
 	 *           multipart/form-data:
 	 *             schema:
-	 *               type: object
-	 *               properties:
-	 *                 email:
-	 *                   type: string
-	 *                   format: email
-	 *                 aboutMe:
-	 *                   type: string
-	 *                   maxLength: 1000
-	 *                 avatar:
-	 *                   type: string
-	 *                   format: binary
-	 *                   description: User's avatar image file (JPG, PNG, max 5MB)
-	 *                 firstName:
-	 *                   type: string
-	 *                   maxLength: 50
-	 *                 lastName:
-	 *                   type: string
-	 *                   maxLength: 50
+	 *               allOf:
+	 *                 - $ref: "#/components/schemas/UpdateProfileRequestDto"
+	 *                 - type: object
+	 *                   properties:
+	 *                     avatar:
+	 *                       type: string
+	 *                       format: binary
+	 *                       description: User's avatar image file (JPG, PNG, max 5MB)
 	 *       responses:
 	 *         200:
 	 *           description: Success
@@ -230,10 +220,11 @@ export class UsersHandler extends BaseHandler {
 					"image/jpeg",
 					"image/png",
 					"image/webp",
-				] as NonEmptyArray<AllowedMimeTypes>,
+				] as NonEmptyArray<AllowedMimeTypesValues>,
 			}),
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.updateProfile,
+				validatorOrSchema: this.validators.updateProfile,
+				type: "body",
 			}),
 			asyncWrapper(this.updateProfile),
 		);
@@ -241,7 +232,8 @@ export class UsersHandler extends BaseHandler {
 			"/profile/change-password",
 			this._middlewares.auth,
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.changeProfilePassword,
+				validatorOrSchema: this.validators.changeProfilePassword,
+				type: "body",
 			}),
 			asyncWrapper(this.changeProfilePassword),
 		);

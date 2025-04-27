@@ -1,6 +1,7 @@
 import { type Kysely, sql } from "kysely";
 
 export async function up(db: Kysely<any>): Promise<void> {
+	await db.schema.createType("task_status").asEnum(["open", "in_progress", "completed"]).execute();
 	await db.schema
 		.createTable("task")
 		.addColumn("id", "integer", (col) =>
@@ -17,16 +18,17 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn("file_urls", sql`text[]`, (col) => col.notNull().defaultTo('{}'))
 		.addColumn("file_ids", sql`text[]`, (col) => col.notNull().defaultTo('{}'))
 		.addColumn("category_id", "integer", (col) =>
-			col.references("category.id").onDelete("cascade").onUpdate("cascade"),
+			col.references("category.id").notNull().onDelete("cascade").onUpdate("cascade"),
 		)
 		.addColumn("subcategory_id", "integer", (col) =>
-			col.references("category.id").onDelete("set null").onUpdate("set null"),
+			col.references("category.id").notNull().onDelete("set null").onUpdate("set null"),
 		)
 		.addColumn("client_id", "integer", (col) =>
 			col.references("users.id").onDelete("cascade").notNull(),
 		)
 		.addColumn("freelancer_id", "integer", (col) => col.references("users.id"))
 		.addColumn("price", "integer", (col) => col.notNull())
+		.addColumn("status", sql`task_status`, col => col.notNull().defaultTo(sql`'open'::task_status`))
 		.execute();
 }
 

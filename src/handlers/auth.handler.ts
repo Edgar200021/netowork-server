@@ -1,5 +1,7 @@
 import vine from "@vinejs/vine";
 import type { Request, Response } from "express";
+import { SuccessResponseDto } from "../common/dto/base.dto.js";
+import { NotFoundError, UnauthorizedError } from "../common/error.js";
 import { REGISTERED_EMAIL_COOKIE_NAME } from "../const/cookie.js";
 import {
 	type ForgotPasswordRequestDto,
@@ -35,8 +37,6 @@ import {
 import type { VerifyAccountResponseDto } from "../dto/auth/verifyAccount/verifyAccountResponse.dto.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
 import type { AuthService } from "../services/auth.service.js";
-import { SuccessResponseDto } from "../services/common/dto/base.dto.js";
-import { NotFoundError, UnauthorizedError } from "../services/common/error.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
 
@@ -453,7 +453,8 @@ export class AuthHandler extends BaseHandler {
 		this._router.post(
 			"/login",
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.login,
+				validatorOrSchema: this.validators.login,
+				type: "body",
 			}),
 			asyncWrapper(this.login),
 		);
@@ -461,7 +462,8 @@ export class AuthHandler extends BaseHandler {
 		this._router.post(
 			"/register",
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.register,
+				validatorOrSchema: this.validators.register,
+				type: "body",
 			}),
 			asyncWrapper(this.register),
 		);
@@ -469,7 +471,8 @@ export class AuthHandler extends BaseHandler {
 		this._router.patch(
 			"/account-verification",
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.verifyAccount,
+				validatorOrSchema: this.validators.verifyAccount,
+				type: "body",
 			}),
 			asyncWrapper(this.verifyAccount),
 		);
@@ -477,7 +480,8 @@ export class AuthHandler extends BaseHandler {
 		this._router.post(
 			"/forgot-password",
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.forgotPassword,
+				validatorOrSchema: this.validators.forgotPassword,
+				type: "body",
 			}),
 			asyncWrapper(this.forgotPassword),
 		);
@@ -485,7 +489,8 @@ export class AuthHandler extends BaseHandler {
 		this._router.patch(
 			"/reset-password",
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.resetPassword,
+				validatorOrSchema: this.validators.resetPassword,
+				type: "body",
 			}),
 			asyncWrapper(this.resetPassword),
 		);
@@ -498,7 +503,8 @@ export class AuthHandler extends BaseHandler {
 		this._router.patch(
 			"/set-new-email-address",
 			this._middlewares.validateRequest({
-				bodyValidatorOrSchema: this.validators.setNewEmail,
+				validatorOrSchema: this.validators.setNewEmail,
+				type: "body",
 			}),
 			asyncWrapper(this.setNewEmail),
 		);

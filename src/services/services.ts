@@ -1,13 +1,14 @@
+import { Argon2Service } from "../common/services/argon2.service.js";
+import type { HashingService } from "../common/services/hashing.service.js";
+import type { LoggerService } from "../common/services/logger.service.js";
 import type { Config } from "../config.js";
 import type { Database } from "../storage/postgres/database.js";
 import type { Redis } from "../storage/redis/redis.js";
 import { AuthService } from "./auth.service.js";
 import { CategoryService } from "./category.service.js";
-import { Argon2Service } from "./common/services/argon2.service.js";
-import type { HashingService } from "./common/services/hashing.service.js";
-import type { LoggerService } from "./common/services/logger.service.js";
 import { EmailService } from "./email.service.js";
-import { ImageUploader } from "./imageUploader.service.js";
+import { FileUploader } from "./fileUploader.service.js";
+import { TaskService } from "./task.service.js";
 import { UsersService } from "./users.service.js";
 import { WorksService } from "./works.service.js";
 
@@ -17,8 +18,9 @@ export class Services {
 	private readonly _worksService: WorksService;
 	private readonly _hashingService: HashingService;
 	private readonly _emailService: EmailService;
-	private readonly _imageUploader: ImageUploader;
+	private readonly _fileUploader: FileUploader;
 	private readonly _categoryService: CategoryService;
+	private readonly _taskService: TaskService;
 
 	constructor(
 		private readonly _database: Database,
@@ -28,7 +30,7 @@ export class Services {
 	) {
 		this._hashingService = new Argon2Service();
 		this._emailService = new EmailService(config.application, config.email);
-		this._imageUploader = new ImageUploader(config.cloudinary);
+		this._fileUploader = new FileUploader(config.cloudinary);
 
 		this._authService = new AuthService(
 			config.application,
@@ -44,12 +46,13 @@ export class Services {
 			this._authService,
 			this._emailService,
 			this._redis,
-			this._imageUploader,
+			this._fileUploader,
 			config.application,
 		);
 
-		this._worksService = new WorksService(this._database, this._imageUploader);
+		this._worksService = new WorksService(this._database, this._fileUploader);
 		this._categoryService = new CategoryService(this._database);
+		this._taskService = new TaskService(this._database, this._fileUploader);
 	}
 
 	get authService() {
@@ -78,5 +81,9 @@ export class Services {
 
 	get categoryService() {
 		return this._categoryService;
+	}
+
+	get taskService() {
+		return this._taskService;
 	}
 }

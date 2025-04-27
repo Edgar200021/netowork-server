@@ -1,18 +1,18 @@
 import { sql } from "kysely";
+import { BadRequestError, NotFoundError } from "../common/error.js";
+import type { LoggerService } from "../common/services/logger.service.js";
 import { MAX_WORKS_COUNT } from "../const/works.js";
 import type { CreateWorkRequestDto } from "../dto/works/createWork/createWorkRequest.dto.js";
 import type { DeleteWorkRequestDto } from "../dto/works/deleteWork/deleteWorkRequest.dto.js";
 import { WorkResponseDto } from "../dto/works/workResponse.dto.js";
 import type { Database } from "../storage/postgres/database.js";
 import type { User } from "../storage/postgres/types/user.types.js";
-import { BadRequestError, NotFoundError } from "./common/error.js";
-import type { LoggerService } from "./common/services/logger.service.js";
-import type { ImageUploader } from "./imageUploader.service.js";
+import type { FileUploader } from "./fileUploader.service.js";
 
 export class WorksService {
 	constructor(
 		private readonly _database: Database,
-		private readonly _imageUploader: ImageUploader,
+		private readonly _imageUploader: FileUploader,
 	) {}
 
 	async createWork(
@@ -49,7 +49,7 @@ export class WorksService {
 		}
 
 		const images = await Promise.all(
-			files.map((f) => this._imageUploader.uploadImageFromBuffer(f.buffer, log)),
+			files.map((f) => this._imageUploader.uploadFileFromBuffer(f.buffer, log)),
 		);
 
 		const work = await this._database.transaction().execute(async (trx) => {
@@ -64,10 +64,16 @@ export class WorksService {
 
 			await trx
 				.insertInto("workImages")
-				.values(images.map((w) => ({ ...w, workId: result.id })))
+				.values(
+					images.map((w) => ({
+						imageId: w.fileId,
+						imageUrl: w.fileUrl,
+						workId: result.id,
+					})),
+				)
 				.execute();
 
-			return { ...result, images: images.map((w) => w.imageUrl) };
+			return { ...result, images: images.map((w) => w.fileUrl) };
 		});
 
 		return new WorkResponseDto(work);
@@ -125,7 +131,7 @@ export class WorksService {
 		}
 
 		await Promise.all(
-			work.images.map((i) => this._imageUploader.deleteImage(i)),
+			work.images.map((i) => this._imageUploader.deleteFile(i)),
 		);
 	}
 }

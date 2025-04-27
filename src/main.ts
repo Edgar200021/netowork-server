@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 import { App } from "./app.js";
+import { LoggerService } from "./common/services/logger.service.js";
 import { readConfig } from "./config.js";
-import { LoggerService } from "./services/common/services/logger.service.js";
 
 config();
 const settings = await readConfig();

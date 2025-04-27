@@ -1,4 +1,6 @@
 import type { Request, Response } from "express";
+import { BadRequestError, UnauthorizedError } from "../common/error.js";
+import type { HashingService } from "../common/services/hashing.service.js";
 import type { ApplicationConfig } from "../config.js";
 import type { ChangeProfilePasswordRequestDto } from "../dto/users/changeProfilePassword/changeProfilePasswordRequest.dto.js";
 import type { UpdateProfileRequestDto } from "../dto/users/updateProfile/updateProfileRequest.dto.js";
@@ -9,10 +11,8 @@ import type { Redis } from "../storage/redis/redis.js";
 import type { FileUploadResponse } from "../types/cloudinary.js";
 import { generateRandomToken } from "../utils/createToken.js";
 import type { AuthService } from "./auth.service.js";
-import { BadRequestError, UnauthorizedError } from "./common/error.js";
-import type { HashingService } from "./common/services/hashing.service.js";
 import type { EmailService } from "./email.service.js";
-import type { ImageUploader } from "./imageUploader.service.js";
+import type { FileUploader } from "./fileUploader.service.js";
 
 export class UsersService {
 	constructor(
@@ -21,7 +21,7 @@ export class UsersService {
 		private readonly _authService: AuthService,
 		private readonly _emailService: EmailService,
 		private readonly _redis: Redis,
-		private readonly _imageUploader: ImageUploader,
+		private readonly _imageUploader: FileUploader,
 		private readonly _applicationConfig: ApplicationConfig,
 	) {}
 
@@ -63,12 +63,12 @@ export class UsersService {
 		let fileUploadRes: FileUploadResponse | undefined;
 
 		if (file) {
-			fileUploadRes = await this._imageUploader.uploadImageFromBuffer(
+			fileUploadRes = await this._imageUploader.uploadFileFromBuffer(
 				file.buffer,
 				log,
 			);
 			if (req.user.avatar && req.user.avatarId)
-				await this._imageUploader.deleteImage(req.user.avatarId);
+				await this._imageUploader.deleteFile(req.user.avatarId);
 		}
 
 		if (email && isNewEmail) {
@@ -78,8 +78,8 @@ export class UsersService {
 				.updateTable("users")
 				.set({
 					aboutMe,
-					avatar: fileUploadRes?.imageUrl,
-					avatarId: fileUploadRes?.imageId,
+					avatar: fileUploadRes?.fileUrl,
+					avatarId: fileUploadRes?.fileId,
 					email,
 					isVerified: false,
 					updatedAt: new Date(),
@@ -107,8 +107,8 @@ export class UsersService {
 			.updateTable("users")
 			.set({
 				aboutMe,
-				avatar: fileUploadRes?.imageUrl,
-				avatarId: fileUploadRes?.imageId,
+				avatar: fileUploadRes?.fileUrl,
+				avatarId: fileUploadRes?.fileId,
 				updatedAt: new Date(),
 				...(req.body.firstName && { firstName: req.body.firstName }),
 				...(req.body.lastName && { lastName: req.body.lastName }),

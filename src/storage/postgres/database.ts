@@ -1,7 +1,7 @@
 import { CamelCasePlugin, Kysely, PostgresDialect, sql } from "kysely";
 import pg from "pg";
+import type { LoggerService } from "../../common/services/logger.service.js";
 import type { DatabaseConfig } from "../../config.js";
-import type { LoggerService } from "../../services/common/services/logger.service.js";
 import type { DB } from "../db.js";
 
 export class Database extends Kysely<DB> {
