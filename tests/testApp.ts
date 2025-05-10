@@ -5,14 +5,15 @@ import crypto from "node:crypto";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent.js";
 import { App } from "../src/app.js";
+import { LoggerService } from "../src/common/services/logger.service.js";
 import { readConfig } from "../src/config.js";
+import { TASK_FILES_NAME } from "../src/const/multer";
 import {
 	AVATAR_FILE_NAME,
 	WORK_IMAGES_FILE_NAME,
 } from "../src/const/multer.js";
-import { LoggerService } from "../src/services/common/services/logger.service.js";
 import type { Services } from "../src/services/services.js";
-import type { DB } from "../src/storage/db.js";
+import type { DB, TaskStatus } from "../src/storage/db.js";
 import type { Redis } from "../src/storage/redis/redis.js";
 import { setupDb } from "./setupDb.js";
 
@@ -223,6 +224,76 @@ export class TestApp {
 		return response;
 	}
 
+	async createTask(
+		body: {
+			title?: string;
+			description?: string;
+			categoryId?: number;
+			subCategoryId?: number;
+			price?: number | string;
+			files?: string[];
+		},
+		cookies?: string[],
+	) {
+		const request = this.superTest.post("/api/v1/tasks");
+
+		for (const [key, value] of Object.entries(body)) {
+			if (key === "files" && Array.isArray(value)) {
+				for (const file of value) {
+					request.attach(TASK_FILES_NAME, file);
+				}
+				continue;
+			}
+
+			if (value) {
+				request.field(key, value);
+			}
+		}
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
+	async getMyTasks(
+		body: {
+			limit?: number;
+			page?: number;
+			status?: TaskStatus | string;
+		},
+		cookies?: string[],
+	) {
+		// @ts-ignore
+		const params = new URLSearchParams(body).toString();
+
+		const request = this.superTest.get(
+			`/api/v1/tasks/my-tasks${params ? `?${params}` : ""}`,
+		);
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
+	async getCategories(cookies: string[]) {
+		const request = this.superTest.get("/api/v1/categories");
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
 	async createAndVerify(body: object) {
 		await this.register(body);
 		const token = (await this.redis.keys("*"))[0];

@@ -15,11 +15,14 @@ import type { Middlewares } from "../middlewares/middlewares.js";
 import type { TaskService } from "../services/task.service.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
+import { type GetMyTasksRequestDto, getMyTasksSchema } from '../dto/task/getMyTasks/getMyTasksRequest.dto.js';
+import type { GetMyTasksResponseDto } from '../dto/task/getMyTasks/getMyTasksResponse.dto.js';
 
 export class TaskHandler extends BaseHandler {
 	protected validators = {
 		createTask: vine.compile(createTaskSchema),
 		getAllTasks: vine.compile(getAllTasksSchema),
+		getMyTasks: vine.compile(getMyTasksSchema)
 	};
 
 	constructor(
@@ -113,6 +116,96 @@ export class TaskHandler extends BaseHandler {
 			data: tasks.map((task) => new TaskResponseDto(task)),
 		});
 	}
+
+		/**
+	 * @openapi
+	 * paths:
+	 *   /api/v1/tasks/my-tasks:
+	 *     get:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Get my tasks
+	 *       security:
+	 *         - Session: []
+	 *       parameters:
+	 *         - in: query
+	 *           name: limit
+	 *           required: false
+	 *           description: Number of tasks to return (max 200)
+	 *           schema:
+	 *             type: number
+	 *             maximum: 200
+	 *         - in: query
+	 *           name: page
+	 *           required: false
+	 *           description: Page number
+	 *           schema:
+	 *             type: number
+	 *         - in: query
+	 *           name: status
+	 *           required: false
+	 *           description: Task status
+	 *           schema:
+	 *             type: string
+	 *             enum: [completed, in_progress, open]
+	 *       responses:
+	 *         200:
+	 *           description: Success
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/GetMyTasksResponseDto'
+	 *         400:
+	 *           description: Validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 LimitTooBig:
+	 *                   summary: Limit exceeds maximum allowed value
+	 *                   value:
+	 *                     status: "error"
+	 *                     errors:
+	 *                       limit: "The limit must be less than or equal to 200."
+	 *         401:
+	 *           description: Unauthorized (User is not logged in)
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden (User does not have permission)
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *               examples:
+	 *                 NoPermission:
+	 *                   summary: User lacks permission to access this resource
+	 *                   value:
+	 *                     message: "You do not have permission to access this resource."
+	 */
+		async getMyTasks(
+			req: Request<
+				unknown,
+				GetMyTasksResponseDto,
+				unknown,
+				GetMyTasksRequestDto
+			>,
+			res: Response<GetMyTasksResponseDto>,
+		) {
+			if (!req.user) {
+				throw new UnauthorizedError("Unauthorized");
+			}
+	
+			const tasks = await this._taskService.getMyTasks(req.user.id, req.query, req.logger);
+	
+			res.status(200).json({
+				status: "success",
+				data: tasks.map((task) => new TaskResponseDto(task)),
+			});
+		}
 
 	/**
 	 * @openapi
@@ -212,6 +305,7 @@ export class TaskHandler extends BaseHandler {
 
 	protected bindMethods(): void {
 		this.getAllTasks = this.getAllTasks.bind(this);
+		this.getMyTasks = this.getMyTasks.bind(this);
 		this.createTask = this.createTask.bind(this);
 	}
 
@@ -225,6 +319,16 @@ export class TaskHandler extends BaseHandler {
 				type: "query",
 			}),
 			asyncWrapper(this.getAllTasks),
+		);
+		this.router.get(
+			"/my-tasks",
+			this._middlewares.auth,
+			this._middlewares.restrict(["client"]),
+			this._middlewares.validateRequest({
+				validatorOrSchema: this.validators.getMyTasks,
+				type: "query",
+			}),
+			asyncWrapper(this.getMyTasks),
 		);
 		this.router.post(
 			"/",

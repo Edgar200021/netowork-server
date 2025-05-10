@@ -7,11 +7,12 @@ import {
 } from "../const/task.js";
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
 import type { GetAllTasksRequestDto } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
+import type { GetMyTasksRequestDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type { Database } from "../storage/postgres/database.js";
 import type { Category } from "../storage/postgres/types/category.type.js";
 import type { Task } from "../storage/postgres/types/task.type.js";
 import type { User } from "../storage/postgres/types/user.types.js";
-import { FileUploadResponse } from "../types/cloudinary.js";
+import type { FileUploadResponse } from "../types/cloudinary.js";
 import { AllowedMimeTypes } from "../types/mimeTypes.js";
 import type { FileUploader } from "./fileUploader.service.js";
 
@@ -77,6 +78,66 @@ export class TaskService {
 		}));
 	}
 
+	async getMyTasks(
+		userId: User["id"],
+		getMyTasksRequestDto: GetMyTasksRequestDto,
+		log: LoggerService,
+	): Promise<
+		(Task & {
+			category: Category["name"];
+			subcategory: Category["name"];
+			creator: `${User["firstName"]} ${User["lastName"]}`;
+		})[]
+	> {
+		const limit = Number(getMyTasksRequestDto.limit) || GET_TASKS_DEFAULT_LIMIT;
+		const page = Number(getMyTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
+
+		const tasksQuery = await this._database
+			.selectFrom("task")
+			.innerJoin("category", "task.categoryId", "category.id")
+			.innerJoin(
+				"category as subcategory",
+				"task.subcategoryId",
+				"subcategory.id",
+			)
+			.innerJoin("users", "task.clientId", "users.id")
+			.select([
+				"task.id",
+				"task.title",
+				"task.price",
+				"task.description",
+				"task.fileIds",
+				"task.fileUrls",
+				"task.clientId",
+				"task.freelancerId",
+				"task.status",
+				"task.categoryId",
+				"task.subcategoryId",
+				"task.createdAt",
+				"task.updatedAt",
+				"category.name as categoryName",
+				"subcategory.name as subcategoryName",
+				"users.firstName",
+				"users.lastName",
+			])
+			.where("clientId", "=", userId)
+			.limit(limit)
+			.offset((page - 1) * limit);
+
+		if (getMyTasksRequestDto.status) {
+			tasksQuery.where("status", "=", getMyTasksRequestDto.status);
+		}
+
+		const tasks = await tasksQuery.execute();
+
+		return tasks.map((t) => ({
+			...t,
+			category: t.categoryName,
+			subcategory: t.subcategoryName,
+			creator: `${t.firstName} ${t.lastName}`,
+		}));
+	}
+
 	async create(
 		userId: User["id"],
 		createTaskRequestDto: CreateTaskRequestDto,
@@ -86,9 +147,6 @@ export class TaskService {
 		Task & { category: Category["name"]; subcategory: Category["name"] }
 	> {
 		log.info({ userId }, "Creating task");
-
-
-		console.log("FILES", files)
 
 		const uploadedFiles: FileUploadResponse[] = [];
 		if (files) {
