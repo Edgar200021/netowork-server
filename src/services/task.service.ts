@@ -11,6 +11,7 @@ import type { Database } from "../storage/postgres/database.js";
 import type { Category } from "../storage/postgres/types/category.type.js";
 import type { Task } from "../storage/postgres/types/task.type.js";
 import type { User } from "../storage/postgres/types/user.types.js";
+import { FileUploadResponse } from "../types/cloudinary.js";
 import { AllowedMimeTypes } from "../types/mimeTypes.js";
 import type { FileUploader } from "./fileUploader.service.js";
 
@@ -86,7 +87,10 @@ export class TaskService {
 	> {
 		log.info({ userId }, "Creating task");
 
-		const uploadedFiles = [];
+
+		console.log("FILES", files)
+
+		const uploadedFiles: FileUploadResponse[] = [];
 		if (files) {
 			const result = await Promise.all(
 				files.map(async (file) => {
@@ -156,6 +160,12 @@ export class TaskService {
 				categoryId: category.categoryId,
 				subcategoryId: category.subCategoryId,
 				price: Number(createTaskRequestDto.price),
+				...(uploadedFiles.length > 0
+					? {
+							fileUrls: uploadedFiles.map((file) => file.fileUrl),
+							fileIds: uploadedFiles.map((file) => file.fileId),
+						}
+					: {}),
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
