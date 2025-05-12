@@ -43,7 +43,7 @@ describe("Works", () => {
 		expect(getResult.body).toHaveProperty("status");
 		expect(getResult.body).toHaveProperty("data");
 		expect(getResult.body.data).toBeInstanceOf(Array);
-		expect(getResult.body.data).toHaveLength(1)
+		expect(getResult.body.data).toHaveLength(1);
 		expect(getResult.body.data[0]).toHaveProperty("title");
 		expect(getResult.body.data[0]).toHaveProperty("images");
 		expect(getResult.body.data[0].images).toBeInstanceOf(Array);
@@ -53,7 +53,7 @@ describe("Works", () => {
 	it("Should return 401 status code when user is not logged in", async () => {
 		const result = await app.getWorks();
 		expect(result.statusCode).toBe(401);
-	})
+	});
 
 	it("Should return 403 status code when user is not freelancer", async () => {
 		const verifyResult = await app.createAndVerify({
@@ -64,5 +64,5 @@ describe("Works", () => {
 
 		const result = await app.getWorks(verifyResult.get("Set-Cookie"));
 		expect(result.statusCode).toBe(403);
-	})
+	});
 });

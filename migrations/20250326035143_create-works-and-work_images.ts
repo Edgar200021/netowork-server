@@ -14,7 +14,11 @@ export async function up(db: Kysely<any>): Promise<void> {
 		)
 		.addColumn("title", "text", (col) => col.notNull())
 		.addColumn("user_id", "integer", (col) =>
-			col.references("users.id").onDelete("cascade").notNull(),
+			col
+				.references("users.id")
+				.onDelete("cascade")
+				.onUpdate("cascade")
+				.notNull(),
 		)
 		.addUniqueConstraint("works_user_id_title", ["user_id", "title"])
 		.execute();
@@ -39,7 +43,11 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn("image_url", "text", (col) => col.notNull())
 		.addColumn("image_id", "text", (col) => col.notNull())
 		.addColumn("work_id", "integer", (col) =>
-			col.references("works.id").onDelete("cascade").notNull(),
+			col
+				.references("works.id")
+				.onDelete("cascade")
+				.onUpdate("cascade")
+				.notNull(),
 		)
 		.addUniqueConstraint("work_images_image_id_unique", ["image_id"])
 		.execute();

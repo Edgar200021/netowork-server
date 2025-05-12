@@ -1,7 +1,6 @@
-import vine from '@vinejs/vine';
-import type { InferInput } from '@vinejs/vine/types';
-import { GET_ALL_TASKS_MAX_LIMIT } from '../../../const/validator.js';
-
+import vine from "@vinejs/vine";
+import type { InferInput } from "@vinejs/vine/types";
+import { GET_ALL_TASKS_MAX_LIMIT } from "../../../const/validator.js";
 
 /**
  * @openapi
@@ -18,7 +17,7 @@ import { GET_ALL_TASKS_MAX_LIMIT } from '../../../const/validator.js';
  */
 export const getAllTasksSchema = vine.object({
 	limit: vine.number().positive().max(GET_ALL_TASKS_MAX_LIMIT).optional(),
-	page: vine.number().positive().optional()
-})
+	page: vine.number().positive().optional(),
+});
 
 export type GetAllTasksRequestDto = InferInput<typeof getAllTasksSchema>;

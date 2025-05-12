@@ -1,6 +1,5 @@
-import vine from '@vinejs/vine';
-import type {  InferInput } from '@vinejs/vine/types';
-
+import vine from "@vinejs/vine";
+import type { InferInput } from "@vinejs/vine/types";
 
 /**
  * @openapi

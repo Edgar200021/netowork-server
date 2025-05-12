@@ -15,14 +15,18 @@ import type { Middlewares } from "../middlewares/middlewares.js";
 import type { TaskService } from "../services/task.service.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
 import { BaseHandler } from "./base.handler.js";
-import { type GetMyTasksRequestDto, getMyTasksSchema } from '../dto/task/getMyTasks/getMyTasksRequest.dto.js';
-import type { GetMyTasksResponseDto } from '../dto/task/getMyTasks/getMyTasksResponse.dto.js';
+import {
+	type GetMyTasksRequestDto,
+	getMyTasksSchema,
+} from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
+import type { GetMyTasksResponseDto } from "../dto/task/getMyTasks/getMyTasksResponse.dto.js";
+import { UserRole } from '../storage/db.js';
 
 export class TaskHandler extends BaseHandler {
 	protected validators = {
 		createTask: vine.compile(createTaskSchema),
 		getAllTasks: vine.compile(getAllTasksSchema),
-		getMyTasks: vine.compile(getMyTasksSchema)
+		getMyTasks: vine.compile(getMyTasksSchema),
 	};
 
 	constructor(
@@ -117,7 +121,7 @@ export class TaskHandler extends BaseHandler {
 		});
 	}
 
-		/**
+	/**
 	 * @openapi
 	 * paths:
 	 *   /api/v1/tasks/my-tasks:
@@ -186,26 +190,25 @@ export class TaskHandler extends BaseHandler {
 	 *                   value:
 	 *                     message: "You do not have permission to access this resource."
 	 */
-		async getMyTasks(
-			req: Request<
-				unknown,
-				GetMyTasksResponseDto,
-				unknown,
-				GetMyTasksRequestDto
-			>,
-			res: Response<GetMyTasksResponseDto>,
-		) {
-			if (!req.user) {
-				throw new UnauthorizedError("Unauthorized");
-			}
-	
-			const tasks = await this._taskService.getMyTasks(req.user.id, req.query, req.logger);
-	
-			res.status(200).json({
-				status: "success",
-				data: tasks.map((task) => new TaskResponseDto(task)),
-			});
+	async getMyTasks(
+		req: Request<unknown, GetMyTasksResponseDto, unknown, GetMyTasksRequestDto>,
+		res: Response<GetMyTasksResponseDto>,
+	) {
+		if (!req.user) {
+			throw new UnauthorizedError("Unauthorized");
 		}
+
+		const tasks = await this._taskService.getMyTasks(
+			req.user.id,
+			req.query,
+			req.logger,
+		);
+
+		res.status(200).json({
+			status: "success",
+			data: tasks.map((task) => new TaskResponseDto(task)),
+		});
+	}
 
 	/**
 	 * @openapi
@@ -313,7 +316,7 @@ export class TaskHandler extends BaseHandler {
 		this.router.get(
 			"/",
 			this._middlewares.auth,
-			this._middlewares.restrict(["freelancer", "admin"]),
+			this._middlewares.restrict([UserRole.Freelancer,UserRole.Admin]),
 			this._middlewares.validateRequest({
 				validatorOrSchema: this.validators.getAllTasks,
 				type: "query",
@@ -323,7 +326,7 @@ export class TaskHandler extends BaseHandler {
 		this.router.get(
 			"/my-tasks",
 			this._middlewares.auth,
-			this._middlewares.restrict(["client"]),
+			this._middlewares.restrict([UserRole.Client]),
 			this._middlewares.validateRequest({
 				validatorOrSchema: this.validators.getMyTasks,
 				type: "query",
@@ -333,7 +336,7 @@ export class TaskHandler extends BaseHandler {
 		this.router.post(
 			"/",
 			this._middlewares.auth,
-			this._middlewares.restrict(["client"]),
+			this._middlewares.restrict([UserRole.Client]),
 			this._middlewares.uploadFile(TASK_FILES_NAME, {
 				fileCount: TASK_FILES_MAX_COUNT,
 				single: false,

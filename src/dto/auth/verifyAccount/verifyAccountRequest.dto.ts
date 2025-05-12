@@ -1,5 +1,5 @@
-import vine from '@vinejs/vine'
-import type { InferInput } from '@vinejs/vine/types'
+import vine from "@vinejs/vine";
+import type { InferInput } from "@vinejs/vine/types";
 
 /**
  * @openapi
@@ -14,7 +14,7 @@ import type { InferInput } from '@vinejs/vine/types'
  *           type: string
  */
 export const verifyAccountSchema = vine.object({
-  token: vine.string(),
-})
+	token: vine.string(),
+});
 
-export type VerifyAccountRequestDto = InferInput<typeof verifyAccountSchema>
+export type VerifyAccountRequestDto = InferInput<typeof verifyAccountSchema>;

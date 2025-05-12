@@ -115,6 +115,7 @@ describe("Task", () => {
 				expect(result.body.data).toHaveProperty("category");
 				expect(result.body.data).toHaveProperty("subCategory");
 				expect(result.body.data).toHaveProperty("createdAt");
+				expect(result.body.data).toHaveProperty("status");
 				if (index === 0) {
 					expect(result.body.data).toHaveProperty("files");
 				}

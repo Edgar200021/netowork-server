@@ -19,6 +19,7 @@ import type { DeleteWorkResponseDto } from "../dto/works/deleteWork/deleteWorkRe
 import type { GetWorksResponseDto } from "../dto/works/getWorks/getWorksResponse.dto.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
 import type { WorksService } from "../services/works.service.js";
+import { UserRole } from "../storage/db.js";
 import type { NonEmptyArray } from "../types/common.js";
 import type { AllowedMimeTypesValues } from "../types/mimeTypes.js";
 import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
@@ -231,7 +232,7 @@ export class WorksHandler extends BaseHandler {
 		this.router.post(
 			"/",
 			this._middlewares.auth,
-			this._middlewares.restrict(["freelancer"]),
+			this._middlewares.restrict([UserRole.Freelancer]),
 			this._middlewares.uploadFile(WORK_IMAGES_FILE_NAME, {
 				mimeTypes: [
 					"image/avif",
@@ -246,7 +247,7 @@ export class WorksHandler extends BaseHandler {
 			}),
 			this._middlewares.validateRequest({
 				validatorOrSchema: this.validators.createWork,
-				type: "body"
+				type: "body",
 			}),
 			asyncWrapper(this.create),
 		);
@@ -254,18 +255,19 @@ export class WorksHandler extends BaseHandler {
 		this.router.get(
 			"/",
 			this._middlewares.auth,
-			this._middlewares.restrict(["freelancer"]),
+			this._middlewares.restrict([UserRole.Freelancer]),
 			asyncWrapper(this.getWorks),
 		);
 
 		this.router.delete(
 			"/:id",
 			this._middlewares.auth,
-			this._middlewares.restrict(["freelancer"]),
+			this._middlewares.restrict([UserRole.Freelancer]),
 			this._middlewares.validateRequest({
 				validatorOrSchema: this.validators.deleteWork,
-				type: "params"
+				type: "params",
 			}),
+			//@ts-expect-error...
 			asyncWrapper(this.deleteWork),
 		);
 	}

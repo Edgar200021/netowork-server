@@ -1,9 +1,11 @@
 import vine from "@vinejs/vine";
 import type { InferInput } from "@vinejs/vine/types";
 
-import { MAX_ABOUT_ME_LENGTH, MAX_FIRST_NAME_LENGTH, MAX_LAST_NAME_LENGTH } from "../../../const/validator.js";
-
-
+import {
+	MAX_ABOUT_ME_LENGTH,
+	MAX_FIRST_NAME_LENGTH,
+	MAX_LAST_NAME_LENGTH,
+} from "../../../const/validator.js";
 
 /**
  * @openapi

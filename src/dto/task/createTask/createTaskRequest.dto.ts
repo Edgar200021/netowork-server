@@ -7,7 +7,6 @@ import {
 	MIN_TASK_TITLE_LENGTH,
 } from "../../../const/validator.js";
 
-
 /**
  * @openapi
  * components:

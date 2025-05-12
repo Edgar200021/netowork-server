@@ -1,3 +1,4 @@
+import type { TaskFiles, TaskStatus } from "../../storage/db.js";
 import type { Category } from "../../storage/postgres/types/category.type.js";
 import type { Task } from "../../storage/postgres/types/task.type.js";
 import type { User } from "../../storage/postgres/types/user.types.js";
@@ -42,16 +43,18 @@ export class TaskResponseDto {
 	readonly title: string;
 	readonly description: string;
 	readonly category: Category["name"];
-	readonly subCategory: Category["name"];
+	readonly subCategory: Category["name"] | null;
 	readonly price: number;
 	readonly creator: `${User["firstName"]} ${User["lastName"]}`;
-	readonly files: string[]
+	files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+	readonly status: TaskStatus;
 
 	constructor(
 		task: Task & {
 			creator: `${User["firstName"]} ${User["lastName"]}`;
 			category: Category["name"];
-			subcategory: Category["name"];
+			subcategory: Category["name"] | null ;
+			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
 		},
 	) {
 		this.id = task.id;
@@ -62,6 +65,7 @@ export class TaskResponseDto {
 		this.subCategory = task.subcategory;
 		this.price = task.price;
 		this.creator = task.creator;
-		this.files = task.fileUrls
+		this.status = task.status;
+		this.files = task.files
 	}
 }

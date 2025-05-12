@@ -1,3 +1,4 @@
+import { sql } from "kysely";
 import path from "node:path";
 import { BadRequestError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
@@ -8,6 +9,7 @@ import {
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
 import type { GetAllTasksRequestDto } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
 import type { GetMyTasksRequestDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
+import { type TaskFiles, TaskStatus } from "../storage/db.js";
 import type { Database } from "../storage/postgres/database.js";
 import type { Category } from "../storage/postgres/types/category.type.js";
 import type { Task } from "../storage/postgres/types/task.type.js";
@@ -28,10 +30,13 @@ export class TaskService {
 	): Promise<
 		(Task & {
 			category: Category["name"];
-			subcategory: Category["name"];
+			subcategory: Category["name"] | null;
 			creator: `${User["firstName"]} ${User["lastName"]}`;
+			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
 		})[]
 	> {
+		log.info("Getting all tasks");
+
 		const limit =
 			Number(getAllTasksRequestDto.limit) || GET_TASKS_DEFAULT_LIMIT;
 		const page = Number(getAllTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
@@ -39,19 +44,18 @@ export class TaskService {
 		const tasks = await this._database
 			.selectFrom("task")
 			.innerJoin("category", "task.categoryId", "category.id")
-			.innerJoin(
+			.leftJoin(
 				"category as subcategory",
 				"task.subcategoryId",
 				"subcategory.id",
 			)
+			.leftJoin("taskFiles", "taskFiles.taskId", "task.id")
 			.innerJoin("users", "task.clientId", "users.id")
 			.select([
 				"task.id",
 				"task.title",
 				"task.price",
 				"task.description",
-				"task.fileIds",
-				"task.fileUrls",
 				"task.clientId",
 				"task.freelancerId",
 				"task.status",
@@ -64,8 +68,18 @@ export class TaskService {
 				"users.firstName",
 				"users.lastName",
 			])
-			.where("status", "=", "open")
+			.select((eb) =>
+				eb.fn
+					.jsonAgg(
+						sql<
+							Pick<TaskFiles, "fileId" | "fileUrl">
+						>`json_build_object('fileId', taskFiles.id, 'fileUrl', taskFiles.fileUrl)`,
+					)
+					.as("files"),
+			)
+			.where("status", "=", TaskStatus.Open)
 			.orderBy("task.id")
+			.groupBy("task.id")
 			.limit(limit)
 			.offset((page - 1) * limit)
 			.execute();
@@ -85,29 +99,31 @@ export class TaskService {
 	): Promise<
 		(Task & {
 			category: Category["name"];
-			subcategory: Category["name"];
+			subcategory: Category["name"] | null;
 			creator: `${User["firstName"]} ${User["lastName"]}`;
+			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
 		})[]
 	> {
+		log.info({ userId }, "Getting my tasks");
+
 		const limit = Number(getMyTasksRequestDto.limit) || GET_TASKS_DEFAULT_LIMIT;
 		const page = Number(getMyTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
 
-		const tasksQuery = await this._database
+		let tasksQuery = this._database
 			.selectFrom("task")
 			.innerJoin("category", "task.categoryId", "category.id")
-			.innerJoin(
+			.leftJoin(
 				"category as subcategory",
 				"task.subcategoryId",
 				"subcategory.id",
 			)
+			.leftJoin("taskFiles", "taskFiles.taskId", "task.id")
 			.innerJoin("users", "task.clientId", "users.id")
 			.select([
 				"task.id",
 				"task.title",
 				"task.price",
 				"task.description",
-				"task.fileIds",
-				"task.fileUrls",
 				"task.clientId",
 				"task.freelancerId",
 				"task.status",
@@ -120,12 +136,26 @@ export class TaskService {
 				"users.firstName",
 				"users.lastName",
 			])
+			.select((eb) =>
+				eb.fn
+					.jsonAgg(
+						sql<
+							Pick<TaskFiles, "fileId" | "fileUrl">
+						>`json_build_object('fileId', taskFiles.id, 'fileUrl', taskFiles.fileUrl)`,
+					)
+					.as("files"),
+			)
 			.where("clientId", "=", userId)
+			.groupBy("task.id")
 			.limit(limit)
 			.offset((page - 1) * limit);
 
 		if (getMyTasksRequestDto.status) {
-			tasksQuery.where("status", "=", getMyTasksRequestDto.status);
+			tasksQuery = tasksQuery.where(
+				"task.status",
+				"=",
+				getMyTasksRequestDto.status,
+			);
 		}
 
 		const tasks = await tasksQuery.execute();
@@ -144,37 +174,13 @@ export class TaskService {
 		log: LoggerService,
 		files?: Express.Multer.File[],
 	): Promise<
-		Task & { category: Category["name"]; subcategory: Category["name"] }
+		Task & {
+			category: Category["name"];
+			subcategory: Category["name"] | null;
+			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+		}
 	> {
 		log.info({ userId }, "Creating task");
-
-		const uploadedFiles: FileUploadResponse[] = [];
-		if (files) {
-			const result = await Promise.all(
-				files.map(async (file) => {
-					const res = await this._fileUploader.uploadFileFromBuffer(
-						file.buffer,
-						log,
-						{
-							format: path.extname(file.originalname).slice(1),
-							...(file.mimetype ===
-							AllowedMimeTypes[
-								"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-							]
-								? {
-										resource_type: "raw",
-									}
-								: {}),
-						},
-					);
-
-					return res;
-				}),
-			);
-			for (const res of result) {
-				uploadedFiles.push(res);
-			}
-		}
 
 		const category = await this._database
 			.selectFrom("category")
@@ -209,6 +215,34 @@ export class TaskService {
 			throw new BadRequestError("Category or subcategory not found");
 		}
 
+		const uploadedFiles: FileUploadResponse[] = [];
+		if (files) {
+			const result = await Promise.all(
+				files.map(async (file) => {
+					const res = await this._fileUploader.uploadFileFromBuffer(
+						file.buffer,
+						log,
+						{
+							format: path.extname(file.originalname).slice(1),
+							...(file.mimetype ===
+							AllowedMimeTypes[
+								"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+							]
+								? {
+										resource_type: "raw",
+									}
+								: {}),
+						},
+					);
+
+					return res;
+				}),
+			);
+			for (const res of result) {
+				uploadedFiles.push(res);
+			}
+		}
+
 		const task = await this._database
 			.insertInto("task")
 			.values({
@@ -218,20 +252,28 @@ export class TaskService {
 				categoryId: category.categoryId,
 				subcategoryId: category.subCategoryId,
 				price: Number(createTaskRequestDto.price),
-				...(uploadedFiles.length > 0
-					? {
-							fileUrls: uploadedFiles.map((file) => file.fileUrl),
-							fileIds: uploadedFiles.map((file) => file.fileId),
-						}
-					: {}),
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
+
+		if (uploadedFiles.length > 0) {
+			await this._database
+				.insertInto("taskFiles")
+				.values(
+					uploadedFiles.map((file) => ({
+						fileId: file.fileId,
+						fileUrl: file.fileUrl,
+						taskId: task.id,
+					})),
+				)
+				.execute();
+		}
 
 		return {
 			...task,
 			category: category.category,
 			subcategory: category.subcategory,
+			files: uploadedFiles,
 		};
 	}
 }

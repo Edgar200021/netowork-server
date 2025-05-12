@@ -7,7 +7,7 @@ import {
 	expectTypeOf,
 	it,
 } from "vitest";
-import { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
+import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
 import { GET_ALL_TASKS_MAX_LIMIT } from "../../src/const/validator.js";
 import type { CategoryResponseDto } from "../../src/dto/categories/categoryResponse.dto.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";

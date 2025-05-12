@@ -27,4 +27,7 @@ export const createBaseError = () => {
 };
 
 export const imagePath = path.join(import.meta.dirname, "./assets/test.jpg");
-export const pdfPath = path.join(import.meta.dirname, "./assets/rezhim-monaha_1.pdf");
+export const pdfPath = path.join(
+	import.meta.dirname,
+	"./assets/rezhim-monaha_1.pdf",
+);

@@ -5,15 +5,23 @@
 
 import type { ColumnType } from "kysely";
 
+export enum TaskStatus {
+  Completed = "completed",
+  InProgress = "in_progress",
+  Open = "open",
+}
+
+export enum UserRole {
+  Admin = "admin",
+  Client = "client",
+  Freelancer = "freelancer",
+}
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
-export type TaskStatus = "completed" | "in_progress" | "open";
-
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
-
-export type UserRole = "admin" | "client" | "freelancer";
 
 export interface Category {
   createdAt: Generated<Timestamp>;
@@ -28,14 +36,21 @@ export interface Task {
   clientId: number;
   createdAt: Generated<Timestamp>;
   description: string;
-  fileIds: Generated<string[]>;
-  fileUrls: Generated<string[]>;
   freelancerId: number | null;
   id: Generated<number>;
   price: number;
   status: Generated<TaskStatus>;
-  subcategoryId: number;
+  subcategoryId: number | null;
   title: string;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface TaskFiles {
+  createdAt: Generated<Timestamp>;
+  fileId: string;
+  fileUrl: string;
+  id: Generated<number>;
+  taskId: number;
   updatedAt: Generated<Timestamp>;
 }
 
@@ -75,6 +90,7 @@ export interface Works {
 export interface DB {
   category: Category;
   task: Task;
+  taskFiles: TaskFiles;
   users: Users;
   workImages: WorkImages;
   works: Works;

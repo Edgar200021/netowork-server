@@ -37,7 +37,7 @@ describe("Works", () => {
 			);
 			expect(createResponse.statusCode).toBe(201);
 
-			console.log(createResponse)
+			console.log(createResponse);
 
 			const deleteResponse = await app.deleteWork(
 				createResponse.body.data.id,
@@ -50,10 +50,13 @@ describe("Works", () => {
 			const verifyResponse = await app.createAndVerify(data);
 			expect(verifyResponse.statusCode).toBe(200);
 
-			const createResponse = await app.createWork({
-				title: "title",
-				files: [imagePath, imagePath],
-			}, verifyResponse.get("Set-Cookie"));
+			const createResponse = await app.createWork(
+				{
+					title: "title",
+					files: [imagePath, imagePath],
+				},
+				verifyResponse.get("Set-Cookie"),
+			);
 			expect(createResponse.statusCode).toBe(201);
 
 			const deleteResponse = await app.deleteWork(

@@ -1,4 +1,6 @@
-export const  isErrnoException  = (err: unknown): err is NodeJS.ErrnoException => {
+export const isErrnoException = (
+	err: unknown,
+): err is NodeJS.ErrnoException => {
 	const error = err as NodeJS.ErrnoException;
 
 	return (
@@ -7,4 +9,4 @@ export const  isErrnoException  = (err: unknown): err is NodeJS.ErrnoException =
 		(typeof error.path === "string" || typeof error.path === "undefined") &&
 		(typeof error.syscall === "string" || typeof error.syscall === "undefined")
 	);
-}
+};

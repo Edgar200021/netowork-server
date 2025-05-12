@@ -1,5 +1,5 @@
 export enum Environment {
-  Production = 'production',
-  Development = 'development',
-  Test = 'test',
+	Production = "production",
+	Development = "development",
+	Test = "test",
 }

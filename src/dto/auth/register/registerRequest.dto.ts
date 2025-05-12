@@ -1,13 +1,13 @@
-import vine from '@vinejs/vine';
-import type {InferInput} from '@vinejs/vine/types';
+import vine from "@vinejs/vine";
+import type { InferInput } from "@vinejs/vine/types";
 import {
-  MAX_FIRST_NAME_LENGTH,
-  MAX_LAST_NAME_LENGTH,
-  MIN_FIRST_NAME_LENGTH,
-  MIN_LAST_NAME_LENGTH,
-  MIN_PASSWORD_LENGTH
-} from '../../../const/validator.js';
-import type {UserRole} from '../../../storage/db.js';
+	MAX_FIRST_NAME_LENGTH,
+	MAX_LAST_NAME_LENGTH,
+	MIN_FIRST_NAME_LENGTH,
+	MIN_LAST_NAME_LENGTH,
+	MIN_PASSWORD_LENGTH,
+} from "../../../const/validator.js";
+import type { UserRole } from "../../../storage/db.js";
 
 /**
  * @openapi
@@ -49,23 +49,23 @@ import type {UserRole} from '../../../storage/db.js';
  *           default: password
  */
 export const registerSchema = vine.object({
-  role: vine.enum(['client', 'freelancer'] as Exclude<UserRole, 'admin'>[]),
-  firstName: vine
-    .string()
-    .trim()
-    .minLength(MIN_FIRST_NAME_LENGTH)
-    .maxLength(MAX_FIRST_NAME_LENGTH),
-  lastName: vine
-    .string()
-    .trim()
-    .minLength(MIN_LAST_NAME_LENGTH)
-    .maxLength(MAX_LAST_NAME_LENGTH),
-  email: vine.string().trim().email(),
-  password: vine
-    .string()
-    .trim()
-    .minLength(MIN_PASSWORD_LENGTH)
-    .confirmed({confirmationField: 'passwordConfirmation'})
+	role: vine.enum(["client", "freelancer"] as Exclude<UserRole, "admin">[]),
+	firstName: vine
+		.string()
+		.trim()
+		.minLength(MIN_FIRST_NAME_LENGTH)
+		.maxLength(MAX_FIRST_NAME_LENGTH),
+	lastName: vine
+		.string()
+		.trim()
+		.minLength(MIN_LAST_NAME_LENGTH)
+		.maxLength(MAX_LAST_NAME_LENGTH),
+	email: vine.string().trim().email(),
+	password: vine
+		.string()
+		.trim()
+		.minLength(MIN_PASSWORD_LENGTH)
+		.confirmed({ confirmationField: "passwordConfirmation" }),
 });
 
 export type RegisterRequestDto = InferInput<typeof registerSchema>;
