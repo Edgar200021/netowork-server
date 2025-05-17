@@ -8,10 +8,8 @@ import {
 	GET_TASKS_DEFAULT_PAGE,
 } from "../const/task.js";
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
-import type {
-	DeleteTaskFilesRequestDto,
-	DeleteTaskFilesRequestParamsDto,
-} from "../dto/task/deleteTaskFiles/deletTaskFilesRequest.dto.js";
+import type { DeleteTaskRequestParamsDto } from "../dto/task/deleteTask/deleteTaskReqeust.dto.js";
+import type { DeleteTaskFilesRequestParamsDto } from "../dto/task/deleteTaskFiles/deletTaskFilesRequest.dto.js";
 import type { GetAllTasksRequestDto } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
 import type { GetMyTasksRequestDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type {
@@ -467,10 +465,60 @@ export class TaskService {
 		return result;
 	}
 
+	async deleteTask(
+		userId: User["id"],
+		deleteTaskRequestParamsDto: DeleteTaskRequestParamsDto,
+		log: LoggerService,
+	) {
+		log.info(
+			{ userId, taskId: deleteTaskRequestParamsDto.taskId },
+			"Deleting task",
+		);
+
+		const task = await this._database
+			.selectFrom("task")
+			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
+			.select(["task.id", "task.status"])
+			.select(
+				sql<Pick<TaskFiles, "fileId">[]>`COALESCE(
+				json_agg(
+					json_build_object(
+					'fileId', tf.file_id
+					)
+				) FILTER (WHERE tf.file_id IS NOT NULL),
+				'[]'
+				)`.as("files"),
+			)
+			.where("clientId", "=", userId)
+			.where("task.id", "=", Number(deleteTaskRequestParamsDto.taskId))
+			.groupBy(["task.id", "task.status"])
+			.executeTakeFirst();
+
+		if (!task) {
+			log.warn("Task not found");
+			throw new NotFoundError(
+				`Task with id ${deleteTaskRequestParamsDto.taskId} not found`,
+			);
+		}
+
+		if (task.status !== TaskStatus.Open) {
+			log.warn(
+				`Task can't be deleted because it's has status ${TaskStatus.Completed} or ${TaskStatus.InProgress}`,
+			);
+			throw new BadRequestError(
+				`Task can't be deleted because it's has status ${TaskStatus.Completed} or ${TaskStatus.InProgress}`,
+			);
+		}
+
+		await Promise.all([
+			this._database.deleteFrom("task").where("id", "=", task.id).execute(),
+			...task.files.map((file) => this._fileUploader.deleteFile(file.fileId)),
+		]);
+	}
+
 	async deleteTaskFile(
 		userId: User["id"],
-		deleteTaskFilesRequestDto: DeleteTaskFilesRequestDto,
-		deleteTaskFilesRequestParamsDto: DeleteTaskFilesRequestParamsDto,
+		{ taskId, fileId }: DeleteTaskFilesRequestParamsDto,
 		log: LoggerService,
 	): Promise<
 		Task & {
@@ -479,10 +527,7 @@ export class TaskService {
 			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
 		}
 	> {
-		log.info(
-			{ userId, fileId: deleteTaskFilesRequestDto.fileId },
-			"Deleting task files",
-		);
+		log.info({ userId, fileId }, "Deleting task files");
 
 		const task = await this._database
 			.selectFrom("task")
@@ -521,22 +566,25 @@ export class TaskService {
 			)`.as("files"),
 			)
 			.groupBy(["task.id", "category.name", "subcategory.name"])
-			.where("task.id", "=", Number(deleteTaskFilesRequestParamsDto.taskId))
+			.where("task.id", "=", Number(taskId))
 			.where("clientId", "=", userId)
 			.executeTakeFirst();
 
-		console.log("TASKKKK", task);
+		if (!task) {
+			log.warn("Task not found");
+			throw new NotFoundError(`Task with id ${taskId} not found`);
+		}
 
-		if (!task)
-			throw new NotFoundError(
-				`Task with id ${deleteTaskFilesRequestParamsDto.taskId} not found`,
-			);
-		if (!task.files.length) throw new BadRequestError("Task has no files");
+		if (!task.files.length) {
+			log.warn("Task has no files");
+			throw new BadRequestError("Task has no files");
+		}
 
-		const fileToDelete = task.files.find(
-			(f) => f.fileId === deleteTaskFilesRequestDto.fileId,
-		);
-		if (!fileToDelete) throw new NotFoundError("File not found");
+		const fileToDelete = task.files.find((f) => f.fileId === fileId);
+		if (!fileToDelete) {
+			log.warn("File not found");
+			throw new NotFoundError(`File with id ${fileId} not found`);
+		}
 
 		await this._fileUploader.deleteFile(fileToDelete.fileId);
 		await this._database

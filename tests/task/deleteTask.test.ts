@@ -2,10 +2,10 @@ import { sql } from "kysely";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
 import type { CategoryResponseDto } from "../../src/dto/categories/categoryResponse.dto.js";
-import { UserRole } from "../../src/storage/db.js";
+import { TaskStatus, UserRole } from "../../src/storage/db.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
-import { createValidationError, pdfPath } from "../utils.js";
+import { createValidationError } from "../utils.js";
 
 describe("Task", () => {
 	let app: TestApp;
@@ -26,7 +26,6 @@ describe("Task", () => {
 		categoryId: number;
 		subCategoryId: number;
 		price: number;
-		files: string[];
 	};
 
 	beforeAll(async () => {
@@ -65,7 +64,6 @@ describe("Task", () => {
 			categoryId: category[0].id,
 			subCategoryId: category[0].subCategories[0].id,
 			price: 100,
-			files: [pdfPath],
 		};
 	});
 
@@ -79,7 +77,7 @@ describe("Task", () => {
 		return new Promise((res) => setTimeout(res, 4000));
 	});
 
-	describe("Delete Task File", () => {
+	describe("Delete Task", () => {
 		it("Should return 200 status code when data is valid", async () => {
 			const verifyResult = await app.createAndVerify(data);
 			expect(verifyResult.statusCode).toBe(200);
@@ -91,18 +89,15 @@ describe("Task", () => {
 
 			expect(createResult.statusCode).toBe(201);
 			expect(createResult.body.data.id).toBeDefined();
-			expect(createResult.body.data.files).toBeDefined();
-			expect(createResult.body.data.files.length).toBe(1);
 
-			const deleteFileResult = await app.deleteTaskFile(
+			const deleteResult = await app.deleteTask(
 				{
 					taskId: createResult.body.data.id,
-					fileId: createResult.body.data.files[0].fileId,
 				},
 				verifyResult.get("Set-Cookie"),
 			);
 
-			expect(deleteFileResult.statusCode).toBe(200);
+			expect(deleteResult.statusCode).toBe(200);
 		});
 
 		it("Should be deleted from database when request is successful", async () => {
@@ -116,23 +111,19 @@ describe("Task", () => {
 
 			expect(createResult.statusCode).toBe(201);
 			expect(createResult.body.data.id).toBeDefined();
-			expect(createResult.body.data.files).toBeDefined();
-			expect(createResult.body.data.files.length).toBe(1);
 
-			const deleteFileResult = await app.deleteTaskFile(
+			const deleteResult = await app.deleteTask(
 				{
 					taskId: createResult.body.data.id,
-					fileId: createResult.body.data.files[0].fileId,
 				},
 				verifyResult.get("Set-Cookie"),
 			);
 
-			expect(deleteFileResult.statusCode).toBe(200);
+			expect(deleteResult.statusCode).toBe(200);
 
 			const task = await app.database
-				.selectFrom("taskFiles")
-				.where("taskId", "=", createResult.body.data.id)
-				.where("fileId", "=", createResult.body.data.files[0].fileId)
+				.selectFrom("task")
+				.where("id", "=", createResult.body.data.id)
 				.selectAll()
 				.executeTakeFirst();
 
@@ -146,73 +137,23 @@ describe("Task", () => {
 			const testCase = {
 				reqBody: {
 					taskId: "Invalid task id",
-					fileId: "some file id",
 				},
 				resBody: createValidationError("taskId"),
 			};
 
-			const deleteFileResult = await app.deleteTaskFile(
+			const deleteResult = await app.deleteTask(
 				testCase.reqBody,
 				verifyResult.get("Set-Cookie"),
 			);
 
-			expect(deleteFileResult.statusCode).toBe(400);
-			expect(deleteFileResult.body).toHaveProperty("errors");
+			expect(deleteResult.statusCode).toBe(400);
+			expect(deleteResult.body).toHaveProperty("errors");
 			expect(
-				Object.keys(deleteFileResult.body.errors as ValidationErrorResponseDto),
+				Object.keys(deleteResult.body.errors as ValidationErrorResponseDto),
 			).toEqual(Object.keys(testCase.resBody.errors));
 		});
 
-		it("Should return 400 status code when task has no files", async () => {
-			const verifyResult = await app.createAndVerify(data);
-			expect(verifyResult.statusCode).toBe(200);
-
-			const createResult = await app.createTask(
-				{ ...taskData, files: undefined },
-				verifyResult.get("Set-Cookie"),
-			);
-
-			expect(createResult.statusCode).toBe(201);
-			expect(createResult.body.data.id).toBeDefined();
-
-			const deleteFileResult = await app.deleteTaskFile(
-				{
-					taskId: createResult.body.data.id,
-					fileId: "Some file id",
-				},
-				verifyResult.get("Set-Cookie"),
-			);
-
-			expect(deleteFileResult.statusCode).toBe(400);
-		});
-
-		it("Should return 401 status code when user is not authenticated", async () => {
-			const deleteFileResult = await app.deleteTaskFile({
-				taskId: 123,
-				fileId: 123,
-			});
-
-			expect(deleteFileResult.status).toBe(401);
-		});
-
-		it(`Should return 403 status code when user is not ${UserRole.Client}`, async () => {
-			const verifyResult = await app.createAndVerify({
-				...data,
-				role: UserRole.Freelancer,
-			});
-			expect(verifyResult.statusCode).toBe(200);
-
-			const deleteTaskFileResult = await app.deleteTaskFile(
-				{
-					taskId: 123,
-					fileId: "file id",
-				},
-				verifyResult.get("Set-Cookie"),
-			);
-			expect(deleteTaskFileResult.statusCode).toBe(403);
-		});
-
-		it("Should return 404 status code when task not found or file not found or task id is not provided", async () => {
+		it(`Should return 400 status code when task status is not "${TaskStatus.Open}"`, async () => {
 			const verifyResult = await app.createAndVerify(data);
 			expect(verifyResult.statusCode).toBe(200);
 
@@ -223,30 +164,51 @@ describe("Task", () => {
 
 			expect(createResult.statusCode).toBe(201);
 			expect(createResult.body.data.id).toBeDefined();
-			expect(createResult.body.data.files).toBeDefined();
-			expect(createResult.body.data.files.length).toBe(1);
 
-			const testCases = [
-				{
-					fileId: "Some file id",
-				},
-				{
-					fileId: createResult.body.data.files[0].fileId,
-					taskId: 50,
-				},
-				{
-					taskId: createResult.body.data.id,
-					fileId: "Some file id",
-				},
-			];
+			const statuses = [TaskStatus.InProgress, TaskStatus.Completed];
 
-			for (const testCase of testCases) {
-				const deleteFileResult = await app.deleteTaskFile(
-					testCase,
+			for (const status of statuses) {
+				await app.database
+					.updateTable("task")
+					.set({
+						status,
+					})
+					.execute();
+
+				const deleteResult = await app.deleteTask(
+					{
+						taskId: createResult.body.data.id,
+					},
 					verifyResult.get("Set-Cookie"),
 				);
-				expect(deleteFileResult.statusCode).toBe(404);
+
+				expect(deleteResult.statusCode).toBe(400);
 			}
+		});
+
+		it("Should return 401 status code when user is not authenticated", async () => {
+			const deleteResult = await app.deleteTask({
+				taskId: 1,
+			});
+
+			expect(deleteResult.statusCode).toBe(401);
+		});
+
+		it(`Should return 403 status code when user role is not "${UserRole.Client}"`, async () => {
+			const verifyResult = await app.createAndVerify({
+				...data,
+				role: UserRole.Freelancer,
+			});
+			expect(verifyResult.statusCode).toBe(200);
+
+			const deleteResult = await app.deleteTask(
+				{
+					taskId: 1,
+				},
+				verifyResult.get("Set-Cookie"),
+			);
+
+			expect(deleteResult.statusCode).toBe(403);
 		});
 	});
 });

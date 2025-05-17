@@ -322,6 +322,20 @@ export class TestApp {
 		return response;
 	}
 
+	async deleteTask(body: { taskId?: number | string }, cookies?: string[]) {
+		const request = this.superTest
+			.delete(`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}`)
+			.set("Content-Type", "application/json");
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
 	async deleteTaskFile(
 		body: {
 			taskId?: number | string;
@@ -330,14 +344,14 @@ export class TestApp {
 		cookies?: string[],
 	) {
 		const request = this.superTest
-			.delete(`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}/files`)
+			.delete(
+				`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}/files/${encodeURIComponent(body.fileId)}`,
+			)
 			.set("Content-Type", "application/json");
 
 		if (cookies) {
 			request.set("Cookie", cookies);
 		}
-
-		request.send(body);
 
 		const response = await request;
 

@@ -5,11 +5,11 @@ import { TASK_FILES_MAX_COUNT, TASK_FILES_NAME } from "../const/multer.js";
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
 import { createTaskSchema } from "../dto/task/createTask/createTaskRequest.dto.js";
 import type { CreateTaskResponseDto } from "../dto/task/createTask/createTaskResponse.dto.js";
+import { deleteTaskRequestParamsSchema } from "../dto/task/deleteTask/deleteTaskReqeust.dto.js";
+import type { DeleteTaskResponseDto } from "../dto/task/deleteTask/deleteTaskResponse.dto.js";
 import {
-	type DeleteTaskFilesRequestDto,
 	type DeleteTaskFilesRequestParamsDto,
 	deleteTaskFilesRequestParamsSchema,
-	deleteTaskFilesRequestSchema,
 } from "../dto/task/deleteTaskFiles/deletTaskFilesRequest.dto.js";
 import type { DeleteTaskFilesResponseDto } from "../dto/task/deleteTaskFiles/deleteTaskFilesResponse.dto.js";
 import {
@@ -43,7 +43,7 @@ export class TaskHandler extends BaseHandler {
 		getMyTasks: vine.compile(getMyTasksSchema),
 		updateTask: vine.compile(updateTaskRequestSchema),
 		updateTaskParams: vine.compile(updateTaskRequestParamsSchema),
-		deleteTaskFiles: vine.compile(deleteTaskFilesRequestSchema),
+		deleteTaskParams: vine.compile(deleteTaskRequestParamsSchema),
 		deleteTaskFilesParams: vine.compile(deleteTaskFilesRequestParamsSchema),
 	};
 
@@ -422,6 +422,72 @@ export class TaskHandler extends BaseHandler {
 	/**
 	 * @openapi
 	 * paths:
+	 *   /api/v1/tasks/{taskId}:
+	 *     delete:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Delete task
+	 *       security:
+	 *         - Session: []
+	 *       parameters:
+	 *         - name: taskId
+	 *           in: path
+	 *           required: true
+	 *           description: Task ID
+	 *           schema:
+	 *             type: integer
+	 *       responses:
+	 *         200:
+	 *           description: Task deleted
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: "#/components/schemas/DeleteTaskResponseDto"
+	 *         400:
+	 *           description: Bad request or validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 oneOf:
+	 *                   - $ref: '#/components/schemas/ErrorResponseDto'
+	 *                   - $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 ValidationError:
+	 *                   value:
+	 *                     status: error
+	 *                     errors:
+	 *                       - field: taskId
+	 *                         message: "Task ID is required"
+	 *         401:
+	 *           description: Unauthorized
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 */
+	async deleteTask(
+		req: Request<DeleteTaskFilesRequestParamsDto, DeleteTaskResponseDto>,
+		res: Response<DeleteTaskResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+
+		await this._taskService.deleteTask(req.user.id, req.params, req.logger);
+
+		res.status(200).json({
+			status: "success",
+			data: "Task deleted successfully",
+		});
+	}
+
+	/**
+	 * @openapi
+	 * paths:
 	 *   /api/v1/tasks/{taskId}/files:
 	 *     delete:
 	 *       tags:
@@ -436,11 +502,12 @@ export class TaskHandler extends BaseHandler {
 	 *           description: Task ID
 	 *           schema:
 	 *             type: integer
-	 *       requestBody:
-	 *         content:
-	 *           application/json:
-	 *             schema:
-	 *               $ref: "#/components/schemas/DeleteTaskFilesRequestDto"
+	 *         - name: fileId
+	 *           in: path
+	 *           required: true
+	 *           description: File ID
+	 *           schema:
+	 *             type: string
 	 *       responses:
 	 *         200:
 	 *           description: Task files deleted
@@ -477,18 +544,13 @@ export class TaskHandler extends BaseHandler {
 	 *                 $ref: '#/components/schemas/ErrorResponseDto'
 	 */
 	async deleteTaskFiles(
-		req: Request<
-			DeleteTaskFilesRequestParamsDto,
-			DeleteTaskFilesResponseDto,
-			DeleteTaskFilesRequestDto
-		>,
+		req: Request<DeleteTaskFilesRequestParamsDto, DeleteTaskFilesResponseDto>,
 		res: Response<DeleteTaskFilesResponseDto>,
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
 		const task = await this._taskService.deleteTaskFile(
 			req.user.id,
-			req.body,
 			req.params,
 			req.logger,
 		);
@@ -507,6 +569,7 @@ export class TaskHandler extends BaseHandler {
 		this.getMyTasks = this.getMyTasks.bind(this);
 		this.createTask = this.createTask.bind(this);
 		this.updateTask = this.updateTask.bind(this);
+		this.deleteTask = this.deleteTask.bind(this);
 		this.deleteTaskFiles = this.deleteTaskFiles.bind(this);
 	}
 
@@ -584,16 +647,24 @@ export class TaskHandler extends BaseHandler {
 			//@ts-expect-error
 			asyncWrapper(this.updateTask),
 		);
-
 		this.router.delete(
-			"/:taskId/files",
+			"/:taskId",
 			this._middlewares.auth,
 			this._middlewares.restrict([UserRole.Client]),
 			this._middlewares.validateRequest([
 				{
-					validatorOrSchema: this.validators.deleteTaskFiles,
-					type: "body",
+					validatorOrSchema: this.validators.deleteTaskParams,
+					type: "params",
 				},
+			]),
+			//@ts-expect-error
+			asyncWrapper(this.deleteTask),
+		);
+		this.router.delete(
+			"/:taskId/files/:fileId",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Client]),
+			this._middlewares.validateRequest([
 				{
 					validatorOrSchema: this.validators.deleteTaskFilesParams,
 					type: "params",
