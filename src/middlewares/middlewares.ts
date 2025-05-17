@@ -105,23 +105,24 @@ export class Middlewares {
 		};
 	}
 
-	validateRequest({
-		validatorOrSchema,
-		type,
-	}: {
-		validatorOrSchema: VineValidator<SchemaTypes, undefined> | SchemaTypes;
-		type: keyof Pick<Request, "query" | "body" | "params">;
-	}): (req: Request, res: Response, next: NextFunction) => void {
+	validateRequest(
+		validators: {
+			validatorOrSchema: VineValidator<SchemaTypes, undefined> | SchemaTypes;
+			type: keyof Pick<Request, "query" | "body" | "params">;
+		}[],
+	): (req: Request, res: Response, next: NextFunction) => void {
 		return async (req: Request, _: Response, next: NextFunction) => {
 			try {
-				validatorOrSchema instanceof VineValidator
-					? await validatorOrSchema.validate(req[type], {
-							meta: undefined,
-						})
-					: await vine.validate({
-							schema: validatorOrSchema,
-							data: req[type],
-						});
+				for (const { validatorOrSchema, type } of validators) {
+					validatorOrSchema instanceof VineValidator
+						? await validatorOrSchema.validate(req[type], {
+								meta: undefined,
+							})
+						: await vine.validate({
+								schema: validatorOrSchema,
+								data: req[type],
+							});
+				}
 
 				return next();
 			} catch (error) {

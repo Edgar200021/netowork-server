@@ -452,46 +452,46 @@ export class AuthHandler extends BaseHandler {
 	protected setupRoutes() {
 		this._router.post(
 			"/login",
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.login,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.login),
 		);
 
 		this._router.post(
 			"/register",
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.register,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.register),
 		);
 
 		this._router.patch(
 			"/account-verification",
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.verifyAccount,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.verifyAccount),
 		);
 
 		this._router.post(
 			"/forgot-password",
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.forgotPassword,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.forgotPassword),
 		);
 
 		this._router.patch(
 			"/reset-password",
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.resetPassword,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.resetPassword),
 		);
 
@@ -502,10 +502,10 @@ export class AuthHandler extends BaseHandler {
 
 		this._router.patch(
 			"/set-new-email-address",
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.setNewEmail,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.setNewEmail),
 		);
 

@@ -10,23 +10,32 @@ import {
 	getAllTasksSchema,
 } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
 import type { GetAllTasksResponseDto } from "../dto/task/getAllTasks/getAllTasksResponse.dto.js";
-import { TaskResponseDto } from "../dto/task/taskResponse.dto.js";
-import type { Middlewares } from "../middlewares/middlewares.js";
-import type { TaskService } from "../services/task.service.js";
-import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
-import { BaseHandler } from "./base.handler.js";
 import {
 	type GetMyTasksRequestDto,
 	getMyTasksSchema,
 } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type { GetMyTasksResponseDto } from "../dto/task/getMyTasks/getMyTasksResponse.dto.js";
-import { UserRole } from '../storage/db.js';
+import { TaskResponseDto } from "../dto/task/taskResponse.dto.js";
+import {
+	type UpdateTaskRequestDto,
+	type UpdateTaskRequestParamsDto,
+	updateTaskRequest,
+	updateTaskRequestParams,
+} from "../dto/task/updateTask/updateTaskRequest.js";
+import type { UpdateTaskResponseDto } from "../dto/task/updateTask/updateTaskResponse.js";
+import type { Middlewares } from "../middlewares/middlewares.js";
+import type { TaskService } from "../services/task.service.js";
+import { UserRole } from "../storage/db.js";
+import { asyncWrapper } from "../utils/handlerAsyncWrapper.js";
+import { BaseHandler } from "./base.handler.js";
 
 export class TaskHandler extends BaseHandler {
 	protected validators = {
 		createTask: vine.compile(createTaskSchema),
 		getAllTasks: vine.compile(getAllTasksSchema),
 		getMyTasks: vine.compile(getMyTasksSchema),
+		updateTask: vine.compile(updateTaskRequest),
+		updateTaskParams: vine.compile(updateTaskRequestParams),
 	};
 
 	constructor(
@@ -306,31 +315,129 @@ export class TaskHandler extends BaseHandler {
 		});
 	}
 
+	/**
+	 * @openapi
+	 * paths:
+	 *   /api/v1/tasks/{taskId}:
+	 *     patch:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Update task
+	 *       security:
+	 *         - Session: []
+	 *       requestBody:
+	 *         content:
+	 *           multipart/form-data:
+	 *             schema:
+	 *               allOf:
+	 *                 - $ref: "#/components/schemas/UpdateTaskRequestDto"
+	 *                 - type: object
+	 *                   properties:
+	 *                     files:
+	 *                       type: array
+	 *                       items:
+	 *                         type: string
+	 *                         format: binary
+	 *       responses:
+	 *         200:
+	 *           description: Task updated
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/UpdateTaskResponseDto'
+	 *         400:
+	 *           description: Bad request or validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 oneOf:
+	 *                   - $ref: '#/components/schemas/ErrorResponseDto'
+	 *                   - $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 BadRequest:
+	 *                   value:
+	 *                     status: error
+	 *                     error: "Unsupported media type. Use multipart/form-data"
+	 *                 ValidationError:
+	 *                   value:
+	 *                     status: error
+	 *                     errors:
+	 *                       - field: title
+	 *                         message: "Title is less then 5 characters"
+	 *         401:
+	 *           description: Unauthorized
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *
+	 */
+	async updateTask(
+		req: Request<UpdateTaskRequestParamsDto, UpdateTaskResponseDto, UpdateTaskRequestDto>,
+		res: Response<UpdateTaskResponseDto>,
+	) {
+		if (!req.user) {
+			throw new UnauthorizedError("Unauthorized");
+		}
+
+
+		const files = Array.isArray(req.files)
+			? req.files
+			: req.files?.[TASK_FILES_NAME];
+
+		const task = await this._taskService.update(
+			req.user.id,
+			req.body,
+			req.params,
+			req.logger,
+			files,
+		);
+
+		res.status(200).json({
+			status: "success",
+			data: new TaskResponseDto({
+				...task,
+				creator: `${req.user.firstName} ${req.user.lastName}`,
+			}),
+		});
+	}
+
 	protected bindMethods(): void {
 		this.getAllTasks = this.getAllTasks.bind(this);
 		this.getMyTasks = this.getMyTasks.bind(this);
 		this.createTask = this.createTask.bind(this);
+		this.updateTask = this.updateTask.bind(this);
 	}
 
 	protected setupRoutes(): void {
 		this.router.get(
 			"/",
 			this._middlewares.auth,
-			this._middlewares.restrict([UserRole.Freelancer,UserRole.Admin]),
-			this._middlewares.validateRequest({
-				validatorOrSchema: this.validators.getAllTasks,
-				type: "query",
-			}),
+			this._middlewares.restrict([UserRole.Freelancer, UserRole.Admin]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.getAllTasks,
+					type: "query",
+				},
+			]),
 			asyncWrapper(this.getAllTasks),
 		);
 		this.router.get(
 			"/my-tasks",
 			this._middlewares.auth,
 			this._middlewares.restrict([UserRole.Client]),
-			this._middlewares.validateRequest({
-				validatorOrSchema: this.validators.getMyTasks,
-				type: "query",
-			}),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.getMyTasks,
+					type: "query",
+				},
+			]),
 			asyncWrapper(this.getMyTasks),
 		);
 		this.router.post(
@@ -344,13 +451,44 @@ export class TaskHandler extends BaseHandler {
 					"application/msword",
 					"application/pdf",
 					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+					"text/plain"
 				],
 			}),
-			this._middlewares.validateRequest({
-				validatorOrSchema: this.validators.createTask,
-				type: "body",
-			}),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.createTask,
+					type: "body",
+				},
+			]),
 			asyncWrapper(this.createTask),
+		);
+
+		this.router.patch(
+			"/:taskId",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Client]),
+			this._middlewares.uploadFile(TASK_FILES_NAME, {
+				fileCount: TASK_FILES_MAX_COUNT,
+				single: false,
+				mimeTypes: [
+					"application/msword",
+					"application/pdf",
+					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+					"text/plain"
+				],
+			}),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.updateTask,
+					type: "body",
+				},
+				{
+					validatorOrSchema: this.validators.updateTaskParams,
+					type: "params",
+				},
+			]),
+			//@ts-expect-error
+			asyncWrapper(this.updateTask),
 		);
 	}
 }

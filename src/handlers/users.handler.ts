@@ -222,19 +222,19 @@ export class UsersHandler extends BaseHandler {
 					"image/webp",
 				] as NonEmptyArray<AllowedMimeTypesValues>,
 			}),
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.updateProfile,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.updateProfile),
 		);
 		this._router.patch(
 			"/profile/change-password",
 			this._middlewares.auth,
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.changeProfilePassword,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.changeProfilePassword),
 		);
 	}

@@ -245,10 +245,10 @@ export class WorksHandler extends BaseHandler {
 				single: false,
 				fileCount: WORK_IMAGES_MAX_COUNT,
 			}),
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.createWork,
 				type: "body",
-			}),
+			}]),
 			asyncWrapper(this.create),
 		);
 
@@ -263,10 +263,10 @@ export class WorksHandler extends BaseHandler {
 			"/:id",
 			this._middlewares.auth,
 			this._middlewares.restrict([UserRole.Freelancer]),
-			this._middlewares.validateRequest({
+			this._middlewares.validateRequest([{
 				validatorOrSchema: this.validators.deleteWork,
 				type: "params",
-			}),
+			}]),
 			//@ts-expect-error...
 			asyncWrapper(this.deleteWork),
 		);

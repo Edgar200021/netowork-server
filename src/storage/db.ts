@@ -48,6 +48,7 @@ export interface Task {
 export interface TaskFiles {
   createdAt: Generated<Timestamp>;
   fileId: string;
+  fileName: string;
   fileUrl: string;
   id: Generated<number>;
   taskId: number;

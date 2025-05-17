@@ -31,3 +31,4 @@ export const pdfPath = path.join(
 	import.meta.dirname,
 	"./assets/rezhim-monaha_1.pdf",
 );
+export const txtPath = path.join(import.meta.dirname, "./assets/test.txt");

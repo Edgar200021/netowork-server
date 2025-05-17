@@ -13,12 +13,13 @@ import type { CategoryResponseDto } from "../../src/dto/categories/categoryRespo
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
 import { createValidationError } from "../utils.js";
+import { UserRole } from '../../src/storage/db.js';
 
 describe("Task", () => {
 	let app: TestApp;
 
 	const data = {
-		role: "client",
+		role: UserRole.Client,
 		firstName: "Thomas",
 		lastName: "Thomson",
 		email: "test@mail.com",

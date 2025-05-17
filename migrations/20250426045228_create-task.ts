@@ -52,14 +52,18 @@ export async function up(db: Kysely<any>): Promise<void> {
 		)
 		.addColumn("file_id", "text", (col) => col.notNull())
 		.addColumn("file_url", "text", (col) => col.notNull())
+		.addColumn("file_name", "text", (col) => col.notNull())
 		.addColumn("task_id", "integer", (col) =>
 			col
 				.references("task.id")
 				.onDelete("cascade")
 				.onUpdate("cascade")
-				.notNull()
-				.unique(),
+				.notNull(),
 		)
+		.addUniqueConstraint("task_files_task_id_file_id_unique", [
+			"task_id",
+			"file_id",
+		])
 		.execute();
 
 	await db.schema
@@ -70,7 +74,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+	await db.schema.dropTable("task_files").execute();
 	await db.schema.dropTable("task").execute();
-	await db.schema.dropType("task_status")
-	await db.schema.dropTable("task_files").execute()
+	await db.schema.dropType("task_status").execute();
 }

@@ -1,4 +1,5 @@
 import { type UploadApiOptions, v2 as cloudinary } from "cloudinary";
+import { randomUUID } from "node:crypto";
 import { stat, unlink } from "node:fs/promises";
 import { InternalServerError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
@@ -27,9 +28,14 @@ export class FileUploader {
 		options?: UploadApiOptions,
 	): Promise<FileUploadResponse> {
 		return new Promise((res, rej) => {
+			const public_id = randomUUID().toString();
 			cloudinary.uploader
 				.upload_stream(
-					{ ...FileUploader.CLOUDINARY_BASE_OPTIONS, ...options },
+					{
+						...FileUploader.CLOUDINARY_BASE_OPTIONS,
+						...options,
+						public_id,
+					},
 					(err, result) => {
 						if (err || !result) {
 							log.error({ err }, "Something went wrong with file upload");
@@ -44,6 +50,7 @@ export class FileUploader {
 						return res({
 							fileUrl: result.secure_url,
 							fileId: result.public_id,
+							fileName: result.original_filename,
 						});
 					},
 				)
@@ -59,17 +66,22 @@ export class FileUploader {
 		try {
 			await stat(filePath);
 
-			const { secure_url, public_id } = await cloudinary.uploader.upload(
-				filePath,
-				{
+			const id = randomUUID().toString();
+
+			const { secure_url, public_id, original_filename } =
+				await cloudinary.uploader.upload(filePath, {
 					...FileUploader.CLOUDINARY_BASE_OPTIONS,
 					...options,
-				},
-			);
+					public_id: id,
+				});
 
 			await unlink(filePath);
 
-			return { fileUrl: secure_url, fileId: public_id };
+			return {
+				fileUrl: secure_url,
+				fileId: public_id,
+				fileName: original_filename,
+			};
 		} catch (err) {
 			log.error({ err }, "Something went wrong with file upload");
 

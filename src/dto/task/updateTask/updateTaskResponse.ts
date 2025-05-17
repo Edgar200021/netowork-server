@@ -5,7 +5,7 @@ import type { TaskResponseDto } from "../taskResponse.dto.js";
  * @openapi
  * components:
  *   schemas:
- *     CreateTaskResponseDto:
+ *     UpdateTaskResponseDto:
  *       allOf:
  *         - $ref: '#/components/schemas/SuccessResponseDto'
  *         - type: object
@@ -13,4 +13,4 @@ import type { TaskResponseDto } from "../taskResponse.dto.js";
  *             data:
  *               $ref: '#/components/schemas/TaskResponseDto'
  */
-export type CreateTaskResponseDto = SuccessResponseDto<TaskResponseDto>;
+export type UpdateTaskResponseDto = SuccessResponseDto<TaskResponseDto>;

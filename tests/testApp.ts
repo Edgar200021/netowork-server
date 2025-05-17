@@ -7,9 +7,9 @@ import type TestAgent from "supertest/lib/agent.js";
 import { App } from "../src/app.js";
 import { LoggerService } from "../src/common/services/logger.service.js";
 import { readConfig } from "../src/config.js";
-import { TASK_FILES_NAME } from "../src/const/multer";
 import {
 	AVATAR_FILE_NAME,
+	TASK_FILES_NAME,
 	WORK_IMAGES_FILE_NAME,
 } from "../src/const/multer.js";
 import type { Services } from "../src/services/services.js";
@@ -224,6 +224,30 @@ export class TestApp {
 		return response;
 	}
 
+	async getMyTasks(
+		body: {
+			limit?: number;
+			page?: number;
+			status?: TaskStatus | string;
+		},
+		cookies?: string[],
+	) {
+		// @ts-ignore
+		const params = new URLSearchParams(body).toString();
+
+		const request = this.superTest.get(
+			`/api/v1/tasks/my-tasks${params ? `?${params}` : ""}`,
+		);
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
 	async createTask(
 		body: {
 			title?: string;
@@ -259,20 +283,35 @@ export class TestApp {
 		return response;
 	}
 
-	async getMyTasks(
+	async updateTask(
 		body: {
-			limit?: number;
-			page?: number;
-			status?: TaskStatus | string;
+			taskId?: number | string;
+			title?: string;
+			description?: string;
+			categoryId?: number;
+			subCategoryId?: number;
+			price?: number | string;
+			files?: string[];
 		},
 		cookies?: string[],
 	) {
-		// @ts-ignore
-		const params = new URLSearchParams(body).toString();
-
-		const request = this.superTest.get(
-			`/api/v1/tasks/my-tasks${params ? `?${params}` : ""}`,
+		const request = this.superTest.patch(
+			`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}`,
 		);
+
+		for (const [key, value] of Object.entries(body)) {
+			if (key === "taskId") continue;
+			if (key === "files" && Array.isArray(value)) {
+				for (const file of value) {
+					request.attach(TASK_FILES_NAME, file);
+				}
+				continue;
+			}
+
+			if (value) {
+				request.field(key, value);
+			}
+		}
 
 		if (cookies) {
 			request.set("Cookie", cookies);
@@ -294,6 +333,7 @@ export class TestApp {
 
 		return response;
 	}
+
 	async createAndVerify(body: object) {
 		await this.register(body);
 		const token = (await this.redis.keys("*"))[0];

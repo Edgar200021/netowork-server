@@ -1,7 +1,8 @@
 import { sql } from "kysely";
 import path from "node:path";
-import { BadRequestError } from "../common/error.js";
+import { BadRequestError, NotFoundError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
+import { TASK_FILES_MAX_COUNT } from "../const/multer.js";
 import {
 	GET_TASKS_DEFAULT_LIMIT,
 	GET_TASKS_DEFAULT_PAGE,
@@ -9,6 +10,10 @@ import {
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
 import type { GetAllTasksRequestDto } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
 import type { GetMyTasksRequestDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
+import type {
+	UpdateTaskRequestDto,
+	UpdateTaskRequestParamsDto,
+} from "../dto/task/updateTask/updateTaskRequest.js";
 import { type TaskFiles, TaskStatus } from "../storage/db.js";
 import type { Database } from "../storage/postgres/database.js";
 import type { Category } from "../storage/postgres/types/category.type.js";
@@ -32,7 +37,7 @@ export class TaskService {
 			category: Category["name"];
 			subcategory: Category["name"] | null;
 			creator: `${User["firstName"]} ${User["lastName"]}`;
-			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
 		})[]
 	> {
 		log.info("Getting all tasks");
@@ -49,7 +54,7 @@ export class TaskService {
 				"task.subcategoryId",
 				"subcategory.id",
 			)
-			.leftJoin("taskFiles", "taskFiles.taskId", "task.id")
+			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
 			.innerJoin("users", "task.clientId", "users.id")
 			.select([
 				"task.id",
@@ -68,18 +73,27 @@ export class TaskService {
 				"users.firstName",
 				"users.lastName",
 			])
-			.select((eb) =>
-				eb.fn
-					.jsonAgg(
-						sql<
-							Pick<TaskFiles, "fileId" | "fileUrl">
-						>`json_build_object('fileId', taskFiles.id, 'fileUrl', taskFiles.fileUrl)`,
+			.select(
+				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
+				json_agg(
+					json_build_object(
+					'fileId', tf.file_id,
+					'fileUrl', tf.file_url,
+					'fileName', tf.file_name
 					)
-					.as("files"),
+				) FILTER (WHERE tf.file_id IS NOT NULL),
+				'[]'
+				)`.as("files"),
 			)
 			.where("status", "=", TaskStatus.Open)
 			.orderBy("task.id")
-			.groupBy("task.id")
+			.groupBy([
+				"task.id",
+				"category.name",
+				"subcategory.name",
+				"users.firstName",
+				"users.lastName",
+			])
 			.limit(limit)
 			.offset((page - 1) * limit)
 			.execute();
@@ -101,7 +115,7 @@ export class TaskService {
 			category: Category["name"];
 			subcategory: Category["name"] | null;
 			creator: `${User["firstName"]} ${User["lastName"]}`;
-			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
 		})[]
 	> {
 		log.info({ userId }, "Getting my tasks");
@@ -117,7 +131,7 @@ export class TaskService {
 				"task.subcategoryId",
 				"subcategory.id",
 			)
-			.leftJoin("taskFiles", "taskFiles.taskId", "task.id")
+			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
 			.innerJoin("users", "task.clientId", "users.id")
 			.select([
 				"task.id",
@@ -136,17 +150,27 @@ export class TaskService {
 				"users.firstName",
 				"users.lastName",
 			])
-			.select((eb) =>
-				eb.fn
-					.jsonAgg(
-						sql<
-							Pick<TaskFiles, "fileId" | "fileUrl">
-						>`json_build_object('fileId', taskFiles.id, 'fileUrl', taskFiles.fileUrl)`,
+			.select(
+				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
+				json_agg(
+					json_build_object(
+					'fileId', tf.file_id,
+					'fileUrl', tf.file_url,
+					'fileName', tf.file_name
 					)
-					.as("files"),
+				) FILTER (WHERE tf.file_id IS NOT NULL),
+				'[]'
+				)`.as("files"),
 			)
+
 			.where("clientId", "=", userId)
-			.groupBy("task.id")
+			.groupBy([
+				"task.id",
+				"category.name",
+				"subcategory.name",
+				"users.firstName",
+				"users.lastName",
+			])
 			.limit(limit)
 			.offset((page - 1) * limit);
 
@@ -215,7 +239,231 @@ export class TaskService {
 			throw new BadRequestError("Category or subcategory not found");
 		}
 
-		const uploadedFiles: FileUploadResponse[] = [];
+		const uploadedFiles: FileUploadResponse[] = await this.uploadFiles(
+			files,
+			log,
+		);
+
+		const result = await this._database.transaction().execute(async (trx) => {
+			const task = await trx
+				.insertInto("task")
+				.values({
+					title: createTaskRequestDto.title,
+					description: createTaskRequestDto.description,
+					clientId: userId,
+					categoryId: category.categoryId,
+					subcategoryId: category.subCategoryId,
+					price: Number(createTaskRequestDto.price),
+				})
+				.returningAll()
+				.executeTakeFirstOrThrow();
+
+			if (uploadedFiles.length > 0) {
+				await trx
+					.insertInto("taskFiles")
+					.values(
+						uploadedFiles.map(({ fileName, fileId, fileUrl }) => ({
+							fileId,
+							fileUrl,
+							fileName,
+							taskId: task.id,
+						})),
+					)
+					.execute();
+			}
+
+			return {
+				...task,
+				category: category.category,
+				subcategory: category.subcategory,
+				files: uploadedFiles,
+			};
+		});
+
+		return result;
+	}
+
+	async update(
+		userId: User["id"],
+		updateTaskRequestDto: UpdateTaskRequestDto,
+		updateTaskRequestParamsDto: UpdateTaskRequestParamsDto,
+		log: LoggerService,
+		files?: Express.Multer.File[],
+	): Promise<
+		Task & {
+			category: Category["name"];
+			subcategory: Category["name"] | null;
+			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+		}
+	> {
+		log.info({ userId }, "Updating task");
+
+		if (Object.keys(updateTaskRequestDto).length === 0 && (!files || files.length === 0)) {
+			log.warn("No data provided for update");
+			throw new BadRequestError("No data provided for update");
+		}
+
+		const { categoryId, subCategoryId, description, title, price } =
+			updateTaskRequestDto;
+
+		const task = await this._database
+			.selectFrom("task")
+			.innerJoin("category", "task.categoryId", "category.id")
+			.leftJoin(
+				"category as subcategory",
+				"task.subcategoryId",
+				"subcategory.id",
+			)
+			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
+			.select([
+				"task.id",
+				"task.title",
+				"task.price",
+				"task.description",
+				"task.clientId",
+				"task.freelancerId",
+				"task.status",
+				"task.categoryId",
+				"task.subcategoryId",
+				"task.createdAt",
+				"task.updatedAt",
+				"category.name as categoryName",
+				"subcategory.name as subcategoryName",
+			])
+			.select(
+				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
+				json_agg(
+					json_build_object(
+					'fileId', tf.file_id,
+					'fileUrl', tf.file_url,
+					'fileName', tf.file_name
+					)
+				) FILTER (WHERE tf.file_id IS NOT NULL),
+				'[]'
+				)`.as("files"),
+			)
+			.groupBy(["task.id", "category.name", "subcategory.name"])
+			.where("task.id", "=", Number(updateTaskRequestParamsDto.taskId))
+			.where("clientId", "=", userId)
+			.executeTakeFirst();
+
+		if (!task) {
+			log.warn({ taskId: updateTaskRequestParamsDto.taskId }, "Task not found");
+			throw new NotFoundError(
+				`Task with id ${updateTaskRequestParamsDto.taskId} not found`,
+			);
+		}
+
+		const isNewCategory = Number(categoryId) && Number(subCategoryId);
+
+		let category:
+			| {
+					category: string;
+					subcategory: string;
+			  }
+			| undefined;
+
+		if (isNewCategory) {
+			category = await this._database
+				.selectFrom("category")
+				.innerJoin(
+					"category as subcategory",
+					"category.id",
+					"subcategory.parentId",
+				)
+				.select([
+					"category.name as category",
+					"subcategory.name as subcategory",
+				])
+				.where("category.id", "=", Number(categoryId))
+				.where("subcategory.id", "=", Number(subCategoryId))
+				.where("subcategory.parentId", "=", Number(categoryId))
+				.executeTakeFirst();
+
+			if (!category) {
+				log.warn(
+					{
+						categoryId,
+						subCategoryId,
+					},
+					"Category or subcategory not found",
+				);
+				throw new BadRequestError("Category or subcategory not found");
+			}
+		}
+
+		if (files && task.files.length + files.length > TASK_FILES_MAX_COUNT) {
+			log.warn(`Task file count exceeds limit (${TASK_FILES_MAX_COUNT})`);
+			throw new BadRequestError(
+				`Maximum files for task is ${TASK_FILES_MAX_COUNT}`,
+			);
+		}
+
+		const uploadedFiles: FileUploadResponse[] = await this.uploadFiles(
+			files,
+			log,
+		);
+
+		const result = await this._database.transaction().execute(async (trx) => {
+			const updateData = {
+				...(description && {
+					description,
+				}),
+				...(title && {
+					title,
+				}),
+				...(Number(price) && {
+					price: Number(price),
+				}),
+				...(isNewCategory &&
+					categoryId !== task.categoryId &&
+					subCategoryId !== task.subcategoryId && {
+						categoryId: Number(categoryId),
+						subcategoryId: Number(subCategoryId),
+					}),
+			};
+
+			let updatedTask: Task | undefined;
+
+			if (Object.keys(updateData).length) {
+				updatedTask = await trx
+					.updateTable("task")
+					.where("task.id", "=", Number(updateTaskRequestParamsDto.taskId))
+					.where("clientId", "=", userId)
+					.set(updateData)
+					.returningAll()
+					.executeTakeFirstOrThrow();
+			}
+
+			if (uploadedFiles.length) {
+				await trx
+					.insertInto("taskFiles")
+					.values(
+						uploadedFiles.map(({ fileName, fileId, fileUrl }) => ({
+							fileId,
+							fileUrl,
+							fileName,
+							taskId: task.id,
+						})),
+					)
+					.execute();
+			}
+
+			return {
+				...(updatedTask || task),
+				category: category?.category || task.categoryName,
+				subcategory: category?.subcategory || task.subcategoryName,
+				files: [...task.files, ...uploadedFiles],
+			};
+		});
+
+		return result;
+	}
+
+	private async uploadFiles(
+		files: Express.Multer.File[] | undefined,
+		log: LoggerService,
+	): Promise<FileUploadResponse[]> {
 		if (files) {
 			const result = await Promise.all(
 				files.map(async (file) => {
@@ -225,55 +473,27 @@ export class TaskService {
 						{
 							format: path.extname(file.originalname).slice(1),
 							...(file.mimetype ===
-							AllowedMimeTypes[
-								"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-							]
+								AllowedMimeTypes[
+									"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+								] || file.mimetype === AllowedMimeTypes["text/plain"]
 								? {
 										resource_type: "raw",
 									}
 								: {}),
+							filename_override: file.originalname,
 						},
 					);
 
 					return res;
 				}),
 			);
-			for (const res of result) {
-				uploadedFiles.push(res);
-			}
+
+			return result.reduce((acc, val) => {
+				acc.push(val);
+				return acc;
+			}, [] as FileUploadResponse[]);
 		}
 
-		const task = await this._database
-			.insertInto("task")
-			.values({
-				title: createTaskRequestDto.title,
-				description: createTaskRequestDto.description,
-				clientId: userId,
-				categoryId: category.categoryId,
-				subcategoryId: category.subCategoryId,
-				price: Number(createTaskRequestDto.price),
-			})
-			.returningAll()
-			.executeTakeFirstOrThrow();
-
-		if (uploadedFiles.length > 0) {
-			await this._database
-				.insertInto("taskFiles")
-				.values(
-					uploadedFiles.map((file) => ({
-						fileId: file.fileId,
-						fileUrl: file.fileUrl,
-						taskId: task.id,
-					})),
-				)
-				.execute();
-		}
-
-		return {
-			...task,
-			category: category.category,
-			subcategory: category.subcategory,
-			files: uploadedFiles,
-		};
+		return [];
 	}
 }
