@@ -310,6 +310,15 @@ describe("Task", () => {
 			expect(updateResult.status).toBe(400);
 		});
 
+		it("Should return 401 status code when user is not authenticated", async () => {
+			const updateResult = await app.updateTask({
+				taskId: 123,
+				title: "New title",
+			});
+
+			expect(updateResult.status).toBe(401);
+		});
+
 		it(`Should return 403 status code when user is not "${UserRole.Client}"`, async () => {
 			const verifyResult = await app.createAndVerify({
 				...data,
@@ -345,7 +354,10 @@ describe("Task", () => {
 
 			expect(createResult.statusCode).toBe(201);
 
-			const testCases = [{ taskId: undefined }, { taskId: 3, title: "New title" }];
+			const testCases = [
+				{ taskId: undefined },
+				{ taskId: 3, title: "New title" },
+			];
 
 			for (const testCase of testCases) {
 				const updateResult = await app.updateTask(

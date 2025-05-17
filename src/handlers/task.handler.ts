@@ -6,6 +6,13 @@ import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequ
 import { createTaskSchema } from "../dto/task/createTask/createTaskRequest.dto.js";
 import type { CreateTaskResponseDto } from "../dto/task/createTask/createTaskResponse.dto.js";
 import {
+	type DeleteTaskFilesRequestDto,
+	type DeleteTaskFilesRequestParamsDto,
+	deleteTaskFilesRequestParamsSchema,
+	deleteTaskFilesRequestSchema,
+} from "../dto/task/deleteTaskFiles/deletTaskFilesRequest.dto.js";
+import type { DeleteTaskFilesResponseDto } from "../dto/task/deleteTaskFiles/deleteTaskFilesResponse.dto.js";
+import {
 	type GetAllTasksRequestDto,
 	getAllTasksSchema,
 } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
@@ -19,8 +26,8 @@ import { TaskResponseDto } from "../dto/task/taskResponse.dto.js";
 import {
 	type UpdateTaskRequestDto,
 	type UpdateTaskRequestParamsDto,
-	updateTaskRequest,
-	updateTaskRequestParams,
+	updateTaskRequestParamsSchema,
+	updateTaskRequestSchema,
 } from "../dto/task/updateTask/updateTaskRequest.js";
 import type { UpdateTaskResponseDto } from "../dto/task/updateTask/updateTaskResponse.js";
 import type { Middlewares } from "../middlewares/middlewares.js";
@@ -34,8 +41,10 @@ export class TaskHandler extends BaseHandler {
 		createTask: vine.compile(createTaskSchema),
 		getAllTasks: vine.compile(getAllTasksSchema),
 		getMyTasks: vine.compile(getMyTasksSchema),
-		updateTask: vine.compile(updateTaskRequest),
-		updateTaskParams: vine.compile(updateTaskRequestParams),
+		updateTask: vine.compile(updateTaskRequestSchema),
+		updateTaskParams: vine.compile(updateTaskRequestParamsSchema),
+		deleteTaskFiles: vine.compile(deleteTaskFilesRequestSchema),
+		deleteTaskFilesParams: vine.compile(deleteTaskFilesRequestParamsSchema),
 	};
 
 	constructor(
@@ -118,9 +127,7 @@ export class TaskHandler extends BaseHandler {
 		>,
 		res: Response<GetAllTasksResponseDto>,
 	) {
-		if (!req.user) {
-			throw new UnauthorizedError("Unauthorized");
-		}
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
 		const tasks = await this._taskService.getAllTasks(req.query, req.logger);
 
@@ -203,9 +210,7 @@ export class TaskHandler extends BaseHandler {
 		req: Request<unknown, GetMyTasksResponseDto, unknown, GetMyTasksRequestDto>,
 		res: Response<GetMyTasksResponseDto>,
 	) {
-		if (!req.user) {
-			throw new UnauthorizedError("Unauthorized");
-		}
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
 		const tasks = await this._taskService.getMyTasks(
 			req.user.id,
@@ -291,9 +296,7 @@ export class TaskHandler extends BaseHandler {
 		req: Request<unknown, CreateTaskResponseDto, CreateTaskRequestDto>,
 		res: Response<CreateTaskResponseDto>,
 	) {
-		if (!req.user) {
-			throw new UnauthorizedError("Unauthorized");
-		}
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
 		const files = Array.isArray(req.files)
 			? req.files
@@ -325,6 +328,13 @@ export class TaskHandler extends BaseHandler {
 	 *       summary: Update task
 	 *       security:
 	 *         - Session: []
+	 *       parameters:
+	 *         - name: taskId
+	 *           in: path
+	 *           required: true
+	 *           description: Task ID
+	 *           schema:
+	 *             type: integer
 	 *       requestBody:
 	 *         content:
 	 *           multipart/form-data:
@@ -379,13 +389,14 @@ export class TaskHandler extends BaseHandler {
 	 *
 	 */
 	async updateTask(
-		req: Request<UpdateTaskRequestParamsDto, UpdateTaskResponseDto, UpdateTaskRequestDto>,
+		req: Request<
+			UpdateTaskRequestParamsDto,
+			UpdateTaskResponseDto,
+			UpdateTaskRequestDto
+		>,
 		res: Response<UpdateTaskResponseDto>,
 	) {
-		if (!req.user) {
-			throw new UnauthorizedError("Unauthorized");
-		}
-
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
 		const files = Array.isArray(req.files)
 			? req.files
@@ -408,11 +419,95 @@ export class TaskHandler extends BaseHandler {
 		});
 	}
 
+	/**
+	 * @openapi
+	 * paths:
+	 *   /api/v1/tasks/{taskId}/files:
+	 *     delete:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Delete task files
+	 *       security:
+	 *         - Session: []
+	 *       parameters:
+	 *         - name: taskId
+	 *           in: path
+	 *           required: true
+	 *           description: Task ID
+	 *           schema:
+	 *             type: integer
+	 *       requestBody:
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               $ref: "#/components/schemas/DeleteTaskFilesRequestDto"
+	 *       responses:
+	 *         200:
+	 *           description: Task files deleted
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: "#/components/schemas/DeleteTaskFilesResponseDto"
+	 *         400:
+	 *           description: Bad request or validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 oneOf:
+	 *                   - $ref: '#/components/schemas/ErrorResponseDto'
+	 *                   - $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 ValidationError:
+	 *                   value:
+	 *                     status: error
+	 *                     errors:
+	 *                       - field: taskIds
+	 *                         message: "Task IDs are required"
+	 *         401:
+	 *           description: Unauthorized
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 */
+	async deleteTaskFiles(
+		req: Request<
+			DeleteTaskFilesRequestParamsDto,
+			DeleteTaskFilesResponseDto,
+			DeleteTaskFilesRequestDto
+		>,
+		res: Response<DeleteTaskFilesResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+
+		const task = await this._taskService.deleteTaskFile(
+			req.user.id,
+			req.body,
+			req.params,
+			req.logger,
+		);
+
+		res.status(200).json({
+			status: "success",
+			data: new TaskResponseDto({
+				...task,
+				creator: `${req.user.firstName} ${req.user.lastName}`,
+			}),
+		});
+	}
+
 	protected bindMethods(): void {
 		this.getAllTasks = this.getAllTasks.bind(this);
 		this.getMyTasks = this.getMyTasks.bind(this);
 		this.createTask = this.createTask.bind(this);
 		this.updateTask = this.updateTask.bind(this);
+		this.deleteTaskFiles = this.deleteTaskFiles.bind(this);
 	}
 
 	protected setupRoutes(): void {
@@ -451,7 +546,7 @@ export class TaskHandler extends BaseHandler {
 					"application/msword",
 					"application/pdf",
 					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-					"text/plain"
+					"text/plain",
 				],
 			}),
 			this._middlewares.validateRequest([
@@ -462,7 +557,6 @@ export class TaskHandler extends BaseHandler {
 			]),
 			asyncWrapper(this.createTask),
 		);
-
 		this.router.patch(
 			"/:taskId",
 			this._middlewares.auth,
@@ -474,7 +568,7 @@ export class TaskHandler extends BaseHandler {
 					"application/msword",
 					"application/pdf",
 					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-					"text/plain"
+					"text/plain",
 				],
 			}),
 			this._middlewares.validateRequest([
@@ -489,6 +583,24 @@ export class TaskHandler extends BaseHandler {
 			]),
 			//@ts-expect-error
 			asyncWrapper(this.updateTask),
+		);
+
+		this.router.delete(
+			"/:taskId/files",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Client]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.deleteTaskFiles,
+					type: "body",
+				},
+				{
+					validatorOrSchema: this.validators.deleteTaskFilesParams,
+					type: "params",
+				},
+			]),
+			//@ts-expect-error
+			asyncWrapper(this.deleteTaskFiles),
 		);
 	}
 }

@@ -29,7 +29,7 @@ import {
  *         price:
  *           type: number
  */
-export const updateTaskRequest = vine.object({
+export const updateTaskRequestSchema = vine.object({
 	title: vine
 		.string()
 		.trim()
@@ -47,10 +47,11 @@ export const updateTaskRequest = vine.object({
 	price: vine.number().positive().optional(),
 });
 
-export const updateTaskRequestParams = vine.object({
-	taskId: vine.number()
-})
+export const updateTaskRequestParamsSchema = vine.object({
+	taskId: vine.number(),
+});
 
-
-export type UpdateTaskRequestDto = InferInput<typeof updateTaskRequest>;
-export type UpdateTaskRequestParamsDto = InferInput<typeof updateTaskRequestParams>
+export type UpdateTaskRequestDto = InferInput<typeof updateTaskRequestSchema>;
+export type UpdateTaskRequestParamsDto = InferInput<
+	typeof updateTaskRequestParamsSchema
+>;

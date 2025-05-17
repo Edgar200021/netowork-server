@@ -8,6 +8,10 @@ import {
 	GET_TASKS_DEFAULT_PAGE,
 } from "../const/task.js";
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
+import type {
+	DeleteTaskFilesRequestDto,
+	DeleteTaskFilesRequestParamsDto,
+} from "../dto/task/deleteTaskFiles/deletTaskFilesRequest.dto.js";
 import type { GetAllTasksRequestDto } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
 import type { GetMyTasksRequestDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type {
@@ -298,7 +302,10 @@ export class TaskService {
 	> {
 		log.info({ userId }, "Updating task");
 
-		if (Object.keys(updateTaskRequestDto).length === 0 && (!files || files.length === 0)) {
+		if (
+			Object.keys(updateTaskRequestDto).length === 0 &&
+			(!files || files.length === 0)
+		) {
 			log.warn("No data provided for update");
 			throw new BadRequestError("No data provided for update");
 		}
@@ -458,6 +465,92 @@ export class TaskService {
 		});
 
 		return result;
+	}
+
+	async deleteTaskFile(
+		userId: User["id"],
+		deleteTaskFilesRequestDto: DeleteTaskFilesRequestDto,
+		deleteTaskFilesRequestParamsDto: DeleteTaskFilesRequestParamsDto,
+		log: LoggerService,
+	): Promise<
+		Task & {
+			category: Category["name"];
+			subcategory: Category["name"] | null;
+			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+		}
+	> {
+		log.info(
+			{ userId, fileId: deleteTaskFilesRequestDto.fileId },
+			"Deleting task files",
+		);
+
+		const task = await this._database
+			.selectFrom("task")
+			.innerJoin("category", "task.categoryId", "category.id")
+			.leftJoin(
+				"category as subcategory",
+				"task.subcategoryId",
+				"subcategory.id",
+			)
+			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
+			.select([
+				"task.id",
+				"task.title",
+				"task.price",
+				"task.description",
+				"task.clientId",
+				"task.freelancerId",
+				"task.status",
+				"task.categoryId",
+				"task.subcategoryId",
+				"task.createdAt",
+				"task.updatedAt",
+				"category.name as categoryName",
+				"subcategory.name as subcategoryName",
+			])
+			.select(
+				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
+			json_agg(
+				json_build_object(
+				'fileId', tf.file_id,
+				'fileUrl', tf.file_url,
+				'fileName', tf.file_name
+				)
+			) FILTER (WHERE tf.file_id IS NOT NULL),
+			'[]'
+			)`.as("files"),
+			)
+			.groupBy(["task.id", "category.name", "subcategory.name"])
+			.where("task.id", "=", Number(deleteTaskFilesRequestParamsDto.taskId))
+			.where("clientId", "=", userId)
+			.executeTakeFirst();
+
+		console.log("TASKKKK", task);
+
+		if (!task)
+			throw new NotFoundError(
+				`Task with id ${deleteTaskFilesRequestParamsDto.taskId} not found`,
+			);
+		if (!task.files.length) throw new BadRequestError("Task has no files");
+
+		const fileToDelete = task.files.find(
+			(f) => f.fileId === deleteTaskFilesRequestDto.fileId,
+		);
+		if (!fileToDelete) throw new NotFoundError("File not found");
+
+		await this._fileUploader.deleteFile(fileToDelete.fileId);
+		await this._database
+			.deleteFrom("taskFiles")
+			.where("fileId", "=", fileToDelete.fileId)
+			.where("taskId", "=", task.id)
+			.execute();
+
+		return {
+			...task,
+			category: task.categoryName,
+			subcategory: task.subcategoryName,
+			files: task.files.filter((f) => f.fileId !== fileToDelete.fileId),
+		};
 	}
 
 	private async uploadFiles(
