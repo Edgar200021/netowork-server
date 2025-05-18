@@ -55,6 +55,12 @@ export interface TaskFiles {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface TaskViews {
+  id: Generated<number>;
+  taskId: number;
+  userId: number | null;
+}
+
 export interface Users {
   aboutMe: string | null;
   avatar: string | null;
@@ -92,6 +98,7 @@ export interface DB {
   category: Category;
   task: Task;
   taskFiles: TaskFiles;
+  taskViews: TaskViews;
   users: Users;
   workImages: WorkImages;
   works: Works;
