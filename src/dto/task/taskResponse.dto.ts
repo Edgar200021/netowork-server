@@ -35,6 +35,20 @@ import type { User } from "../../storage/postgres/types/user.types.js";
  *         creator:
  *           type: string
  *           example: "John Doe"
+ *         files:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               fileId:
+ *                 type: string
+ *               fileUrl:
+ *                 type: string
+ *               fileName:
+ *                 type: string
+ *         status:
+ *           type: enum
+ *           enum: [in_progress, completed, open]
  */
 
 export class TaskResponseDto {
@@ -46,7 +60,7 @@ export class TaskResponseDto {
 	readonly subCategory: Category["name"] | null;
 	readonly price: number;
 	readonly creator: `${User["firstName"]} ${User["lastName"]}`;
-	files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+	files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
 	readonly status: TaskStatus;
 
 	constructor(
@@ -54,7 +68,7 @@ export class TaskResponseDto {
 			creator: `${User["firstName"]} ${User["lastName"]}`;
 			category: Category["name"];
 			subcategory: Category["name"] | null ;
-			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
 		},
 	) {
 		this.id = task.id;

@@ -58,6 +58,8 @@ export class WorksService {
 				.values({
 					userId,
 					title: payload.title,
+					createdAt: sql`NOW()`,
+					updatedAt: sql`NOW()`,
 				})
 				.returningAll()
 				.executeTakeFirstOrThrow();

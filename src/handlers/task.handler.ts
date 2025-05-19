@@ -80,6 +80,20 @@ export class TaskHandler extends BaseHandler {
 	 *           description: Page number
 	 *           schema:
 	 *             type: number
+	 *         - in: query
+	 *           name: subCategoryIds
+	 *           required: false
+	 *           description: Comma-separated list of subcategory IDs
+	 *           example: 1,2,3
+	 *           schema:
+	 *             type: string
+	 *         - in: query
+	 *           name: sort
+	 *           required: false
+	 *           description: Comma-separated list of sort parameters
+	 *           example: price-desc, createdAt-asc
+	 *           schema:
+	 *             type: string
 	 *       responses:
 	 *         200:
 	 *           description: Success

@@ -22,6 +22,7 @@ import type { Redis } from "../storage/redis/redis.js";
 import { generateRandomToken } from "../utils/createToken.js";
 import { generateUserError } from "../utils/generateUserError.js";
 import type { EmailService } from "./email.service.js";
+import { sql } from 'kysely';
 
 export class AuthService {
 	constructor(
@@ -102,6 +103,8 @@ export class AuthService {
 				firstName: payload.firstName,
 				lastName: payload.lastName,
 				role: payload.role,
+				createdAt: sql`NOW()`,
+				updatedAt: sql`NOW()`,
 			})
 			.execute();
 
@@ -166,7 +169,7 @@ export class AuthService {
 				.updateTable("users")
 				.set({
 					isVerified: true,
-					updatedAt: new Date(),
+					updatedAt: sql`NOW()`,
 				})
 				.where("email", "=", email)
 				.returningAll()
@@ -233,6 +236,7 @@ export class AuthService {
 			.updateTable("users")
 			.set({
 				password: hashedPassword,
+				updatedAt: sql`NOW()`,
 			})
 			.where("id", "=", Number(userId))
 			.returning(["id"])
@@ -324,7 +328,7 @@ export class AuthService {
 
 		await this._database
 			.updateTable("users")
-			.set({ email: payload.newEmail })
+			.set({ email: payload.newEmail, updatedAt: sql`NOW()` })
 			.where("email", "=", oldEmail)
 			.execute();
 

@@ -1,5 +1,5 @@
-import { sql } from "kysely";
 import path from "node:path";
+import { sql } from "kysely";
 import { BadRequestError, NotFoundError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
 import { TASK_FILES_MAX_COUNT } from "../const/multer.js";
@@ -88,7 +88,22 @@ export class TaskService {
 				)`.as("files"),
 			)
 			.where("status", "=", TaskStatus.Open)
-			.orderBy("task.id")
+			.$if(!getAllTasksRequestDto.sort, (qb) => qb.orderBy("task.id"))
+			.$if(!!getAllTasksRequestDto.sort, (qb) =>
+				qb.orderBy(
+					getAllTasksRequestDto.sort!.split(",").map((val) => {
+						const [field, order] = val.split("-");
+						return `task.${field} ${order}`;
+					}),
+				),
+			)
+			.$if(!!getAllTasksRequestDto.subCategoryIds, (qb) =>
+				qb.where(
+					"subcategory.id",
+					"in",
+					getAllTasksRequestDto.subCategoryIds!.split(",").map(Number),
+				),
+			)
 			.groupBy([
 				"task.id",
 				"category.name",
@@ -164,7 +179,6 @@ export class TaskService {
 				'[]'
 				)`.as("files"),
 			)
-
 			.where("clientId", "=", userId)
 			.groupBy([
 				"task.id",
@@ -173,6 +187,7 @@ export class TaskService {
 				"users.firstName",
 				"users.lastName",
 			])
+			.orderBy("task.createdAt", "desc")
 			.limit(limit)
 			.offset((page - 1) * limit);
 
@@ -256,6 +271,8 @@ export class TaskService {
 					categoryId: category.categoryId,
 					subcategoryId: category.subCategoryId,
 					price: Number(createTaskRequestDto.price),
+					createdAt: sql`now()`,
+					updatedAt: sql`now()`,
 				})
 				.returningAll()
 				.executeTakeFirstOrThrow();
@@ -435,7 +452,7 @@ export class TaskService {
 					.updateTable("task")
 					.where("task.id", "=", Number(updateTaskRequestParamsDto.taskId))
 					.where("clientId", "=", userId)
-					.set(updateData)
+					.set({ ...updateData, updatedAt: sql`NOW()` })
 					.returningAll()
 					.executeTakeFirstOrThrow();
 			}
