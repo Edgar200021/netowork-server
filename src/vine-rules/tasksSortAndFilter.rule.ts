@@ -24,7 +24,7 @@ const tasksSortAndFilter = (
 	
 	const array = value.trim().split(",");
 	if (!value.trim() || array.length === 0) {
-		field.report("At least one sort is required", "tasksSortAndFilter", field);
+		field.report(`At least one ${options.type} is required`, "tasksSortAndFilter", field);
 		return;
 	}
 

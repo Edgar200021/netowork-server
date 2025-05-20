@@ -81,6 +81,12 @@ export class TaskHandler extends BaseHandler {
 	 *           schema:
 	 *             type: number
 	 *         - in: query
+	 *           name: search
+	 *           required: false
+	 *           description: Search query
+	 *           schema:
+	 *             type: string 
+	 *         - in: query
 	 *           name: subCategoryIds
 	 *           required: false
 	 *           description: Comma-separated list of subcategory IDs

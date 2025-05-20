@@ -224,6 +224,33 @@ export class TestApp {
 		return response;
 	}
 
+	async getAllTasks(
+		body: {
+			limit?: number | string;
+			page?: number | string;
+			search?: string;
+			subCategoryIds?: string;
+			sort?: string;
+		},
+		cookies?: string[],
+	) {
+		// @ts-ignore
+		const params = new URLSearchParams(body).toString();
+
+		console.log(params)
+		const request = this.superTest.get(
+			`/api/v1/tasks${params ? `?${params}` : ""}`,
+		);
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
 	async getMyTasks(
 		body: {
 			limit?: number;

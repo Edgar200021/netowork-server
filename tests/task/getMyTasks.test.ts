@@ -146,5 +146,18 @@ describe("Task", () => {
 				).toEqual(Object.keys(testCase.resBody.errors));
 			}
 		});
+
+		it("Should return 401 status code when user is not authenticated", async () => {
+			const response = await app.getMyTasks({});
+			expect(response.statusCode).toBe(401);
+		});
+
+		it(`Should return 403 status code when user role is not "${UserRole.Client}"`, async () => {
+			const verifyResult = await app.createAndVerify({...data, role: UserRole.Freelancer});
+			expect(verifyResult.statusCode).toBe(200);
+
+			const response = await app.getMyTasks({}, verifyResult.get("Set-Cookie"));
+			expect(response.statusCode).toBe(403);
+		})
 	});
 });

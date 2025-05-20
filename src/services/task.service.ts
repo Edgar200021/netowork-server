@@ -88,6 +88,14 @@ export class TaskService {
 				)`.as("files"),
 			)
 			.where("status", "=", TaskStatus.Open)
+			.$if(!!getAllTasksRequestDto.subCategoryIds, (qb) =>
+				qb.where(
+					"subcategory.id",
+					"in",
+					getAllTasksRequestDto.subCategoryIds!.split(",").map(Number),
+				),
+			)
+			.$if(!!getAllTasksRequestDto.search, qb => qb.where("task.title", "like", `%${getAllTasksRequestDto.search}%`))
 			.$if(!getAllTasksRequestDto.sort, (qb) => qb.orderBy("task.id"))
 			.$if(!!getAllTasksRequestDto.sort, (qb) =>
 				qb.orderBy(
@@ -95,13 +103,6 @@ export class TaskService {
 						const [field, order] = val.split("-");
 						return `task.${field} ${order}`;
 					}),
-				),
-			)
-			.$if(!!getAllTasksRequestDto.subCategoryIds, (qb) =>
-				qb.where(
-					"subcategory.id",
-					"in",
-					getAllTasksRequestDto.subCategoryIds!.split(",").map(Number),
 				),
 			)
 			.groupBy([
@@ -218,7 +219,7 @@ export class TaskService {
 		Task & {
 			category: Category["name"];
 			subcategory: Category["name"] | null;
-			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
 		}
 	> {
 		log.info({ userId }, "Creating task");
@@ -312,7 +313,7 @@ export class TaskService {
 		Task & {
 			category: Category["name"];
 			subcategory: Category["name"] | null;
-			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
 		}
 	> {
 		log.info({ userId }, "Updating task");
@@ -541,7 +542,7 @@ export class TaskService {
 		Task & {
 			category: Category["name"];
 			subcategory: Category["name"] | null;
-			files: Pick<TaskFiles, "fileId" | "fileUrl">[];
+			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
 		}
 	> {
 		log.info({ userId, fileId }, "Deleting task files");
