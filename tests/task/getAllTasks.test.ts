@@ -67,9 +67,6 @@ describe("Task", () => {
 				.returning(["id"])
 				.executeTakeFirstOrThrow();
 
-				console.log("USERRR", user)
-
-
 			const tasks = [
 				{
 					clientId: user.id,
@@ -123,11 +120,11 @@ describe("Task", () => {
 				{},
 				verifyResult.get("Set-Cookie"),
 			);
-			console.log("TASK RESULT", getTasksResult);
-			expect(getTasksResult.statusCode).toBe(200);
-			expect(getTasksResult.body.data).toHaveLength(3);
 
-			for (const task of getTasksResult.body.data) {
+			expect(getTasksResult.statusCode).toBe(200);
+			expect(getTasksResult.body.data.tasks).toHaveLength(3);
+
+			for (const task of getTasksResult.body.data.tasks) {
 				expect(task).toHaveProperty("id");
 				expect(task).toHaveProperty("createdAt");
 				expect(task).toHaveProperty("title");
@@ -244,9 +241,9 @@ describe("Task", () => {
 					verifyResult.get("Set-Cookie"),
 				);
 				expect(result.statusCode).toBe(expected.statusCode);
-				expect(result.body.data).toHaveLength(expected.dataLength);
+				expect(result.body.data.tasks).toHaveLength(expected.dataLength);
 				if (expected.dataTitles.length > 0) {
-					const titles = result.body.data.map((task) => task.title);
+					const titles = result.body.data.tasks.map((task) => task.title);
 					expect(titles).toEqual(expected.dataTitles);
 				}
 			}

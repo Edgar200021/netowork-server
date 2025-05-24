@@ -237,7 +237,7 @@ export class TestApp {
 		// @ts-ignore
 		const params = new URLSearchParams(body).toString();
 
-		console.log(params)
+		console.log(params);
 		const request = this.superTest.get(
 			`/api/v1/tasks${params ? `?${params}` : ""}`,
 		);
@@ -265,6 +265,23 @@ export class TestApp {
 		const request = this.superTest.get(
 			`/api/v1/tasks/my-tasks${params ? `?${params}` : ""}`,
 		);
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
+	async getTask(
+		body: {
+			taskId?: number | string;
+		},
+		cookies?: string[],
+	) {
+		const request = this.superTest.get(`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}`);
 
 		if (cookies) {
 			request.set("Cookie", cookies);

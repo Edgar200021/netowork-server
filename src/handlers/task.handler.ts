@@ -5,12 +5,12 @@ import { TASK_FILES_MAX_COUNT, TASK_FILES_NAME } from "../const/multer.js";
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
 import { createTaskSchema } from "../dto/task/createTask/createTaskRequest.dto.js";
 import type { CreateTaskResponseDto } from "../dto/task/createTask/createTaskResponse.dto.js";
-import { deleteTaskRequestParamsSchema } from "../dto/task/deleteTask/deleteTaskReqeust.dto.js";
+import { deleteTaskRequestParamsSchema } from "../dto/task/deleteTask/deleteTaskRequest.dto.js";
 import type { DeleteTaskResponseDto } from "../dto/task/deleteTask/deleteTaskResponse.dto.js";
 import {
 	type DeleteTaskFilesRequestParamsDto,
 	deleteTaskFilesRequestParamsSchema,
-} from "../dto/task/deleteTaskFiles/deletTaskFilesRequest.dto.js";
+} from "../dto/task/deleteTaskFiles/deleteTaskFilesRequest.dto.js";
 import type { DeleteTaskFilesResponseDto } from "../dto/task/deleteTaskFiles/deleteTaskFilesResponse.dto.js";
 import {
 	type GetAllTasksRequestDto,
@@ -22,6 +22,11 @@ import {
 	getMyTasksSchema,
 } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type { GetMyTasksResponseDto } from "../dto/task/getMyTasks/getMyTasksResponse.dto.js";
+import {
+	type GetTaskRequestDto,
+	getTaskSchema,
+} from "../dto/task/getTask/getTaskRequest.dto.js";
+import type { GetTaskResponseDto } from "../dto/task/getTask/getTaskResponse.dto.js";
 import { TaskResponseDto } from "../dto/task/taskResponse.dto.js";
 import {
 	type UpdateTaskRequestDto,
@@ -41,6 +46,7 @@ export class TaskHandler extends BaseHandler {
 		createTask: vine.compile(createTaskSchema),
 		getAllTasks: vine.compile(getAllTasksSchema),
 		getMyTasks: vine.compile(getMyTasksSchema),
+		getTask: vine.compile(getTaskSchema),
 		updateTask: vine.compile(updateTaskRequestSchema),
 		updateTaskParams: vine.compile(updateTaskRequestParamsSchema),
 		deleteTaskParams: vine.compile(deleteTaskRequestParamsSchema),
@@ -85,7 +91,7 @@ export class TaskHandler extends BaseHandler {
 	 *           required: false
 	 *           description: Search query
 	 *           schema:
-	 *             type: string 
+	 *             type: string
 	 *         - in: query
 	 *           name: subCategoryIds
 	 *           required: false
@@ -149,11 +155,17 @@ export class TaskHandler extends BaseHandler {
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
-		const tasks = await this._taskService.getAllTasks(req.query, req.logger);
+		const { tasks, totalCount } = await this._taskService.getAllTasks(
+			req.query,
+			req.logger,
+		);
 
 		res.status(200).json({
 			status: "success",
-			data: tasks.map((task) => new TaskResponseDto(task)),
+			data: {
+				tasks: tasks.map((task) => new TaskResponseDto(task)),
+				totalCount,
+			},
 		});
 	}
 
@@ -232,7 +244,7 @@ export class TaskHandler extends BaseHandler {
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
-		const tasks = await this._taskService.getMyTasks(
+		const { tasks, totalCount } = await this._taskService.getMyTasks(
 			req.user.id,
 			req.query,
 			req.logger,
@@ -240,7 +252,77 @@ export class TaskHandler extends BaseHandler {
 
 		res.status(200).json({
 			status: "success",
-			data: tasks.map((task) => new TaskResponseDto(task)),
+			data: {
+				tasks: tasks.map((task) => new TaskResponseDto(task)),
+				totalCount,
+			},
+		});
+	}
+
+	/**
+	 * @openapi
+	 * paths:
+	 *   /api/v1/tasks/{taskId}:
+	 *     get:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Get task
+	 *       security:
+	 *         - Session: []
+	 *       parameters:
+	 *         - name: taskId
+	 *           in: path
+	 *           required: true
+	 *           description: Task ID
+	 *           schema:
+	 *             type: integer
+	 *       responses:
+	 *         200:
+	 *           description: Success
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/GetTaskResponseDto'
+	 *         400:
+	 *           description: Validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 invalidTaskId:
+	 *                   summary: Invalid task ID
+	 *                   value:
+	 *                     status: "error"
+	 *                     errors:
+	 *                       taskId: "The taskId field must be a number."
+	 *         401:
+	 *           description: Unauthorized
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden (User does not have permission)
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 */
+	async getTask(
+		req: Request<GetTaskRequestDto, GetTaskResponseDto>,
+		res: Response<GetTaskResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+
+		const task = await this._taskService.getTask(
+			Number(req.params.taskId),
+			req.logger,
+		);
+
+		res.status(200).json({
+			status: "success",
+			data: new TaskResponseDto(task),
 		});
 	}
 
@@ -587,6 +669,7 @@ export class TaskHandler extends BaseHandler {
 	protected bindMethods(): void {
 		this.getAllTasks = this.getAllTasks.bind(this);
 		this.getMyTasks = this.getMyTasks.bind(this);
+		this.getTask = this.getTask.bind(this);
 		this.createTask = this.createTask.bind(this);
 		this.updateTask = this.updateTask.bind(this);
 		this.deleteTask = this.deleteTask.bind(this);
@@ -617,6 +700,20 @@ export class TaskHandler extends BaseHandler {
 				},
 			]),
 			asyncWrapper(this.getMyTasks),
+		);
+
+		this.router.get(
+			"/:taskId",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Freelancer, UserRole.Admin]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.getTask,
+					type: "params",
+				},
+			]),
+			//@ts-ignore
+			asyncWrapper(this.getTask),
 		);
 		this.router.post(
 			"/",
@@ -664,7 +761,7 @@ export class TaskHandler extends BaseHandler {
 					type: "params",
 				},
 			]),
-			//@ts-expect-error
+			//@ts-ignore
 			asyncWrapper(this.updateTask),
 		);
 		this.router.delete(
@@ -677,7 +774,7 @@ export class TaskHandler extends BaseHandler {
 					type: "params",
 				},
 			]),
-			//@ts-expect-error
+			//@ts-ignore
 			asyncWrapper(this.deleteTask),
 		);
 		this.router.delete(
@@ -690,7 +787,7 @@ export class TaskHandler extends BaseHandler {
 					type: "params",
 				},
 			]),
-			//@ts-expect-error
+			//@ts-ignore
 			asyncWrapper(this.deleteTaskFiles),
 		);
 	}

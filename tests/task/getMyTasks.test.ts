@@ -47,8 +47,11 @@ describe("Task", () => {
 			expect(response.body).toBeTypeOf("object");
 			expect(response.body).toHaveProperty("status");
 			expect(response.body).toHaveProperty("data");
-			expectTypeOf(response.body.data).toBeArray;
-			expect(response.body.data).toHaveLength(0);
+			expect(response.body.data).toHaveProperty("tasks");
+			expect(response.body.data).toHaveProperty("totalCount");
+			expectTypeOf(response.body.data.tasks).toBeArray;
+			expectTypeOf(response.body.data.totalCount).toBeNumber;
+			expect(response.body.data.tasks).toHaveLength(0);
 		});
 
 		it("Should return array of tasks if tasks exist", async () => {
@@ -98,8 +101,11 @@ describe("Task", () => {
 			expect(response.body).toBeTypeOf("object");
 			expect(response.body).toHaveProperty("status");
 			expect(response.body).toHaveProperty("data");
-			expectTypeOf(response.body.data).toBeArray;
-			expect(response.body.data).toHaveLength(1);
+			expect(response.body.data).toHaveProperty("tasks");
+			expect(response.body.data).toHaveProperty("totalCount");
+			expectTypeOf(response.body.data.tasks).toBeArray;
+			expectTypeOf(response.body.data.totalCount).toBeNumber;
+			expect(response.body.data.tasks).toHaveLength(1);
 		});
 
 		it("Should return 400 status code when filters are invalid", async () => {

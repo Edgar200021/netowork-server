@@ -8,8 +8,8 @@ import {
 	GET_TASKS_DEFAULT_PAGE,
 } from "../const/task.js";
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
-import type { DeleteTaskRequestParamsDto } from "../dto/task/deleteTask/deleteTaskReqeust.dto.js";
-import type { DeleteTaskFilesRequestParamsDto } from "../dto/task/deleteTaskFiles/deletTaskFilesRequest.dto.js";
+import type { DeleteTaskRequestParamsDto } from "../dto/task/deleteTask/deleteTaskRequest.dto.js";
+import type { DeleteTaskFilesRequestParamsDto } from "../dto/task/deleteTaskFiles/deleteTaskFilesRequest.dto.js";
 import type { GetAllTasksRequestDto } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
 import type { GetMyTasksRequestDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type {
@@ -34,59 +34,23 @@ export class TaskService {
 	async getAllTasks(
 		getAllTasksRequestDto: GetAllTasksRequestDto,
 		log: LoggerService,
-	): Promise<
-		(Task & {
+	): Promise<{
+		tasks: (Task & {
 			category: Category["name"];
 			subcategory: Category["name"] | null;
 			creator: `${User["firstName"]} ${User["lastName"]}`;
 			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
-		})[]
-	> {
+		})[];
+		totalCount: number;
+	}> {
 		log.info("Getting all tasks");
 
 		const limit =
 			Number(getAllTasksRequestDto.limit) || GET_TASKS_DEFAULT_LIMIT;
 		const page = Number(getAllTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
 
-		const tasks = await this._database
-			.selectFrom("task")
-			.innerJoin("category", "task.categoryId", "category.id")
-			.leftJoin(
-				"category as subcategory",
-				"task.subcategoryId",
-				"subcategory.id",
-			)
-			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
-			.innerJoin("users", "task.clientId", "users.id")
-			.select([
-				"task.id",
-				"task.title",
-				"task.price",
-				"task.description",
-				"task.clientId",
-				"task.freelancerId",
-				"task.status",
-				"task.categoryId",
-				"task.subcategoryId",
-				"task.createdAt",
-				"task.updatedAt",
-				"category.name as categoryName",
-				"subcategory.name as subcategoryName",
-				"users.firstName",
-				"users.lastName",
-			])
-			.select(
-				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
-				json_agg(
-					json_build_object(
-					'fileId', tf.file_id,
-					'fileUrl', tf.file_url,
-					'fileName', tf.file_name
-					)
-				) FILTER (WHERE tf.file_id IS NOT NULL),
-				'[]'
-				)`.as("files"),
-			)
+		const tasks = await this.getTaskBaseQuery()
+			.select(sql<number>`COUNT(*) OVER()`.as("totalCount"))
 			.where("status", "=", TaskStatus.Open)
 			.$if(!!getAllTasksRequestDto.subCategoryIds, (qb) =>
 				qb.where(
@@ -95,7 +59,13 @@ export class TaskService {
 					getAllTasksRequestDto.subCategoryIds!.split(",").map(Number),
 				),
 			)
-			.$if(!!getAllTasksRequestDto.search, qb => qb.where("task.title", "like", `%${getAllTasksRequestDto.search}%`))
+			.$if(!!getAllTasksRequestDto.search, (qb) =>
+				qb.where(
+					sql`LOWER(task.title)`,
+					"like",
+					`%${getAllTasksRequestDto.search?.toLowerCase()}%`,
+				),
+			)
 			.$if(!getAllTasksRequestDto.sort, (qb) => qb.orderBy("task.id"))
 			.$if(!!getAllTasksRequestDto.sort, (qb) =>
 				qb.orderBy(
@@ -105,89 +75,72 @@ export class TaskService {
 					}),
 				),
 			)
-			.groupBy([
-				"task.id",
-				"category.name",
-				"subcategory.name",
-				"users.firstName",
-				"users.lastName",
-			])
 			.limit(limit)
 			.offset((page - 1) * limit)
 			.execute();
 
-		return tasks.map((t) => ({
-			...t,
-			category: t.categoryName,
-			subcategory: t.subcategoryName,
-			creator: `${t.firstName} ${t.lastName}`,
-		}));
+		return {
+			tasks: tasks.map((t) => ({
+				...t,
+				category: t.categoryName,
+				subcategory: t.subcategoryName,
+				creator: `${t.firstName} ${t.lastName}`,
+			})),
+			totalCount: tasks[0]?.totalCount || 0,
+		};
+	}
+
+	async getTask(
+		taskId: Task["id"],
+		log: LoggerService,
+	): Promise<
+		Task & {
+			category: Category["name"];
+			subcategory: Category["name"] | null;
+			creator: `${User["firstName"]} ${User["lastName"]}`;
+			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
+		}
+	> {
+		log.info({ taskId }, "Getting task");
+
+		const task = await this.getTaskBaseQuery()
+			.where("task.id", "=", taskId)
+			.executeTakeFirst();
+
+		if (!task) {
+			log.warn({ taskId }, "Task not found");
+			throw new NotFoundError("Task not found");
+		}
+
+		return {
+			...task,
+			category: task.categoryName,
+			subcategory: task.subcategoryName,
+			creator: `${task.firstName} ${task.lastName}`,
+		};
 	}
 
 	async getMyTasks(
 		userId: User["id"],
 		getMyTasksRequestDto: GetMyTasksRequestDto,
 		log: LoggerService,
-	): Promise<
-		(Task & {
+	): Promise<{
+		tasks: (Task & {
 			category: Category["name"];
 			subcategory: Category["name"] | null;
 			creator: `${User["firstName"]} ${User["lastName"]}`;
 			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
-		})[]
-	> {
+		})[];
+		totalCount: number;
+	}> {
 		log.info({ userId }, "Getting my tasks");
 
 		const limit = Number(getMyTasksRequestDto.limit) || GET_TASKS_DEFAULT_LIMIT;
 		const page = Number(getMyTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
 
-		let tasksQuery = this._database
-			.selectFrom("task")
-			.innerJoin("category", "task.categoryId", "category.id")
-			.leftJoin(
-				"category as subcategory",
-				"task.subcategoryId",
-				"subcategory.id",
-			)
-			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
-			.innerJoin("users", "task.clientId", "users.id")
-			.select([
-				"task.id",
-				"task.title",
-				"task.price",
-				"task.description",
-				"task.clientId",
-				"task.freelancerId",
-				"task.status",
-				"task.categoryId",
-				"task.subcategoryId",
-				"task.createdAt",
-				"task.updatedAt",
-				"category.name as categoryName",
-				"subcategory.name as subcategoryName",
-				"users.firstName",
-				"users.lastName",
-			])
-			.select(
-				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
-				json_agg(
-					json_build_object(
-					'fileId', tf.file_id,
-					'fileUrl', tf.file_url,
-					'fileName', tf.file_name
-					)
-				) FILTER (WHERE tf.file_id IS NOT NULL),
-				'[]'
-				)`.as("files"),
-			)
+		let tasksQuery = await this.getTaskBaseQuery()
+			.select(sql<number>`COUNT(*) OVER()`.as("totalCount"))
 			.where("clientId", "=", userId)
-			.groupBy([
-				"task.id",
-				"category.name",
-				"subcategory.name",
-				"users.firstName",
-				"users.lastName",
-			])
 			.orderBy("task.createdAt", "desc")
 			.limit(limit)
 			.offset((page - 1) * limit);
@@ -202,12 +155,15 @@ export class TaskService {
 
 		const tasks = await tasksQuery.execute();
 
-		return tasks.map((t) => ({
-			...t,
-			category: t.categoryName,
-			subcategory: t.subcategoryName,
-			creator: `${t.firstName} ${t.lastName}`,
-		}));
+		return {
+			tasks: tasks.map((t) => ({
+				...t,
+				category: t.categoryName,
+				subcategory: t.subcategoryName,
+				creator: `${t.firstName} ${t.lastName}`,
+			})),
+			totalCount: tasks[0]?.totalCount || 0,
+		};
 	}
 
 	async create(
@@ -329,43 +285,7 @@ export class TaskService {
 		const { categoryId, subCategoryId, description, title, price } =
 			updateTaskRequestDto;
 
-		const task = await this._database
-			.selectFrom("task")
-			.innerJoin("category", "task.categoryId", "category.id")
-			.leftJoin(
-				"category as subcategory",
-				"task.subcategoryId",
-				"subcategory.id",
-			)
-			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
-			.select([
-				"task.id",
-				"task.title",
-				"task.price",
-				"task.description",
-				"task.clientId",
-				"task.freelancerId",
-				"task.status",
-				"task.categoryId",
-				"task.subcategoryId",
-				"task.createdAt",
-				"task.updatedAt",
-				"category.name as categoryName",
-				"subcategory.name as subcategoryName",
-			])
-			.select(
-				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
-				json_agg(
-					json_build_object(
-					'fileId', tf.file_id,
-					'fileUrl', tf.file_url,
-					'fileName', tf.file_name
-					)
-				) FILTER (WHERE tf.file_id IS NOT NULL),
-				'[]'
-				)`.as("files"),
-			)
-			.groupBy(["task.id", "category.name", "subcategory.name"])
+		const task = await this.getTaskBaseQuery()
 			.where("task.id", "=", Number(updateTaskRequestParamsDto.taskId))
 			.where("clientId", "=", userId)
 			.executeTakeFirst();
@@ -547,43 +467,7 @@ export class TaskService {
 	> {
 		log.info({ userId, fileId }, "Deleting task files");
 
-		const task = await this._database
-			.selectFrom("task")
-			.innerJoin("category", "task.categoryId", "category.id")
-			.leftJoin(
-				"category as subcategory",
-				"task.subcategoryId",
-				"subcategory.id",
-			)
-			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
-			.select([
-				"task.id",
-				"task.title",
-				"task.price",
-				"task.description",
-				"task.clientId",
-				"task.freelancerId",
-				"task.status",
-				"task.categoryId",
-				"task.subcategoryId",
-				"task.createdAt",
-				"task.updatedAt",
-				"category.name as categoryName",
-				"subcategory.name as subcategoryName",
-			])
-			.select(
-				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
-			json_agg(
-				json_build_object(
-				'fileId', tf.file_id,
-				'fileUrl', tf.file_url,
-				'fileName', tf.file_name
-				)
-			) FILTER (WHERE tf.file_id IS NOT NULL),
-			'[]'
-			)`.as("files"),
-			)
-			.groupBy(["task.id", "category.name", "subcategory.name"])
+		const task = await this.getTaskBaseQuery()
 			.where("task.id", "=", Number(taskId))
 			.where("clientId", "=", userId)
 			.executeTakeFirst();
@@ -617,6 +501,55 @@ export class TaskService {
 			subcategory: task.subcategoryName,
 			files: task.files.filter((f) => f.fileId !== fileToDelete.fileId),
 		};
+	}
+
+	private getTaskBaseQuery() {
+		return this._database
+			.selectFrom("task")
+			.innerJoin("category", "task.categoryId", "category.id")
+			.leftJoin(
+				"category as subcategory",
+				"task.subcategoryId",
+				"subcategory.id",
+			)
+			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
+			.innerJoin("users", "task.clientId", "users.id")
+			.select([
+				"task.id",
+				"task.title",
+				"task.price",
+				"task.description",
+				"task.clientId",
+				"task.freelancerId",
+				"task.status",
+				"task.categoryId",
+				"task.subcategoryId",
+				"task.createdAt",
+				"task.updatedAt",
+				"category.name as categoryName",
+				"subcategory.name as subcategoryName",
+				"users.firstName",
+				"users.lastName",
+			])
+			.select(
+				sql<Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[]>`COALESCE(
+				json_agg(
+					json_build_object(
+					'fileId', tf.file_id,
+					'fileUrl', tf.file_url,
+					'fileName', tf.file_name
+					)
+				) FILTER (WHERE tf.file_id IS NOT NULL),
+				'[]'
+				)`.as("files"),
+			)
+			.groupBy([
+				"task.id",
+				"category.name",
+				"subcategory.name",
+				"users.firstName",
+				"users.lastName",
+			]);
 	}
 
 	private async uploadFiles(

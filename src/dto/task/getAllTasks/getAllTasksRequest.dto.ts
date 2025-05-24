@@ -6,7 +6,7 @@ import { tasksSortAndFilterRule } from "../../../vine-rules/tasksSortAndFilter.r
 export const getAllTasksSchema = vine.object({
 	limit: vine.number().positive().max(GET_ALL_TASKS_MAX_LIMIT).optional(),
 	page: vine.number().positive().optional(),
-	search: vine.string().trim().toLowerCase().minLength(1).optional(),
+	search: vine.string().minLength(1).optional(),
 	subCategoryIds: vine
 		.string()
 		.use(

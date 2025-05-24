@@ -11,8 +11,16 @@ import type { TaskResponseDto } from "../taskResponse.dto.js";
  *         - type: object
  *           properties:
  *             data:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/TaskResponseDto'
+ *               type: object
+ *               properties:
+ *                 tasks:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TaskResponseDto'
+ *                 totalCount:
+ *                   type: number
  */
-export type GetAllTasksResponseDto = SuccessResponseDto<TaskResponseDto[]>;
+export type GetAllTasksResponseDto = SuccessResponseDto<{
+	tasks: TaskResponseDto[],
+	totalCount: number
+}>;
