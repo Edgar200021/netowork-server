@@ -33,11 +33,11 @@ export interface Category {
 
 export interface Task {
   categoryId: number;
-  clientId: number;
+  clientId: string;
   createdAt: Generated<Timestamp>;
   description: string;
-  freelancerId: number | null;
-  id: Generated<number>;
+  freelancerId: string | null;
+  id: Generated<string>;
   price: number;
   status: Generated<TaskStatus>;
   subcategoryId: number | null;
@@ -50,15 +50,15 @@ export interface TaskFiles {
   fileId: string;
   fileName: string;
   fileUrl: string;
-  id: Generated<number>;
-  taskId: number;
+  id: Generated<string>;
+  taskId: string;
   updatedAt: Generated<Timestamp>;
 }
 
 export interface TaskViews {
-  id: Generated<number>;
-  taskId: number;
-  userId: number | null;
+  id: Generated<string>;
+  taskId: string;
+  userId: string | null;
 }
 
 export interface Users {
@@ -68,7 +68,7 @@ export interface Users {
   createdAt: Generated<Timestamp>;
   email: string;
   firstName: string;
-  id: Generated<number>;
+  id: Generated<string>;
   isBanned: Generated<boolean>;
   isVerified: Generated<boolean>;
   lastName: string;
@@ -79,19 +79,19 @@ export interface Users {
 
 export interface WorkImages {
   createdAt: Generated<Timestamp>;
-  id: Generated<number>;
+  id: Generated<string>;
   imageId: string;
   imageUrl: string;
   updatedAt: Generated<Timestamp>;
-  workId: number;
+  workId: string;
 }
 
 export interface Works {
   createdAt: Generated<Timestamp>;
-  id: Generated<number>;
+  id: Generated<string>;
   title: string;
   updatedAt: Generated<Timestamp>;
-  userId: number;
+  userId: string;
 }
 
 export interface DB {

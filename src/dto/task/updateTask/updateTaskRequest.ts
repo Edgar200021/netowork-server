@@ -48,7 +48,7 @@ export const updateTaskRequestSchema = vine.object({
 });
 
 export const updateTaskRequestParamsSchema = vine.object({
-	taskId: vine.number(),
+	taskId: vine.string().uuid()
 });
 
 export type UpdateTaskRequestDto = InferInput<typeof updateTaskRequestSchema>;

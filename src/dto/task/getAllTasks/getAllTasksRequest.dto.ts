@@ -3,7 +3,7 @@ import type { InferInput } from "@vinejs/vine/types";
 import { GET_ALL_TASKS_MAX_LIMIT } from "../../../const/validator.js";
 import { tasksSortAndFilterRule } from "../../../vine-rules/tasksSortAndFilter.rule.js";
 
-export const getAllTasksSchema = vine.object({
+export const getAllTasksRequestSchema = vine.object({
 	limit: vine.number().positive().max(GET_ALL_TASKS_MAX_LIMIT).optional(),
 	page: vine.number().positive().optional(),
 	search: vine.string().minLength(1).optional(),
@@ -25,4 +25,4 @@ export const getAllTasksSchema = vine.object({
 		.optional(),
 });
 
-export type GetAllTasksRequestDto = InferInput<typeof getAllTasksSchema>;
+export type GetAllTasksRequestDto = InferInput<typeof getAllTasksRequestSchema>;

@@ -124,7 +124,7 @@ export class WorksService {
 				),
 			)
 			.where("works.userId", "=", userId)
-			.where("works.id", "=", Number(payload.id))
+			.where("works.id", "=", payload.id)
 			.executeTakeFirst();
 
 		if (!work) {

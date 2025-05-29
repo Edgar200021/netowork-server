@@ -2,7 +2,7 @@ import vine from "@vinejs/vine";
 import type { InferInput } from "@vinejs/vine/types";
 
 export const deleteTaskFilesRequestParamsSchema = vine.object({
-	taskId: vine.number().positive(),
+	taskId: vine.string().uuid(),
 	fileId: vine.string(),
 });
 

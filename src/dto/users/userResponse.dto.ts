@@ -9,7 +9,8 @@ import type { User } from "../../storage/postgres/types/user.types.js";
  *       type: object
  *       properties:
  *         id:
- *           type: number
+ *           type: string
+ *           format: uuid
  *         firstName:
  *           type: string
  *         lastName:
@@ -36,7 +37,7 @@ import type { User } from "../../storage/postgres/types/user.types.js";
  */
 
 export class UserResponseDto {
-	readonly id: number;
+	readonly id: string;
 	readonly firstName: string;
 	readonly lastName: string;
 	readonly email: string;

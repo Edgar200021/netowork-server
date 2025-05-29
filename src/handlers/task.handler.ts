@@ -14,19 +14,24 @@ import {
 import type { DeleteTaskFilesResponseDto } from "../dto/task/deleteTaskFiles/deleteTaskFilesResponse.dto.js";
 import {
 	type GetAllTasksRequestDto,
-	getAllTasksSchema,
+	getAllTasksRequestSchema,
 } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
 import type { GetAllTasksResponseDto } from "../dto/task/getAllTasks/getAllTasksResponse.dto.js";
 import {
 	type GetMyTasksRequestDto,
-	getMyTasksSchema,
+	getMyTasksRequestSchema,
 } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type { GetMyTasksResponseDto } from "../dto/task/getMyTasks/getMyTasksResponse.dto.js";
 import {
-	type GetTaskRequestDto,
-	getTaskSchema,
+	type GetTaskRequestParamsDto,
+	getTaskRequestParamsSchema,
 } from "../dto/task/getTask/getTaskRequest.dto.js";
 import type { GetTaskResponseDto } from "../dto/task/getTask/getTaskResponse.dto.js";
+import type { IncrementTaskViewResponseDto } from "../dto/task/incrementView/incrementTaskViewResponse.dto.js";
+import {
+	type IncrementTaskViewRequestParamsDto,
+	incrementTaskViewRequestParamsSchema,
+} from "../dto/task/incrementView/incrementViewRequest.dto.js";
 import { TaskResponseDto } from "../dto/task/taskResponse.dto.js";
 import {
 	type UpdateTaskRequestDto,
@@ -44,13 +49,14 @@ import { BaseHandler } from "./base.handler.js";
 export class TaskHandler extends BaseHandler {
 	protected validators = {
 		createTask: vine.compile(createTaskSchema),
-		getAllTasks: vine.compile(getAllTasksSchema),
-		getMyTasks: vine.compile(getMyTasksSchema),
-		getTask: vine.compile(getTaskSchema),
+		getAllTasks: vine.compile(getAllTasksRequestSchema),
+		getMyTasks: vine.compile(getMyTasksRequestSchema),
+		getTask: vine.compile(getTaskRequestParamsSchema),
 		updateTask: vine.compile(updateTaskRequestSchema),
 		updateTaskParams: vine.compile(updateTaskRequestParamsSchema),
 		deleteTaskParams: vine.compile(deleteTaskRequestParamsSchema),
 		deleteTaskFilesParams: vine.compile(deleteTaskFilesRequestParamsSchema),
+		incrementTaskView: vine.compile(incrementTaskViewRequestParamsSchema),
 	};
 
 	constructor(
@@ -275,7 +281,8 @@ export class TaskHandler extends BaseHandler {
 	 *           required: true
 	 *           description: Task ID
 	 *           schema:
-	 *             type: integer
+	 *             type: string
+	 *             format: uuid
 	 *       responses:
 	 *         200:
 	 *           description: Success
@@ -310,15 +317,12 @@ export class TaskHandler extends BaseHandler {
 	 *                 $ref: '#/components/schemas/ErrorResponseDto'
 	 */
 	async getTask(
-		req: Request<GetTaskRequestDto, GetTaskResponseDto>,
+		req: Request<GetTaskRequestParamsDto, GetTaskResponseDto>,
 		res: Response<GetTaskResponseDto>,
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
-		const task = await this._taskService.getTask(
-			Number(req.params.taskId),
-			req.logger,
-		);
+		const task = await this._taskService.getTask(req.params.taskId, req.logger);
 
 		res.status(200).json({
 			status: "success",
@@ -436,7 +440,8 @@ export class TaskHandler extends BaseHandler {
 	 *           required: true
 	 *           description: Task ID
 	 *           schema:
-	 *             type: integer
+	 *             type: string
+	 *             format: uuid
 	 *       requestBody:
 	 *         content:
 	 *           multipart/form-data:
@@ -537,7 +542,8 @@ export class TaskHandler extends BaseHandler {
 	 *           required: true
 	 *           description: Task ID
 	 *           schema:
-	 *             type: integer
+	 *             type: string
+	 *             format: uuid
 	 *       responses:
 	 *         200:
 	 *           description: Task deleted
@@ -590,7 +596,7 @@ export class TaskHandler extends BaseHandler {
 	/**
 	 * @openapi
 	 * paths:
-	 *   /api/v1/tasks/{taskId}/files:
+	 *   /api/v1/tasks/{taskId}/files/{fileId}:
 	 *     delete:
 	 *       tags:
 	 *         - Tasks
@@ -603,7 +609,8 @@ export class TaskHandler extends BaseHandler {
 	 *           required: true
 	 *           description: Task ID
 	 *           schema:
-	 *             type: integer
+	 *             type: string
+	 *             format: uuid
 	 *         - name: fileId
 	 *           in: path
 	 *           required: true
@@ -666,6 +673,19 @@ export class TaskHandler extends BaseHandler {
 		});
 	}
 
+	async incrementTaskView(
+		req: Request<IncrementTaskViewRequestParamsDto>,
+		res: Response<IncrementTaskViewResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+		await this._taskService.incrementTaskView(req.user.id, req.params.taskId);
+
+		res.status(200).json({
+			status: "success",
+			data: null,
+		});
+	}
+
 	protected bindMethods(): void {
 		this.getAllTasks = this.getAllTasks.bind(this);
 		this.getMyTasks = this.getMyTasks.bind(this);
@@ -674,6 +694,7 @@ export class TaskHandler extends BaseHandler {
 		this.updateTask = this.updateTask.bind(this);
 		this.deleteTask = this.deleteTask.bind(this);
 		this.deleteTaskFiles = this.deleteTaskFiles.bind(this);
+		this.incrementTaskView = this.incrementTaskView.bind(this);
 	}
 
 	protected setupRoutes(): void {
@@ -688,6 +709,28 @@ export class TaskHandler extends BaseHandler {
 				},
 			]),
 			asyncWrapper(this.getAllTasks),
+		);
+		this.router.post(
+			"/",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Client]),
+			this._middlewares.uploadFile(TASK_FILES_NAME, {
+				fileCount: TASK_FILES_MAX_COUNT,
+				single: false,
+				mimeTypes: [
+					"application/msword",
+					"application/pdf",
+					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+					"text/plain",
+				],
+			}),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.createTask,
+					type: "body",
+				},
+			]),
+			asyncWrapper(this.createTask),
 		);
 		this.router.get(
 			"/my-tasks",
@@ -715,28 +758,7 @@ export class TaskHandler extends BaseHandler {
 			//@ts-ignore
 			asyncWrapper(this.getTask),
 		);
-		this.router.post(
-			"/",
-			this._middlewares.auth,
-			this._middlewares.restrict([UserRole.Client]),
-			this._middlewares.uploadFile(TASK_FILES_NAME, {
-				fileCount: TASK_FILES_MAX_COUNT,
-				single: false,
-				mimeTypes: [
-					"application/msword",
-					"application/pdf",
-					"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-					"text/plain",
-				],
-			}),
-			this._middlewares.validateRequest([
-				{
-					validatorOrSchema: this.validators.createTask,
-					type: "body",
-				},
-			]),
-			asyncWrapper(this.createTask),
-		);
+
 		this.router.patch(
 			"/:taskId",
 			this._middlewares.auth,
@@ -776,6 +798,19 @@ export class TaskHandler extends BaseHandler {
 			]),
 			//@ts-ignore
 			asyncWrapper(this.deleteTask),
+		);
+		this.router.post(
+			"/:taskId/increment-view",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Freelancer]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.incrementTaskView,
+					type: "params",
+				},
+			]),
+			//@ts-ignore
+			asyncWrapper(this.incrementTaskView),
 		);
 		this.router.delete(
 			"/:taskId/files/:fileId",

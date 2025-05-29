@@ -1,3 +1,14 @@
-import type { Task } from '../storage/postgres/types/task.type.js';
+import type { TaskFiles } from "../storage/db.js";
+import type { Category } from "../storage/postgres/types/category.type.js";
+import type { Task } from "../storage/postgres/types/task.type.js";
+import type { User } from "../storage/postgres/types/user.types.js";
 
-export type TasksSort = `${Extract<keyof Task, "createdAt" | "price">}-${"desc" | "asc"}`
+export type TasksSort =
+	`${Extract<keyof Task, "createdAt" | "price">}-${"desc" | "asc"}`;
+export type TaskReturn = Task & {
+	category: Category["name"];
+	subcategory: Category["name"] | null;
+	creator: `${User["firstName"]} ${User["lastName"]}`;
+	files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
+	views: number;
+};

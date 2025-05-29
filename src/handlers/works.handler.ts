@@ -177,7 +177,8 @@ export class WorksHandler extends BaseHandler {
 	 *           required: true
 	 *           description: Work ID
 	 *           schema:
-	 *             type: integer
+	 *             type: string
+	 *             format: uuid
 	 *       responses:
 	 *         200:
 	 *           description: Success

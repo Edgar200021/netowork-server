@@ -1,16 +1,15 @@
 import { sql } from "kysely";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
-import { GET_ALL_TASKS_MAX_LIMIT } from "../../src/const/validator.js";
 import type { CategoryResponseDto } from "../../src/dto/categories/categoryResponse.dto.js";
 import { TaskStatus, UserRole } from "../../src/storage/db.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
 import { createValidationError, pdfPath } from "../utils.js";
-
 describe("Task", () => {
 	let app: TestApp;
 	let category: CategoryResponseDto[];
+	let taskIds: string[] = [];
 
 	const data = {
 		role: UserRole.Freelancer,
@@ -97,7 +96,13 @@ describe("Task", () => {
 				},
 			];
 
-			await app.database.insertInto("task").values(tasks).execute();
+			const ids = await app.database
+				.insertInto("task")
+				.values(tasks)
+				.returning(["id"])
+				.execute();
+
+			taskIds = ids.map((t) => t.id);
 
 			return new Promise((res) => setTimeout(res, 4000));
 		} catch (error) {
@@ -111,190 +116,92 @@ describe("Task", () => {
 		return new Promise((res) => setTimeout(res, 4000));
 	});
 
-	describe("Get All Tasks", () => {
-		it("Should return 200 status code when getting all tasks", async () => {
+	describe("Increment View", () => {
+		it("Should return 200 status code when request is valid", async () => {
 			const verifyResult = await app.createAndVerify(data);
 			expect(verifyResult.status).toBe(200);
 
-			const getTasksResult = await app.getAllTasks(
-				{},
+			const incrementResult = await app.incrementTaskView(
+				{ taskId: taskIds[0] },
 				verifyResult.get("Set-Cookie"),
 			);
 
-			expect(getTasksResult.statusCode).toBe(200);
-			expect(getTasksResult.body.data.tasks).toHaveLength(3);
-
-			for (const task of getTasksResult.body.data.tasks) {
-				expect(task).toHaveProperty("id");
-				expect(task).toHaveProperty("createdAt");
-				expect(task).toHaveProperty("title");
-				expect(task).toHaveProperty("description");
-				expect(task).toHaveProperty("category");
-				expect(task).toHaveProperty("subCategory");
-				expect(task).toHaveProperty("price");
-				expect(task).toHaveProperty("files");
-				expect(task).toHaveProperty("creator");
-				expect(task).toHaveProperty("status");
-				expect(task.status).toEqual(TaskStatus.Open);
-			}
+			expect(incrementResult.statusCode).toBe(200);
+			expect(incrementResult.body.data).toBe(null);
 		});
 
-		it("Should return correct tasks for various filter and sort parameters", async () => {
+		it("Should save task view in database", async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.status).toBe(200);
+
+			console.log("TASK IDS", taskIds);
+
+			const incrementResult = await app.incrementTaskView(
+				{ taskId: taskIds[0] },
+				verifyResult.get("Set-Cookie"),
+			);
+
+			expect(incrementResult.statusCode).toBe(200);
+			expect(incrementResult.body.data).toBe(null);
+
+			const taskView = await app.database
+				.selectFrom("taskViews")
+				.where("userId", "=", verifyResult.body.data.id)
+				.where("taskId", "=", taskIds[0])
+				.selectAll()
+				.executeTakeFirst();
+
+			expect(taskView).toBeDefined();
+		});
+
+		it("Should created only one view with same user id and task id", async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.status).toBe(200);
+
+			for (let i = 0; i < 2; i++) {
+				const incrementResult = await app.incrementTaskView(
+					{ taskId: taskIds[0] },
+					verifyResult.get("Set-Cookie"),
+				);
+
+				expect(incrementResult.statusCode).toBe(200);
+				expect(incrementResult.body.data).toBe(null);
+			}
+
+			const taskView = await app.database
+				.selectFrom("taskViews")
+				.select((eb) => eb.fn.count("id").as("count"))
+				.where("taskId", "=", taskIds[0])
+				.executeTakeFirst();
+
+			expect(taskView).toBeDefined();
+			expect(taskView.count).toBe("1");
+		});
+
+		it("Should return 400 status code when data is not valid", async () => {
 			const verifyResult = await app.createAndVerify(data);
 			expect(verifyResult.status).toBe(200);
 
 			const testCases = [
 				{
-					name: "No filters or sorting",
-					reqBody: {},
-					expected: {
-						statusCode: 200,
-						dataLength: 3,
-					},
-				},
-				{
-					name: "Filter by single subCategoryId",
 					reqBody: {
-						subCategoryIds: category[0].subCategories[0].id.toString(),
+						taskId: 1,
 					},
-					expected: {
-						statusCode: 200,
-						dataLength: 1,
-						dataTitles: ["Task title"],
-					},
+					resBody: createValidationError("taskId"),
 				},
 				{
-					name: "Filter by multiple subCategoryIds",
-					reqBody: {
-						subCategoryIds: `${category[0].subCategories[0].id},${category[1].subCategories[3].id}`,
-					},
-					expected: {
-						statusCode: 200,
-						dataLength: 2,
-					},
-				},
-				{
-					name: "Search by title keyword",
-					reqBody: { search: "title" },
-					expected: {
-						statusCode: 200,
-						dataLength: 3,
-						
-					},
-				},
-				{
-					name: "Search with no results",
-					reqBody: { search: "random" },
-					expected: {
-						statusCode: 200,
-						dataLength: 0,
-						dataTitles: [],
-					},
-				},
-				{
-					name: "Sort by price descending",
-					reqBody: { sort: "price-desc" },
-					expected: {
-						statusCode: 200,
-						dataLength: 3,
-						dataTitles: ["Task title 3", "Task title 2", "Task title"],
-					},
-				},
-				{
-					name: "Filter by subCategoryIds and sort by price descending",
-					reqBody: {
-						subCategoryIds: `${category[0].subCategories[0].id},${category[1].subCategories[3].id}`,
-						sort: "price-desc",
-					},
-					expected: {
-						statusCode: 200,
-						dataLength: 2,
-						dataTitles: ["Task title 2", "Task title"],
-					},
-				},
-				{
-					name: "Pagination with limit=1, page=1",
-					reqBody: { limit: 1, page: 1 },
-					expected: {
-						statusCode: 200,
-						dataLength: 1,
-					},
-				},
-				{
-					name: "Pagination with limit=2, page=2",
-					reqBody: { limit: 2, page: 2 },
-					expected: {
-						statusCode: 200,
-						dataLength: 1,
-						dataTitles: ["Task title 3"],
-					},
-				},
-			];
-
-			for (const { name, reqBody, expected } of testCases) {
-				(`Running test: ${name}`);
-				const result = await app.getAllTasks(
-					reqBody,
-					verifyResult.get("Set-Cookie"),
-				);
-				expect(result.statusCode).toBe(expected.statusCode);
-				expect(result.body.data.tasks).toHaveLength(expected.dataLength);
-				if (expected.dataTitles?.length > 0) {
-					const titles = result.body.data.tasks.map((task) => task.title);
-					expect(titles).toEqual(expected.dataTitles);
-				}
-			}
-		});
-
-		it("Should return 400 status code when filters are invalid", async () => {
-			const verifyResult = await app.createAndVerify(data);
-			expect(verifyResult.statusCode).toBe(200);
-
-			const testCases = [
-				{
-					reqBody: {
-						limit: -1,
-					},
-					resBody: createValidationError("limit"),
-				},
-				{
-					reqBody: {
-						page: -1,
-					},
-					resBody: createValidationError("page"),
-				},
-				{
-					reqBody: {
-						limit: GET_ALL_TASKS_MAX_LIMIT + 1,
-					},
-					resBody: createValidationError("limit"),
-				},
-				{
-					reqBody: {
-						search: "",
-					},
-					resBody: createValidationError("search"),
-				},
-				{
-					reqBody: {
-						subCategoryIds: "abc",
-					},
-					resBody: createValidationError("subCategoryIds"),
-				},
-				{
-					reqBody: {
-						sort: "invalid_sort",
-					},
-					resBody: createValidationError("sort"),
+					reqBody: { taskId: "Non uuid" },
+					resBody: createValidationError("taskId"),
 				},
 			];
 
 			for (const testCase of testCases) {
-				const result = await app.getAllTasks(
+				const result = await app.incrementTaskView(
 					testCase.reqBody,
 					verifyResult.get("Set-Cookie"),
 				);
 				expect(result.statusCode).toBe(400);
+
 				expect(result.body).toHaveProperty("errors");
 				expect(
 					Object.keys(result.body.errors as ValidationErrorResponseDto),
@@ -303,7 +210,9 @@ describe("Task", () => {
 		});
 
 		it("Should return 401 status code when user is not authenticated", async () => {
-			const result = await app.getAllTasks({});
+			const result = await app.incrementTaskView({
+				taskId: taskIds[0],
+			});
 			expect(result.statusCode).toBe(401);
 		});
 
@@ -314,8 +223,22 @@ describe("Task", () => {
 			});
 			expect(verifyResult.statusCode).toBe(200);
 
-			const result = await app.getAllTasks({}, verifyResult.get("Set-Cookie"));
+			const result = await app.incrementTaskView(
+				{ taskId: taskIds[0] },
+				verifyResult.get("Set-Cookie"),
+			);
 			expect(result.statusCode).toBe(403);
+		});
+
+		it("Should return 404 status code when task id is not provided", async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.statusCode).toBe(200);
+
+			const result = await app.incrementTaskView(
+				{},
+				verifyResult.get("Set-Cookie"),
+			);
+			expect(result.statusCode).toBe(404);
 		});
 	});
 });

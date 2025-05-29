@@ -1,8 +1,10 @@
 import vine from "@vinejs/vine";
 import type { InferInput } from "@vinejs/vine/types";
 
-export const getTaskSchema = vine.object({
-	taskId: vine.number().positive(),
+export const getTaskRequestParamsSchema = vine.object({
+	taskId: vine.string().uuid(),
 });
 
-export type GetTaskRequestDto = InferInput<typeof getTaskSchema>;
+export type GetTaskRequestParamsDto = InferInput<
+	typeof getTaskRequestParamsSchema
+>;

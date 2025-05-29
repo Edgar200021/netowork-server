@@ -18,11 +18,12 @@ import type {
 } from "../dto/task/updateTask/updateTaskRequest.js";
 import { type TaskFiles, TaskStatus } from "../storage/db.js";
 import type { Database } from "../storage/postgres/database.js";
-import type { Category } from "../storage/postgres/types/category.type.js";
 import type { Task } from "../storage/postgres/types/task.type.js";
 import type { User } from "../storage/postgres/types/user.types.js";
 import type { FileUploadResponse } from "../types/cloudinary.js";
+import { isDatabaseError } from "../types/database.js";
 import { AllowedMimeTypes } from "../types/mimeTypes.js";
+import type { TaskReturn } from "../types/tasks.js";
 import type { FileUploader } from "./fileUploader.service.js";
 
 export class TaskService {
@@ -35,12 +36,7 @@ export class TaskService {
 		getAllTasksRequestDto: GetAllTasksRequestDto,
 		log: LoggerService,
 	): Promise<{
-		tasks: (Task & {
-			category: Category["name"];
-			subcategory: Category["name"] | null;
-			creator: `${User["firstName"]} ${User["lastName"]}`;
-			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
-		})[];
+		tasks: TaskReturn[];
 		totalCount: number;
 	}> {
 		log.info("Getting all tasks");
@@ -66,7 +62,9 @@ export class TaskService {
 					`%${getAllTasksRequestDto.search?.toLowerCase()}%`,
 				),
 			)
-			.$if(!getAllTasksRequestDto.sort, (qb) => qb.orderBy("task.id"))
+			.$if(!getAllTasksRequestDto.sort, (qb) =>
+				qb.orderBy("task.createdAt", "desc"),
+			)
 			.$if(!!getAllTasksRequestDto.sort, (qb) =>
 				qb.orderBy(
 					getAllTasksRequestDto.sort!.split(",").map((val) => {
@@ -79,6 +77,8 @@ export class TaskService {
 			.offset((page - 1) * limit)
 			.execute();
 
+		console.log("TASKS", tasks);
+
 		return {
 			tasks: tasks.map((t) => ({
 				...t,
@@ -90,17 +90,7 @@ export class TaskService {
 		};
 	}
 
-	async getTask(
-		taskId: Task["id"],
-		log: LoggerService,
-	): Promise<
-		Task & {
-			category: Category["name"];
-			subcategory: Category["name"] | null;
-			creator: `${User["firstName"]} ${User["lastName"]}`;
-			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
-		}
-	> {
+	async getTask(taskId: Task["id"], log: LoggerService): Promise<TaskReturn> {
 		log.info({ taskId }, "Getting task");
 
 		const task = await this.getTaskBaseQuery()
@@ -111,6 +101,8 @@ export class TaskService {
 			log.warn({ taskId }, "Task not found");
 			throw new NotFoundError("Task not found");
 		}
+
+		this.incrementTaskView(task.clientId, taskId);
 
 		return {
 			...task,
@@ -125,12 +117,7 @@ export class TaskService {
 		getMyTasksRequestDto: GetMyTasksRequestDto,
 		log: LoggerService,
 	): Promise<{
-		tasks: (Task & {
-			category: Category["name"];
-			subcategory: Category["name"] | null;
-			creator: `${User["firstName"]} ${User["lastName"]}`;
-			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
-		})[];
+		tasks: TaskReturn[];
 		totalCount: number;
 	}> {
 		log.info({ userId }, "Getting my tasks");
@@ -138,7 +125,7 @@ export class TaskService {
 		const limit = Number(getMyTasksRequestDto.limit) || GET_TASKS_DEFAULT_LIMIT;
 		const page = Number(getMyTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
 
-		let tasksQuery = await this.getTaskBaseQuery()
+		let tasksQuery = this.getTaskBaseQuery()
 			.select(sql<number>`COUNT(*) OVER()`.as("totalCount"))
 			.where("clientId", "=", userId)
 			.orderBy("task.createdAt", "desc")
@@ -154,6 +141,8 @@ export class TaskService {
 		}
 
 		const tasks = await tasksQuery.execute();
+
+		console.log("tasks", tasks);
 
 		return {
 			tasks: tasks.map((t) => ({
@@ -171,13 +160,7 @@ export class TaskService {
 		createTaskRequestDto: CreateTaskRequestDto,
 		log: LoggerService,
 		files?: Express.Multer.File[],
-	): Promise<
-		Task & {
-			category: Category["name"];
-			subcategory: Category["name"] | null;
-			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
-		}
-	> {
+	): Promise<Omit<TaskReturn, "creator" | "views">> {
 		log.info({ userId }, "Creating task");
 
 		const category = await this._database
@@ -265,13 +248,7 @@ export class TaskService {
 		updateTaskRequestParamsDto: UpdateTaskRequestParamsDto,
 		log: LoggerService,
 		files?: Express.Multer.File[],
-	): Promise<
-		Task & {
-			category: Category["name"];
-			subcategory: Category["name"] | null;
-			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
-		}
-	> {
+	): Promise<Omit<TaskReturn, "creator" | "views">> {
 		log.info({ userId }, "Updating task");
 
 		if (
@@ -286,7 +263,7 @@ export class TaskService {
 			updateTaskRequestDto;
 
 		const task = await this.getTaskBaseQuery()
-			.where("task.id", "=", Number(updateTaskRequestParamsDto.taskId))
+			.where("task.id", "=", updateTaskRequestParamsDto.taskId)
 			.where("clientId", "=", userId)
 			.executeTakeFirst();
 
@@ -371,7 +348,7 @@ export class TaskService {
 			if (Object.keys(updateData).length) {
 				updatedTask = await trx
 					.updateTable("task")
-					.where("task.id", "=", Number(updateTaskRequestParamsDto.taskId))
+					.where("task.id", "=", updateTaskRequestParamsDto.taskId)
 					.where("clientId", "=", userId)
 					.set({ ...updateData, updatedAt: sql`NOW()` })
 					.returningAll()
@@ -428,7 +405,7 @@ export class TaskService {
 				)`.as("files"),
 			)
 			.where("clientId", "=", userId)
-			.where("task.id", "=", Number(deleteTaskRequestParamsDto.taskId))
+			.where("task.id", "=", deleteTaskRequestParamsDto.taskId)
 			.groupBy(["task.id", "task.status"])
 			.executeTakeFirst();
 
@@ -458,17 +435,11 @@ export class TaskService {
 		userId: User["id"],
 		{ taskId, fileId }: DeleteTaskFilesRequestParamsDto,
 		log: LoggerService,
-	): Promise<
-		Task & {
-			category: Category["name"];
-			subcategory: Category["name"] | null;
-			files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
-		}
-	> {
+	): Promise<Omit<TaskReturn, "creator">> {
 		log.info({ userId, fileId }, "Deleting task files");
 
 		const task = await this.getTaskBaseQuery()
-			.where("task.id", "=", Number(taskId))
+			.where("task.id", "=", taskId)
 			.where("clientId", "=", userId)
 			.executeTakeFirst();
 
@@ -503,17 +474,35 @@ export class TaskService {
 		};
 	}
 
+	async incrementTaskView(userId: User["id"], taskId: Task["id"]) {
+		try {
+			await this._database
+				.insertInto("taskViews")
+				.values({
+					taskId,
+					userId,
+				})
+				.execute();
+		} catch (e) {
+			if (isDatabaseError(e) && e.constraint === "task_views_task_id_user_id") {
+				return;
+			}
+
+			throw e;
+		}
+	}
+
 	private getTaskBaseQuery() {
 		return this._database
 			.selectFrom("task")
-			.innerJoin("category", "task.categoryId", "category.id")
+			.innerJoin("category", "category.id", "task.categoryId")
 			.leftJoin(
 				"category as subcategory",
-				"task.subcategoryId",
 				"subcategory.id",
+				"task.subcategoryId",
 			)
 			.leftJoin("taskFiles as tf", "tf.taskId", "task.id")
-			.innerJoin("users", "task.clientId", "users.id")
+			.innerJoin("users", "users.id", "task.clientId")
 			.select([
 				"task.id",
 				"task.title",
@@ -542,6 +531,11 @@ export class TaskService {
 				) FILTER (WHERE tf.file_id IS NOT NULL),
 				'[]'
 				)`.as("files"),
+			)
+			.select(
+				sql<number>`(SELECT COUNT(*)::INTEGER FROM task_views WHERE task_id = task.id)`.as(
+					"views",
+				),
 			)
 			.groupBy([
 				"task.id",

@@ -5,7 +5,7 @@ import type { CategoryResponseDto } from "../../src/dto/categories/categoryRespo
 import { TaskStatus, UserRole } from "../../src/storage/db.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
-import { createValidationError } from "../utils.js";
+import { createValidationError, genUuid } from "../utils.js";
 
 describe("Task", () => {
 	let app: TestApp;
@@ -136,7 +136,7 @@ describe("Task", () => {
 
 			const testCase = {
 				reqBody: {
-					taskId: "Invalid task id",
+					taskId: 34,
 				},
 				resBody: createValidationError("taskId"),
 			};
@@ -145,6 +145,8 @@ describe("Task", () => {
 				testCase.reqBody,
 				verifyResult.get("Set-Cookie"),
 			);
+
+			console.log(deleteResult)
 
 			expect(deleteResult.statusCode).toBe(400);
 			expect(deleteResult.body).toHaveProperty("errors");
@@ -209,6 +211,24 @@ describe("Task", () => {
 			);
 
 			expect(deleteResult.statusCode).toBe(403);
+		});
+
+		it("Should return 404 status code when task is not found or task id is not provided", async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.statusCode).toBe(200);
+
+			const testCases = [genUuid(), undefined];
+
+			for (const testCase of testCases) {
+				const deleteResult = await app.deleteTask(
+					{
+						taskId: testCase,
+					},
+					verifyResult.get("Set-Cookie"),
+				);
+
+				expect(deleteResult.statusCode).toBe(404);
+			}
 		});
 	});
 });

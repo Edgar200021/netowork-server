@@ -5,7 +5,7 @@ import type { CategoryResponseDto } from "../../src/dto/categories/categoryRespo
 import { UserRole } from "../../src/storage/db.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
-import { createValidationError, pdfPath } from "../utils.js";
+import { createValidationError, genUuid, pdfPath } from "../utils.js";
 
 describe("Task", () => {
 	let app: TestApp;
@@ -232,7 +232,7 @@ describe("Task", () => {
 				},
 				{
 					fileId: createResult.body.data.files[0].fileId,
-					taskId: 50,
+					taskId: genUuid(),
 				},
 				{
 					taskId: createResult.body.data.id,

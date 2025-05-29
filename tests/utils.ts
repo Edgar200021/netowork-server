@@ -26,6 +26,10 @@ export const createBaseError = () => {
 	};
 };
 
+export const genUuid = () => {
+	return "00000000-0000-0000-0000-000000000000";
+}
+
 export const imagePath = path.join(import.meta.dirname, "./assets/test.jpg");
 export const pdfPath = path.join(
 	import.meta.dirname,

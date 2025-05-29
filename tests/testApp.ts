@@ -281,7 +281,9 @@ export class TestApp {
 		},
 		cookies?: string[],
 	) {
-		const request = this.superTest.get(`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}`);
+		const request = this.superTest.get(
+			`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}`,
+		);
 
 		if (cookies) {
 			request.set("Cookie", cookies);
@@ -390,6 +392,25 @@ export class TestApp {
 		const request = this.superTest
 			.delete(
 				`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}/files/${encodeURIComponent(body.fileId)}`,
+			)
+			.set("Content-Type", "application/json");
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
+	async incrementTaskView(
+		body: { taskId?: number | string },
+		cookies?: string[],
+	) {
+		const request = this.superTest
+			.post(
+				`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}/increment-view`,
 			)
 			.set("Content-Type", "application/json");
 

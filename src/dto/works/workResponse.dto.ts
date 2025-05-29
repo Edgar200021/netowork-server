@@ -8,7 +8,8 @@ import type { Work } from "../../storage/postgres/types/userWorks.types.js";
  *       type: object
  *       properties:
  *         id:
- *           type: number
+ *           type: string
+ *           format: uuid
  *         title:
  *           type: string
  *         images:
@@ -17,7 +18,7 @@ import type { Work } from "../../storage/postgres/types/userWorks.types.js";
  *             type: string
  */
 export class WorkResponseDto {
-	readonly id: number;
+	readonly id: string;
 	readonly title: string;
 	readonly images: string[];
 

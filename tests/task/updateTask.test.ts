@@ -15,6 +15,7 @@ import { type TestApp, spawnApp } from "../testApp.js";
 import {
 	createBaseError,
 	createValidationError,
+	genUuid,
 	pdfPath,
 	txtPath,
 } from "../utils.js";
@@ -304,7 +305,7 @@ describe("Task", () => {
 						TASK_FILES_MAX_COUNT - createResult.body.data.files.length + 1,
 					).fill(txtPath),
 				},
-				createResult.get("Set-Cookie"),
+				verifyResult.get("Set-Cookie"),
 			);
 
 			expect(updateResult.status).toBe(400);
@@ -356,7 +357,7 @@ describe("Task", () => {
 
 			const testCases = [
 				{ taskId: undefined },
-				{ taskId: 3, title: "New title" },
+				{ taskId: genUuid(), title: "New title" },
 			];
 
 			for (const testCase of testCases) {

@@ -1,17 +1,15 @@
 import { sql } from "kysely";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
-import { GET_ALL_TASKS_MAX_LIMIT } from "../../src/const/validator.js";
 import type { CategoryResponseDto } from "../../src/dto/categories/categoryResponse.dto.js";
 import { TaskStatus, UserRole } from "../../src/storage/db.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
-import { createValidationError, pdfPath } from "../utils.js";
+import { createValidationError, genUuid } from "../utils.js";
 
 describe("Task", () => {
 	let app: TestApp;
 	let category: CategoryResponseDto[];
-	const taskIds: number[] = [];
+	const taskIds: string[] = [];
 
 	const data = {
 		role: UserRole.Freelancer,
@@ -186,7 +184,7 @@ describe("Task", () => {
 			expect(verifyResult.status).toBe(200);
 
 			const getTaskResult = await app.getTask(
-				{ taskId: Math.max(...taskIds) + 1 },
+				{ taskId: genUuid() },
 				verifyResult.get("Set-Cookie"),
 			);
 			expect(getTaskResult.statusCode).toBe(404);

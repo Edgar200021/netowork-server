@@ -8,8 +8,8 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable("task")
-		.addColumn("id", "integer", (col) =>
-			col.primaryKey().generatedAlwaysAsIdentity(),
+		.addColumn("id", "uuid", (col) =>
+				col.primaryKey().defaultTo(sql`gen_random_uuid()`)
 		)
 		.addColumn("created_at", "timestamp", (col) =>
 			col.notNull().defaultTo("now()"),
@@ -29,10 +29,10 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn("subcategory_id", "integer", (col) =>
 			col.references("category.id").onDelete("set null").onUpdate("set null"),
 		)
-		.addColumn("client_id", "integer", (col) =>
+		.addColumn("client_id", "uuid", (col) =>
 			col.references("users.id").onDelete("cascade").notNull(),
 		)
-		.addColumn("freelancer_id", "integer", (col) => col.references("users.id"))
+		.addColumn("freelancer_id", "uuid", (col) => col.references("users.id"))
 		.addColumn("price", "integer", (col) => col.notNull())
 		.addColumn("status", sql`task_status`, (col) =>
 			col.notNull().defaultTo(sql`'open'::task_status`),
@@ -41,8 +41,8 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable("task_files")
-		.addColumn("id", "integer", (col) =>
-			col.primaryKey().generatedAlwaysAsIdentity(),
+		.addColumn("id", "uuid", (col) =>
+			col.primaryKey().defaultTo(sql`gen_random_uuid()`)
 		)
 		.addColumn("created_at", "timestamp", (col) =>
 			col.notNull().defaultTo("now()"),
@@ -53,7 +53,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn("file_id", "text", (col) => col.notNull())
 		.addColumn("file_url", "text", (col) => col.notNull())
 		.addColumn("file_name", "text", (col) => col.notNull())
-		.addColumn("task_id", "integer", (col) =>
+		.addColumn("task_id", "uuid", (col) =>
 			col
 				.references("task.id")
 				.onDelete("cascade")

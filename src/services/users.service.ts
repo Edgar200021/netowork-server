@@ -13,6 +13,7 @@ import { generateRandomToken } from "../utils/createToken.js";
 import type { AuthService } from "./auth.service.js";
 import type { EmailService } from "./email.service.js";
 import type { FileUploader } from "./fileUploader.service.js";
+import { sql } from 'kysely';
 
 export class UsersService {
 	constructor(
@@ -82,7 +83,7 @@ export class UsersService {
 					avatarId: fileUploadRes?.fileId,
 					email,
 					isVerified: false,
-					updatedAt: new Date(),
+					updatedAt: sql`NOW()`,
 					...(req.body.firstName && { firstName: req.body.firstName }),
 					...(req.body.lastName && { lastName: req.body.lastName }),
 				})
@@ -109,7 +110,7 @@ export class UsersService {
 				aboutMe,
 				avatar: fileUploadRes?.fileUrl,
 				avatarId: fileUploadRes?.fileId,
-				updatedAt: new Date(),
+				updatedAt: sql`NOW()`,
 				...(req.body.firstName && { firstName: req.body.firstName }),
 				...(req.body.lastName && { lastName: req.body.lastName }),
 			})
@@ -132,6 +133,7 @@ export class UsersService {
 			.updateTable("users")
 			.set({
 				password: hashedPassword,
+				updatedAt: sql`NOW()`,
 			})
 			.where("id", "=", user.id)
 			.execute();

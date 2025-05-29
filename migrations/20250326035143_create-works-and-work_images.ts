@@ -1,10 +1,10 @@
-import type { Kysely } from "kysely";
+import { sql, type Kysely } from "kysely";
 
 export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
 		.createTable("works")
-		.addColumn("id", "integer", (col) =>
-			col.primaryKey().generatedAlwaysAsIdentity(),
+		.addColumn("id", "uuid", (col) =>
+				col.primaryKey().defaultTo(sql`gen_random_uuid()`)
 		)
 		.addColumn("created_at", "timestamp", (col) =>
 			col.notNull().defaultTo("now()"),
@@ -13,7 +13,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 			col.notNull().defaultTo("now()"),
 		)
 		.addColumn("title", "text", (col) => col.notNull())
-		.addColumn("user_id", "integer", (col) =>
+		.addColumn("user_id", "uuid", (col) =>
 			col
 				.references("users.id")
 				.onDelete("cascade")
@@ -31,8 +31,8 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable("work_images")
-		.addColumn("id", "integer", (col) =>
-			col.primaryKey().generatedAlwaysAsIdentity(),
+		.addColumn("id", "uuid", (col) =>
+			col.primaryKey().defaultTo(sql`gen_random_uuid()`)
 		)
 		.addColumn("created_at", "timestamp", (col) =>
 			col.notNull().defaultTo("now()"),
@@ -42,7 +42,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 		)
 		.addColumn("image_url", "text", (col) => col.notNull())
 		.addColumn("image_id", "text", (col) => col.notNull())
-		.addColumn("work_id", "integer", (col) =>
+		.addColumn("work_id", "uuid", (col) =>
 			col
 				.references("works.id")
 				.onDelete("cascade")

@@ -1,19 +1,19 @@
-import type { Kysely } from "kysely";
+import { sql, type Kysely } from "kysely";
 
 export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
 		.createTable("task_views")
-		.addColumn("id", "integer", (col) =>
-			col.primaryKey().generatedAlwaysAsIdentity(),
+		.addColumn("id", "uuid", (col) =>
+				col.primaryKey().defaultTo(sql`gen_random_uuid()`)
 		)
-		.addColumn("task_id", "integer", (col) =>
+		.addColumn("task_id", "uuid", (col) =>
 			col
 				.notNull()
 				.references("task.id")
 				.onDelete("cascade")
 				.onUpdate("cascade"),
 		)
-		.addColumn("user_id", "integer", (col) =>
+		.addColumn("user_id", "uuid", (col) =>
 			col.references("users.id").onDelete("set null").onUpdate("cascade"),
 		)
 		.addUniqueConstraint("task_views_task_id_user_id", ["task_id", "user_id"])

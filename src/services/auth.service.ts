@@ -238,7 +238,7 @@ export class AuthService {
 				password: hashedPassword,
 				updatedAt: sql`NOW()`,
 			})
-			.where("id", "=", Number(userId))
+			.where("id", "=", userId)
 			.returning(["id"])
 			.executeTakeFirst();
 

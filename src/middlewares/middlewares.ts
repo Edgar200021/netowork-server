@@ -63,7 +63,7 @@ export class Middlewares {
 		const user = await this._database
 			.selectFrom("users")
 			.selectAll()
-			.where("id", "=", Number(userId))
+			.where("id", "=",userId)
 			.executeTakeFirst();
 
 		if (!user || !user.isVerified || user.isBanned) {
