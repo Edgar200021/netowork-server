@@ -52,7 +52,7 @@ export class Services {
 
 		this._worksService = new WorksService(this._database, this._fileUploader);
 		this._categoryService = new CategoryService(this._database, this._redis);
-		this._taskService = new TaskService(this._database, this._fileUploader);
+		this._taskService = new TaskService(this._database, this._fileUploader, this._emailService);
 	}
 
 	get authService() {

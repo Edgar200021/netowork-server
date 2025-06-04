@@ -3,7 +3,7 @@ import { BadRequestError, NotFoundError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
 import { MAX_WORKS_COUNT } from "../const/works.js";
 import type { CreateWorkRequestDto } from "../dto/works/createWork/createWorkRequest.dto.js";
-import type { DeleteWorkRequestDto } from "../dto/works/deleteWork/deleteWorkRequest.dto.js";
+import type { DeleteWorkRequestParamsDto } from "../dto/works/deleteWork/deleteWorkRequest.dto.js";
 import { WorkResponseDto } from "../dto/works/workResponse.dto.js";
 import type { Database } from "../storage/postgres/database.js";
 import type { User } from "../storage/postgres/types/user.types.js";
@@ -45,7 +45,9 @@ export class WorksService {
 
 		if (existingWork) {
 			log.warn({ title: payload.title }, "Work already exists");
-			throw new BadRequestError("Work already exists");
+			throw new BadRequestError(
+				`Work with title "${payload.title}" already exists`,
+			);
 		}
 
 		const images = await Promise.all(
@@ -109,7 +111,7 @@ export class WorksService {
 
 	async deleteWork(
 		userId: User["id"],
-		payload: DeleteWorkRequestDto,
+		payload: DeleteWorkRequestParamsDto,
 		log: LoggerService,
 	) {
 		log.info({ userId }, "Deleting work");

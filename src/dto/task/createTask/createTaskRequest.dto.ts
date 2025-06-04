@@ -35,7 +35,7 @@ import {
  *         price:
  *           type: number
  */
-export const createTaskSchema = vine.object({
+export const createTaskRequestSchema = vine.object({
 	title: vine
 		.string()
 		.trim()
@@ -51,4 +51,4 @@ export const createTaskSchema = vine.object({
 	price: vine.number().positive(),
 });
 
-export type CreateTaskRequestDto = InferInput<typeof createTaskSchema>;
+export type CreateTaskRequestDto = InferInput<typeof createTaskRequestSchema>;

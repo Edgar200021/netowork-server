@@ -1,5 +1,13 @@
 import { sql } from "kysely";
-import { afterEach, beforeAll, beforeEach, describe, expect, expectTypeOf, it } from "vitest";
+import {
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	expectTypeOf,
+	it,
+} from "vitest";
 import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
 import { TASK_FILES_MAX_COUNT } from "../../src/const/multer.js";
 import {
@@ -9,6 +17,7 @@ import {
 	MIN_TASK_TITLE_LENGTH,
 } from "../../src/const/validator.js";
 import type { CategoryResponseDto } from "../../src/dto/categories/categoryResponse.dto.js";
+import { UserRole } from "../../src/storage/db.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
 import {
@@ -17,7 +26,6 @@ import {
 	imagePath,
 	pdfPath,
 } from "../utils.js";
-import { UserRole } from '../../src/storage/db.js';
 
 describe("Task", () => {
 	let app: TestApp;
@@ -119,11 +127,11 @@ describe("Task", () => {
 				expect(result.body.data).toHaveProperty("status");
 				if (index === 0) {
 					expect(result.body.data).toHaveProperty("files");
-					expectTypeOf(result.body.data.files).toBeArray
+					expectTypeOf(result.body.data.files).toBeArray;
 					expect(result.body.data.files).toHaveLength(1);
-					expect(result.body.data.files[0]).toHaveProperty("fileUrl")		
-					expect(result.body.data.files[0]).toHaveProperty("fileId")
-					expect(result.body.data.files[0]).toHaveProperty("fileName")
+					expect(result.body.data.files[0]).toHaveProperty("fileUrl");
+					expect(result.body.data.files[0]).toHaveProperty("fileId");
+					expect(result.body.data.files[0]).toHaveProperty("fileName");
 				}
 			}
 		});
@@ -308,7 +316,7 @@ describe("Task", () => {
 		it(`Should return 403 status code when user role is not "${UserRole.Client}"`, async () => {
 			const verifyResult = await app.createAndVerify({
 				...data,
-				role: UserRole.Freelancer
+				role: UserRole.Freelancer,
 			});
 			expect(verifyResult.statusCode).toBe(200);
 

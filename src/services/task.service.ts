@@ -7,11 +7,21 @@ import {
 	GET_TASKS_DEFAULT_LIMIT,
 	GET_TASKS_DEFAULT_PAGE,
 } from "../const/task.js";
+import { GET_TASK_REPLIES_MAX_LIMIT } from "../const/validator.js";
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
+import type {
+	CreateTaskReplyRequestDto,
+	CreateTaskReplyRequestParamsDto,
+} from "../dto/task/createTaskReply/createTaskReplyRequest.dto.js";
 import type { DeleteTaskRequestParamsDto } from "../dto/task/deleteTask/deleteTaskRequest.dto.js";
 import type { DeleteTaskFilesRequestParamsDto } from "../dto/task/deleteTaskFiles/deleteTaskFilesRequest.dto.js";
-import type { GetAllTasksRequestDto } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
-import type { GetMyTasksRequestDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
+import type { GetAllTasksRequestQueryDto } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
+import type {
+	GetMyTaskRepliesRequestParamsDto,
+	GetMyTaskRepliesRequestQueryDto,
+} from "../dto/task/getMyTaskReplies/getMyTaskRepliesRequest.dto.js";
+import type { GetMyTasksRequestQueryDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
+import type { GetTaskRequestParamsDto } from "../dto/task/getTask/getTaskRequest.dto.js";
 import type {
 	UpdateTaskRequestDto,
 	UpdateTaskRequestParamsDto,
@@ -23,17 +33,19 @@ import type { User } from "../storage/postgres/types/user.types.js";
 import type { FileUploadResponse } from "../types/cloudinary.js";
 import { isDatabaseError } from "../types/database.js";
 import { AllowedMimeTypes } from "../types/mimeTypes.js";
-import type { TaskReturn } from "../types/tasks.js";
+import type { MyTaskRepliesReturn, TaskReturn } from "../types/tasks.js";
+import type { EmailService } from "./email.service.js";
 import type { FileUploader } from "./fileUploader.service.js";
 
 export class TaskService {
 	constructor(
 		private readonly _database: Database,
 		private readonly _fileUploader: FileUploader,
+		private readonly _emailService: EmailService,
 	) {}
 
 	async getAllTasks(
-		getAllTasksRequestDto: GetAllTasksRequestDto,
+		getAllTasksRequestDto: GetAllTasksRequestQueryDto,
 		log: LoggerService,
 	): Promise<{
 		tasks: TaskReturn[];
@@ -77,8 +89,6 @@ export class TaskService {
 			.offset((page - 1) * limit)
 			.execute();
 
-		console.log("TASKS", tasks);
-
 		return {
 			tasks: tasks.map((t) => ({
 				...t,
@@ -90,7 +100,11 @@ export class TaskService {
 		};
 	}
 
-	async getTask(taskId: Task["id"], log: LoggerService): Promise<TaskReturn> {
+	async getTask(
+		userId: User["id"],
+		{ taskId }: GetTaskRequestParamsDto,
+		log: LoggerService,
+	): Promise<TaskReturn> {
 		log.info({ taskId }, "Getting task");
 
 		const task = await this.getTaskBaseQuery()
@@ -102,7 +116,7 @@ export class TaskService {
 			throw new NotFoundError("Task not found");
 		}
 
-		this.incrementTaskView(task.clientId, taskId);
+		this.incrementTaskView(userId, taskId);
 
 		return {
 			...task,
@@ -114,7 +128,7 @@ export class TaskService {
 
 	async getMyTasks(
 		userId: User["id"],
-		getMyTasksRequestDto: GetMyTasksRequestDto,
+		getMyTasksRequestDto: GetMyTasksRequestQueryDto,
 		log: LoggerService,
 	): Promise<{
 		tasks: TaskReturn[];
@@ -127,6 +141,7 @@ export class TaskService {
 
 		let tasksQuery = this.getTaskBaseQuery()
 			.select(sql<number>`COUNT(*) OVER()`.as("totalCount"))
+			.select(["notifyAboutReplies"])
 			.where("clientId", "=", userId)
 			.orderBy("task.createdAt", "desc")
 			.limit(limit)
@@ -141,8 +156,6 @@ export class TaskService {
 		}
 
 		const tasks = await tasksQuery.execute();
-
-		console.log("tasks", tasks);
 
 		return {
 			tasks: tasks.map((t) => ({
@@ -259,10 +272,17 @@ export class TaskService {
 			throw new BadRequestError("No data provided for update");
 		}
 
-		const { categoryId, subCategoryId, description, title, price } =
-			updateTaskRequestDto;
+		const {
+			categoryId,
+			subCategoryId,
+			description,
+			title,
+			price,
+			notifyAboutReplies,
+		} = updateTaskRequestDto;
 
 		const task = await this.getTaskBaseQuery()
+			.select(["notifyAboutReplies"])
 			.where("task.id", "=", updateTaskRequestParamsDto.taskId)
 			.where("clientId", "=", userId)
 			.executeTakeFirst();
@@ -340,6 +360,13 @@ export class TaskService {
 					subCategoryId !== task.subcategoryId && {
 						categoryId: Number(categoryId),
 						subcategoryId: Number(subCategoryId),
+					}),
+				...(notifyAboutReplies !== undefined &&
+					notifyAboutReplies !== null && {
+						notifyAboutReplies:
+							typeof notifyAboutReplies === "string"
+								? notifyAboutReplies === "true"
+								: Boolean(notifyAboutReplies),
 					}),
 			};
 
@@ -490,6 +517,114 @@ export class TaskService {
 
 			throw e;
 		}
+	}
+
+	async createTaskReply(
+		userId: User["id"],
+		createTaskReplyRequestDto: CreateTaskReplyRequestDto,
+		createTaskReplyRequestParamsDto: CreateTaskReplyRequestParamsDto,
+		log: LoggerService,
+	) {
+		log.info({ userId }, "Creating task reply");
+
+		const task = await this._database
+			.selectFrom("task")
+			.innerJoin("users", "users.id", "task.clientId")
+			.select(["task.id", "status", "title", "users.email"])
+			.where("task.id", "=", createTaskReplyRequestParamsDto.taskId)
+			.executeTakeFirst();
+
+		if (!task || task.status !== TaskStatus.Open) {
+			log.warn(
+				!task ? "Task not found" : `Task status is not "${TaskStatus.Open}"`,
+			);
+			throw !task
+				? new NotFoundError("Task not found")
+				: new BadRequestError(`Task status is not "${TaskStatus.Open}"`);
+		}
+
+		const taskReply = await this._database
+			.selectFrom("taskReplies")
+			.where("freelancerId", "=", userId)
+			.where("taskId", "=", createTaskReplyRequestParamsDto.taskId)
+			.executeTakeFirst();
+
+		if (taskReply) {
+			log.warn("Task reply already exists");
+			throw new BadRequestError("Task reply already exists");
+		}
+
+		await this._database
+			.insertInto("taskReplies")
+			.values({
+				createdAt: sql`NOW()`,
+				freelancerId: userId,
+				taskId: createTaskReplyRequestParamsDto.taskId,
+				description: createTaskReplyRequestDto.description,
+			})
+			.execute();
+
+		this._emailService.sendTaskReplyEmail(task.email, task.title, log);
+	}
+
+	async getMyTaskReplies(
+		userId: User["id"],
+		getMyTaskRepliesRequestParamsDto: GetMyTaskRepliesRequestParamsDto,
+		getMyTaskRepliesRequestQueryDto: GetMyTaskRepliesRequestQueryDto,
+		log: LoggerService,
+	): Promise<{ replies: MyTaskRepliesReturn[]; totalCount: number }> {
+		log.info({ userId }, "Getting my task replies");
+
+		const limit =
+			Number(getMyTaskRepliesRequestQueryDto.limit) ||
+			GET_TASK_REPLIES_MAX_LIMIT;
+		const page = Number(getMyTaskRepliesRequestQueryDto.page) || 1;
+
+		const task = await this._database
+			.selectFrom("task")
+			.select(["id"])
+			.where("clientId", "=", userId)
+			.where("id", "=", getMyTaskRepliesRequestParamsDto.taskId)
+			.executeTakeFirst();
+
+		if (!task) {
+			log.warn("Task not found");
+			throw new NotFoundError("Task not found");
+		}
+
+		const taskReplies = await this._database
+			.selectFrom("taskReplies")
+			.innerJoin("users", "users.id", "taskReplies.freelancerId")
+			.select([
+				"taskReplies.id",
+				"taskReplies.description",
+				"taskReplies.createdAt",
+				"taskReplies.freelancerId",
+				"users.firstName",
+				"users.lastName",
+				"users.avatar",
+			])
+			.select(sql<number>`COUNT(*) OVER()`.as("totalCount"))
+			.where("taskId", "=", task.id)
+			.orderBy("createdAt", "desc")
+			.limit(limit)
+			.offset(page * limit - limit)
+			.execute();
+
+		return {
+			replies: taskReplies.map((t) => ({
+				id: t.id,
+				description: t.description,
+				createdAt: t.createdAt,
+				freelancer: {
+					id: t.freelancerId,
+					firstName: t.firstName,
+					lastName: t.lastName,
+					avatar: t.avatar,
+				},
+			})),
+			totalCount: taskReplies[0].totalCount,
+		};
 	}
 
 	private getTaskBaseQuery() {

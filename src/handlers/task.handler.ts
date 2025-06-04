@@ -3,8 +3,16 @@ import type { Request, Response } from "express";
 import { UnauthorizedError } from "../common/error.js";
 import { TASK_FILES_MAX_COUNT, TASK_FILES_NAME } from "../const/multer.js";
 import type { CreateTaskRequestDto } from "../dto/task/createTask/createTaskRequest.dto.js";
-import { createTaskSchema } from "../dto/task/createTask/createTaskRequest.dto.js";
+import { createTaskRequestSchema } from "../dto/task/createTask/createTaskRequest.dto.js";
 import type { CreateTaskResponseDto } from "../dto/task/createTask/createTaskResponse.dto.js";
+import type {} from "../dto/task/createTaskReply/createTaskReplyRequest.dto.js";
+import {
+	type CreateTaskReplyRequestDto,
+	type CreateTaskReplyRequestParamsDto,
+	createTaskReplyRequestParamsSchema,
+	createTaskReplyRequestSchema,
+} from "../dto/task/createTaskReply/createTaskReplyRequest.dto.js";
+import type { CreateTaskReplyResponseDto } from "../dto/task/createTaskReply/createTaskReplyResponse.dto.js";
 import { deleteTaskRequestParamsSchema } from "../dto/task/deleteTask/deleteTaskRequest.dto.js";
 import type { DeleteTaskResponseDto } from "../dto/task/deleteTask/deleteTaskResponse.dto.js";
 import {
@@ -13,13 +21,20 @@ import {
 } from "../dto/task/deleteTaskFiles/deleteTaskFilesRequest.dto.js";
 import type { DeleteTaskFilesResponseDto } from "../dto/task/deleteTaskFiles/deleteTaskFilesResponse.dto.js";
 import {
-	type GetAllTasksRequestDto,
-	getAllTasksRequestSchema,
+	type GetAllTasksRequestQueryDto,
+	getAllTasksRequestQuerySchema,
 } from "../dto/task/getAllTasks/getAllTasksRequest.dto.js";
 import type { GetAllTasksResponseDto } from "../dto/task/getAllTasks/getAllTasksResponse.dto.js";
 import {
-	type GetMyTasksRequestDto,
-	getMyTasksRequestSchema,
+	type GetMyTaskRepliesRequestParamsDto,
+	type GetMyTaskRepliesRequestQueryDto,
+	getMyTaskRepliesRequestParamsSchema,
+	getMyTaskRepliesRequestQuerySchema,
+} from "../dto/task/getMyTaskReplies/getMyTaskRepliesRequest.dto.js";
+import type { GetMyTaskRepliesResponseDto } from "../dto/task/getMyTaskReplies/getMyTaskRepliesResponse.dto.js";
+import {
+	type GetMyTasksRequestQueryDto,
+	getMyTasksRequestQuerySchema,
 } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type { GetMyTasksResponseDto } from "../dto/task/getMyTasks/getMyTasksResponse.dto.js";
 import {
@@ -32,6 +47,7 @@ import {
 	type IncrementTaskViewRequestParamsDto,
 	incrementTaskViewRequestParamsSchema,
 } from "../dto/task/incrementView/incrementViewRequest.dto.js";
+import { MyTaskRepliesResponseDto } from "../dto/task/myTaskRepliesResponse.dto.js";
 import { TaskResponseDto } from "../dto/task/taskResponse.dto.js";
 import {
 	type UpdateTaskRequestDto,
@@ -48,15 +64,19 @@ import { BaseHandler } from "./base.handler.js";
 
 export class TaskHandler extends BaseHandler {
 	protected validators = {
-		createTask: vine.compile(createTaskSchema),
-		getAllTasks: vine.compile(getAllTasksRequestSchema),
-		getMyTasks: vine.compile(getMyTasksRequestSchema),
+		createTask: vine.compile(createTaskRequestSchema),
+		getAllTasksQuery: vine.compile(getAllTasksRequestQuerySchema),
+		getMyTasksQuery: vine.compile(getMyTasksRequestQuerySchema),
 		getTask: vine.compile(getTaskRequestParamsSchema),
 		updateTask: vine.compile(updateTaskRequestSchema),
 		updateTaskParams: vine.compile(updateTaskRequestParamsSchema),
 		deleteTaskParams: vine.compile(deleteTaskRequestParamsSchema),
 		deleteTaskFilesParams: vine.compile(deleteTaskFilesRequestParamsSchema),
 		incrementTaskView: vine.compile(incrementTaskViewRequestParamsSchema),
+		createTaskReply: vine.compile(createTaskReplyRequestSchema),
+		createTaskReplyParams: vine.compile(createTaskReplyRequestParamsSchema),
+		getMyTaskRepliesParams: vine.compile(getMyTaskRepliesRequestParamsSchema),
+		getMyTaskRepliesQuery: vine.compile(getMyTaskRepliesRequestQuerySchema),
 	};
 
 	constructor(
@@ -155,7 +175,7 @@ export class TaskHandler extends BaseHandler {
 			unknown,
 			GetAllTasksResponseDto,
 			unknown,
-			GetAllTasksRequestDto
+			GetAllTasksRequestQueryDto
 		>,
 		res: Response<GetAllTasksResponseDto>,
 	) {
@@ -245,7 +265,12 @@ export class TaskHandler extends BaseHandler {
 	 *                     message: "You do not have permission to access this resource."
 	 */
 	async getMyTasks(
-		req: Request<unknown, GetMyTasksResponseDto, unknown, GetMyTasksRequestDto>,
+		req: Request<
+			unknown,
+			GetMyTasksResponseDto,
+			unknown,
+			GetMyTasksRequestQueryDto
+		>,
 		res: Response<GetMyTasksResponseDto>,
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
@@ -322,7 +347,11 @@ export class TaskHandler extends BaseHandler {
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
 
-		const task = await this._taskService.getTask(req.params.taskId, req.logger);
+		const task = await this._taskService.getTask(
+			req.user.id,
+			req.params,
+			req.logger,
+		);
 
 		res.status(200).json({
 			status: "success",
@@ -673,6 +702,59 @@ export class TaskHandler extends BaseHandler {
 		});
 	}
 
+	/**
+	 * @openapi
+	 * paths:
+	 *   /api/v1/tasks/{taskId}/increment-view:
+	 *     post:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Increment task view
+	 *       security:
+	 *         - Session: []
+	 *       parameters:
+	 *         - name: taskId
+	 *           in: path
+	 *           required: true
+	 *           description: Task ID
+	 *           schema:
+	 *             type: string
+	 *             format: uuid
+	 *       responses:
+	 *         200:
+	 *           description: Task view incremented
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: "#/components/schemas/IncrementTaskViewResponseDto"
+	 *         400:
+	 *           description: Bad request or validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 oneOf:
+	 *                   - $ref: '#/components/schemas/ErrorResponseDto'
+	 *                   - $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 ValidationError:
+	 *                   value:
+	 *                     status: error
+	 *                     errors:
+	 *                       - field: taskId
+	 *                         message: "Task ID is required"
+	 *         401:
+	 *           description: Unauthorized
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 */
 	async incrementTaskView(
 		req: Request<IncrementTaskViewRequestParamsDto>,
 		res: Response<IncrementTaskViewResponseDto>,
@@ -686,6 +768,190 @@ export class TaskHandler extends BaseHandler {
 		});
 	}
 
+	/**
+	 * @openapi
+	 * paths:
+	 *   /api/v1/tasks/{taskId}/replies:
+	 *     post:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Create task reply
+	 *       security:
+	 *         - Session: []
+	 *       parameters:
+	 *         - name: taskId
+	 *           in: path
+	 *           required: true
+	 *           description: Task ID
+	 *           schema:
+	 *             type: string
+	 *             format: uuid
+	 *       requestBody:
+	 *         required: true
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               $ref: '#/components/schemas/CreateTaskReplyRequestDto'
+	 *       responses:
+	 *         201:
+	 *           description: Task reply created
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: "#/components/schemas/CreateTaskReplyResponseDto"
+	 *         400:
+	 *           description: Bad request or validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 oneOf:
+	 *                   - $ref: '#/components/schemas/ErrorResponseDto'
+	 *                   - $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 ValidationError:
+	 *                   value:
+	 *                     status: error
+	 *                     errors:
+	 *                       - field: description
+	 *                         message: "Description is required"
+	 *         401:
+	 *           description: Unauthorized
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 */
+	async createTaskReply(
+		req: Request<
+			CreateTaskReplyRequestParamsDto,
+			CreateTaskReplyResponseDto,
+			CreateTaskReplyRequestDto
+		>,
+		res: Response<CreateTaskReplyResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+
+		await this._taskService.createTaskReply(
+			req.user.id,
+			req.body,
+			req.params,
+			req.logger,
+		);
+
+		res.status(201).json({
+			status: "success",
+			data: null,
+		});
+	}
+
+	/**
+	 * @openapi
+	 * paths:
+	 *   /api/v1/tasks/{taskId}/replies:
+	 *     get:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Get task replies
+	 *       security:
+	 *         - Session: []
+	 *       parameters:
+	 *         - name: taskId
+	 *           in: path
+	 *           required: true
+	 *           description: Task ID
+	 *           schema:
+	 *             type: string
+	 *             format: uuid
+	 *         - name: page
+	 *           in: query
+	 *           required: false
+	 *           description: Page number
+	 *           schema:
+	 *             type: number
+	 *             minimum: 1
+	 *         - name: limit
+	 *           in: query
+	 *           required: false
+	 *           description: Limit
+	 *           schema:
+	 *             type: number
+	 *             minimum: 1
+	 *             maximum: 50
+	 *       responses:
+	 *         200:
+	 *           description: Task replies
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/GetTaskRepliesResponseDto'
+	 *         400:
+	 *           description: Bad request or validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 oneOf:
+	 *                   - $ref: '#/components/schemas/ErrorResponseDto'
+	 *                   - $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 ValidationError:
+	 *                   value:
+	 *                     status: error
+	 *                     errors:
+	 *                       - field: taskId
+	 *                         message: "Task must be provided"
+	 *         401:
+	 *           description: Unauthorized
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         404:
+	 *           description: Task not found
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *
+	 */
+	async getMyTaskReplies(
+		req: Request<
+			GetMyTaskRepliesRequestParamsDto,
+			GetMyTaskRepliesResponseDto,
+			unknown,
+			GetMyTaskRepliesRequestQueryDto
+		>,
+		res: Response<GetMyTaskRepliesResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+
+		const { replies, totalCount } = await this._taskService.getMyTaskReplies(
+			req.user.id,
+			req.params,
+			req.query,
+			req.logger,
+		);
+
+		res.status(201).json({
+			status: "success",
+			data: {
+				replies: replies.map((t) => new MyTaskRepliesResponseDto(t)),
+				totalCount,
+			},
+		});
+	}
+
 	protected bindMethods(): void {
 		this.getAllTasks = this.getAllTasks.bind(this);
 		this.getMyTasks = this.getMyTasks.bind(this);
@@ -695,6 +961,8 @@ export class TaskHandler extends BaseHandler {
 		this.deleteTask = this.deleteTask.bind(this);
 		this.deleteTaskFiles = this.deleteTaskFiles.bind(this);
 		this.incrementTaskView = this.incrementTaskView.bind(this);
+		this.createTaskReply = this.createTaskReply.bind(this);
+		this.getMyTaskReplies = this.getMyTaskReplies.bind(this);
 	}
 
 	protected setupRoutes(): void {
@@ -704,7 +972,7 @@ export class TaskHandler extends BaseHandler {
 			this._middlewares.restrict([UserRole.Freelancer, UserRole.Admin]),
 			this._middlewares.validateRequest([
 				{
-					validatorOrSchema: this.validators.getAllTasks,
+					validatorOrSchema: this.validators.getAllTasksQuery,
 					type: "query",
 				},
 			]),
@@ -738,7 +1006,7 @@ export class TaskHandler extends BaseHandler {
 			this._middlewares.restrict([UserRole.Client]),
 			this._middlewares.validateRequest([
 				{
-					validatorOrSchema: this.validators.getMyTasks,
+					validatorOrSchema: this.validators.getMyTasksQuery,
 					type: "query",
 				},
 			]),
@@ -824,6 +1092,43 @@ export class TaskHandler extends BaseHandler {
 			]),
 			//@ts-ignore
 			asyncWrapper(this.deleteTaskFiles),
+		);
+
+		this.router.post(
+			"/:taskId/replies",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Freelancer]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.createTaskReplyParams,
+					type: "params",
+				},
+				{
+					validatorOrSchema: this.validators.createTaskReply,
+					type: "body",
+				},
+				
+			]),
+			//@ts-ignore
+			asyncWrapper(this.createTaskReply),
+		);
+
+		this.router.get(
+			"/:taskId/replies",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Client]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.getMyTaskRepliesParams,
+					type: "params",
+				},
+				{
+					validatorOrSchema: this.validators.getMyTaskRepliesQuery,
+					type: "query",
+				},
+			]),
+			//@ts-ignore
+			asyncWrapper(this.getMyTaskReplies),
 		);
 	}
 }

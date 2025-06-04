@@ -28,6 +28,9 @@ import {
  *           type: number
  *         price:
  *           type: number
+ *           minimum: 0
+ *         notifyAboutReplies:
+ *           type: boolean
  */
 export const updateTaskRequestSchema = vine.object({
 	title: vine
@@ -45,6 +48,7 @@ export const updateTaskRequestSchema = vine.object({
 	categoryId: vine.number().positive().optional(),
 	subCategoryId: vine.number().positive().optional(),
 	price: vine.number().positive().optional(),
+	notifyAboutReplies: vine.boolean().optional(),
 });
 
 export const updateTaskRequestParamsSchema = vine.object({

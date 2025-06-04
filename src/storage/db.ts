@@ -38,6 +38,7 @@ export interface Task {
   description: string;
   freelancerId: string | null;
   id: Generated<string>;
+  notifyAboutReplies: Generated<boolean>;
   price: number;
   status: Generated<TaskStatus>;
   subcategoryId: number | null;
@@ -50,6 +51,15 @@ export interface TaskFiles {
   fileId: string;
   fileName: string;
   fileUrl: string;
+  id: Generated<string>;
+  taskId: string;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface TaskReplies {
+  createdAt: Generated<Timestamp>;
+  description: string;
+  freelancerId: string;
   id: Generated<string>;
   taskId: string;
   updatedAt: Generated<Timestamp>;
@@ -98,6 +108,7 @@ export interface DB {
   category: Category;
   task: Task;
   taskFiles: TaskFiles;
+  taskReplies: TaskReplies;
   taskViews: TaskViews;
   users: Users;
   workImages: WorkImages;

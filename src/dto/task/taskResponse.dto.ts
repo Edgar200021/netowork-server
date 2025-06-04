@@ -68,10 +68,9 @@ export class TaskResponseDto {
 	files: Pick<TaskFiles, "fileId" | "fileUrl" | "fileName">[];
 	readonly status: TaskStatus;
 	readonly views?: number;
+	readonly notifyAboutReplies?: boolean
 
-	constructor(
-		task: Omit<TaskReturn, "views"> & Partial<Pick<TaskReturn, "views">>,
-	) {
+	constructor(task: TaskReturn & Partial<Pick<Task, "notifyAboutReplies">>) {
 		this.id = task.id;
 		this.createdAt = task.createdAt;
 		this.title = task.title;
@@ -83,5 +82,6 @@ export class TaskResponseDto {
 		this.status = task.status;
 		this.files = task.files;
 		this.views = task.views;
+		this.notifyAboutReplies = task.notifyAboutReplies
 	}
 }

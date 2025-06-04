@@ -14,6 +14,7 @@ const applicationConfigSchema = vine.object({
 	cookieSecret: vine.string().minLength(32),
 	clientUrl: vine.string(),
 	accountVerificationPath: vine.string(),
+	myTasksPath: vine.string(),
 	resetPasswordPath: vine.string(),
 	sessionTtlInMinutes: vine.number({ strict: true }).range([60, 43800]),
 	accountVerificationTtlInMinutes: vine

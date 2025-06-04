@@ -1,3 +1,6 @@
+import { exec } from "node:child_process";
+import path from "node:path";
+import { promisify } from "node:util";
 import {
 	CamelCasePlugin,
 	Kysely,
@@ -5,9 +8,6 @@ import {
 	Migrator,
 	PostgresDialect,
 } from "kysely";
-import { exec } from "node:child_process";
-import path from "node:path";
-import { promisify } from "node:util";
 import pg from "pg";
 import ts from "ts-node";
 import type { DatabaseConfig } from "../src/config.js";

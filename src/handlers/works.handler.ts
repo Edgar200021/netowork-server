@@ -12,8 +12,8 @@ import {
 } from "../dto/works/createWork/createWorkRequest.dto.js";
 import type { CreateWorkResponseDto } from "../dto/works/createWork/createWorkResponse.dto.js";
 import {
-	type DeleteWorkRequestDto,
-	deleteWorkSchema,
+	type DeleteWorkRequestParamsDto,
+	deleteWorkRequestParamsSchema,
 } from "../dto/works/deleteWork/deleteWorkRequest.dto.js";
 import type { DeleteWorkResponseDto } from "../dto/works/deleteWork/deleteWorkResponse.dto.js";
 import type { GetWorksResponseDto } from "../dto/works/getWorks/getWorksResponse.dto.js";
@@ -28,7 +28,7 @@ import { BaseHandler } from "./base.handler.js";
 export class WorksHandler extends BaseHandler {
 	protected validators = {
 		createWork: vine.compile(createWorkSchema),
-		deleteWork: vine.compile(deleteWorkSchema),
+		deleteWorkParams: vine.compile(deleteWorkRequestParamsSchema),
 	};
 
 	constructor(
@@ -213,7 +213,7 @@ export class WorksHandler extends BaseHandler {
 	 *
 	 */
 	async deleteWork(
-		req: Request<DeleteWorkRequestDto, DeleteWorkResponseDto>,
+		req: Request<DeleteWorkRequestParamsDto, DeleteWorkResponseDto>,
 		res: Response<DeleteWorkResponseDto>,
 	) {
 		if (!req.user) throw new UnauthorizedError("Unauthorized");
@@ -246,10 +246,12 @@ export class WorksHandler extends BaseHandler {
 				single: false,
 				fileCount: WORK_IMAGES_MAX_COUNT,
 			}),
-			this._middlewares.validateRequest([{
-				validatorOrSchema: this.validators.createWork,
-				type: "body",
-			}]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.createWork,
+					type: "body",
+				},
+			]),
 			asyncWrapper(this.create),
 		);
 
@@ -264,10 +266,12 @@ export class WorksHandler extends BaseHandler {
 			"/:id",
 			this._middlewares.auth,
 			this._middlewares.restrict([UserRole.Freelancer]),
-			this._middlewares.validateRequest([{
-				validatorOrSchema: this.validators.deleteWork,
-				type: "params",
-			}]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.deleteWorkParams,
+					type: "params",
+				},
+			]),
 			//@ts-expect-error...
 			asyncWrapper(this.deleteWork),
 		);

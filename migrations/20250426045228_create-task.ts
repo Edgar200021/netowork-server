@@ -9,7 +9,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
 		.createTable("task")
 		.addColumn("id", "uuid", (col) =>
-				col.primaryKey().defaultTo(sql`gen_random_uuid()`)
+			col.primaryKey().defaultTo(sql`gen_random_uuid()`),
 		)
 		.addColumn("created_at", "timestamp", (col) =>
 			col.notNull().defaultTo("now()"),
@@ -37,12 +37,15 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn("status", sql`task_status`, (col) =>
 			col.notNull().defaultTo(sql`'open'::task_status`),
 		)
+		.addColumn("notify_about_replies", "boolean", (col) =>
+			col.notNull().defaultTo(false),
+		)
 		.execute();
 
 	await db.schema
 		.createTable("task_files")
 		.addColumn("id", "uuid", (col) =>
-			col.primaryKey().defaultTo(sql`gen_random_uuid()`)
+			col.primaryKey().defaultTo(sql`gen_random_uuid()`),
 		)
 		.addColumn("created_at", "timestamp", (col) =>
 			col.notNull().defaultTo("now()"),

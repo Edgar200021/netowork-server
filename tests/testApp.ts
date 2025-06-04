@@ -423,6 +423,25 @@ export class TestApp {
 		return response;
 	}
 
+	async createTaskReply(
+		body: { taskId?: number | string; description?: string | number },
+		cookies?: string[],
+	) {
+		const request = this.superTest
+			.post(`/api/v1/tasks${body.taskId ? `/${body.taskId}` : ""}/replies`)
+			.set("Content-Type", "application/json");
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		request.send(body);
+
+		const response = await request;
+
+		return response;
+	}
+
 	async getCategories(cookies: string[]) {
 		const request = this.superTest.get("/api/v1/categories");
 

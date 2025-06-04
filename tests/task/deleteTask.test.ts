@@ -146,7 +146,7 @@ describe("Task", () => {
 				verifyResult.get("Set-Cookie"),
 			);
 
-			console.log(deleteResult)
+			console.log(deleteResult);
 
 			expect(deleteResult.statusCode).toBe(400);
 			expect(deleteResult.body).toHaveProperty("errors");

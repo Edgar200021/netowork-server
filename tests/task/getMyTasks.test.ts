@@ -10,10 +10,10 @@ import {
 import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
 import { GET_ALL_TASKS_MAX_LIMIT } from "../../src/const/validator.js";
 import type { CategoryResponseDto } from "../../src/dto/categories/categoryResponse.dto.js";
+import { UserRole } from "../../src/storage/db.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
 import { createValidationError } from "../utils.js";
-import { UserRole } from '../../src/storage/db.js';
 
 describe("Task", () => {
 	let app: TestApp;
@@ -159,11 +159,14 @@ describe("Task", () => {
 		});
 
 		it(`Should return 403 status code when user role is not "${UserRole.Client}"`, async () => {
-			const verifyResult = await app.createAndVerify({...data, role: UserRole.Freelancer});
+			const verifyResult = await app.createAndVerify({
+				...data,
+				role: UserRole.Freelancer,
+			});
 			expect(verifyResult.statusCode).toBe(200);
 
 			const response = await app.getMyTasks({}, verifyResult.get("Set-Cookie"));
 			expect(response.statusCode).toBe(403);
-		})
+		});
 	});
 });

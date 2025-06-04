@@ -1,16 +1,19 @@
 import { sql } from "kysely";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
-import { GET_ALL_TASKS_MAX_LIMIT } from "../../src/const/validator.js";
+import {
+	MAX_TASK_REPLY_DESCRIPTION_LENGTH,
+	MIN_TASK_REPLY_DESCRIPTION_LENGTH,
+} from "../../src/const/validator.js";
 import type { CategoryResponseDto } from "../../src/dto/categories/categoryResponse.dto.js";
 import { TaskStatus, UserRole } from "../../src/storage/db.js";
 import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
-import { createValidationError, pdfPath } from "../utils.js";
-
+import { createValidationError, genUuid } from "../utils.js";
 describe("Task", () => {
 	let app: TestApp;
 	let category: CategoryResponseDto[];
+	let taskIds: string[] = [];
 
 	const data = {
 		role: UserRole.Freelancer,
@@ -97,7 +100,13 @@ describe("Task", () => {
 				},
 			];
 
-			await app.database.insertInto("task").values(tasks).execute();
+			const ids = await app.database
+				.insertInto("task")
+				.values(tasks)
+				.returning(["id"])
+				.execute();
+
+			taskIds = ids.map((t) => t.id);
 
 			return new Promise((res) => setTimeout(res, 4000));
 		} catch (error) {
@@ -111,199 +120,152 @@ describe("Task", () => {
 		return new Promise((res) => setTimeout(res, 4000));
 	});
 
-	describe("Get All Tasks", () => {
-		it("Should return 200 status code when getting all tasks", async () => {
+	describe("Create Task Reply", () => {
+		it("Should return 201 status code when request is valid", async () => {
 			const verifyResult = await app.createAndVerify(data);
 			expect(verifyResult.status).toBe(200);
 
-			const getTasksResult = await app.getAllTasks(
-				{},
+			const createReplyResult = await app.createTaskReply(
+				{
+					taskId: taskIds[0],
+					description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH),
+				},
 				verifyResult.get("Set-Cookie"),
 			);
 
-			expect(getTasksResult.statusCode).toBe(200);
-			expect(getTasksResult.body.data.tasks).toHaveLength(3);
-
-			for (const task of getTasksResult.body.data.tasks) {
-				expect(task).toHaveProperty("id");
-				expect(task).toHaveProperty("createdAt");
-				expect(task).toHaveProperty("title");
-				expect(task).toHaveProperty("description");
-				expect(task).toHaveProperty("category");
-				expect(task).toHaveProperty("subCategory");
-				expect(task).toHaveProperty("price");
-				expect(task).toHaveProperty("files");
-				expect(task).toHaveProperty("creator");
-				expect(task).toHaveProperty("status");
-				expect(task.status).toEqual(TaskStatus.Open);
-			}
+			expect(createReplyResult.statusCode).toBe(201);
+			expect(createReplyResult.body.data).toBeNull();
 		});
 
-		it("Should return correct tasks for various filter and sort parameters", async () => {
+		it("Should save reply in database when request is valid", async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.status).toBe(200);
+
+			const createReplyResult = await app.createTaskReply(
+				{
+					taskId: taskIds[0],
+					description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH),
+				},
+				verifyResult.get("Set-Cookie"),
+			);
+
+			expect(createReplyResult.statusCode).toBe(201);
+			expect(createReplyResult.body.data).toBeNull();
+
+			const reply = await app.database
+				.selectFrom("taskReplies")
+				.selectAll()
+				.where("freelancerId", "=", verifyResult.body.data.id)
+				.where("taskId", "=", taskIds[0])
+				.executeTakeFirst();
+
+			expect(reply).toBeDefined();
+		});
+
+		it("Should return 400 status code when data is not valid", async () => {
 			const verifyResult = await app.createAndVerify(data);
 			expect(verifyResult.status).toBe(200);
 
 			const testCases = [
 				{
-					name: "No filters or sorting",
-					reqBody: {},
-					expected: {
-						statusCode: 200,
-						dataLength: 3,
-					},
-				},
-				{
-					name: "Filter by single subCategoryId",
 					reqBody: {
-						subCategoryIds: category[0].subCategories[0].id.toString(),
+						taskId: "Invalid id",
 					},
-					expected: {
-						statusCode: 200,
-						dataLength: 1,
-						dataTitles: ["Task title"],
-					},
-				},
-				{
-					name: "Filter by multiple subCategoryIds",
-					reqBody: {
-						subCategoryIds: `${category[0].subCategories[0].id},${category[1].subCategories[3].id}`,
-					},
-					expected: {
-						statusCode: 200,
-						dataLength: 2,
-					},
-				},
-				{
-					name: "Search by title keyword",
-					reqBody: { search: "title" },
-					expected: {
-						statusCode: 200,
-						dataLength: 3,
-					},
-				},
-				{
-					name: "Search with no results",
-					reqBody: { search: "random" },
-					expected: {
-						statusCode: 200,
-						dataLength: 0,
-						dataTitles: [],
-					},
-				},
-				{
-					name: "Sort by price descending",
-					reqBody: { sort: "price-desc" },
-					expected: {
-						statusCode: 200,
-						dataLength: 3,
-						dataTitles: ["Task title 3", "Task title 2", "Task title"],
-					},
-				},
-				{
-					name: "Filter by subCategoryIds and sort by price descending",
-					reqBody: {
-						subCategoryIds: `${category[0].subCategories[0].id},${category[1].subCategories[3].id}`,
-						sort: "price-desc",
-					},
-					expected: {
-						statusCode: 200,
-						dataLength: 2,
-						dataTitles: ["Task title 2", "Task title"],
-					},
-				},
-				{
-					name: "Pagination with limit=1, page=1",
-					reqBody: { limit: 1, page: 1 },
-					expected: {
-						statusCode: 200,
-						dataLength: 1,
-					},
-				},
-				{
-					name: "Pagination with limit=2, page=2",
-					reqBody: { limit: 2, page: 2 },
-					expected: {
-						statusCode: 200,
-						dataLength: 1,
-						dataTitles: ["Task title 3"],
-					},
-				},
-			];
-
-			for (const { name, reqBody, expected } of testCases) {
-				`Running test: ${name}`;
-				const result = await app.getAllTasks(
-					reqBody,
-					verifyResult.get("Set-Cookie"),
-				);
-				expect(result.statusCode).toBe(expected.statusCode);
-				expect(result.body.data.tasks).toHaveLength(expected.dataLength);
-				if (expected.dataTitles?.length > 0) {
-					const titles = result.body.data.tasks.map((task) => task.title);
-					expect(titles).toEqual(expected.dataTitles);
-				}
-			}
-		});
-
-		it("Should return 400 status code when filters are invalid", async () => {
-			const verifyResult = await app.createAndVerify(data);
-			expect(verifyResult.statusCode).toBe(200);
-
-			const testCases = [
-				{
-					reqBody: {
-						limit: -1,
-					},
-					resBody: createValidationError("limit"),
+					resBody: createValidationError("taskId"),
 				},
 				{
 					reqBody: {
-						page: -1,
+						taskId: taskIds[0],
 					},
-					resBody: createValidationError("page"),
+					resBody: createValidationError("description"),
 				},
 				{
 					reqBody: {
-						limit: GET_ALL_TASKS_MAX_LIMIT + 1,
+						taskId: taskIds[0],
+						description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH - 1),
 					},
-					resBody: createValidationError("limit"),
+					resBody: createValidationError("description"),
 				},
 				{
 					reqBody: {
-						search: "",
+						taskId: taskIds[0],
+						description: "d".repeat(MAX_TASK_REPLY_DESCRIPTION_LENGTH + 1),
 					},
-					resBody: createValidationError("search"),
-				},
-				{
-					reqBody: {
-						subCategoryIds: "abc",
-					},
-					resBody: createValidationError("subCategoryIds"),
-				},
-				{
-					reqBody: {
-						sort: "invalid_sort",
-					},
-					resBody: createValidationError("sort"),
+					resBody: createValidationError("description"),
 				},
 			];
 
 			for (const testCase of testCases) {
-				const result = await app.getAllTasks(
+				const createReplyResult = await app.createTaskReply(
 					testCase.reqBody,
 					verifyResult.get("Set-Cookie"),
 				);
-				expect(result.statusCode).toBe(400);
-				expect(result.body).toHaveProperty("errors");
+
+				expect(createReplyResult.statusCode).toBe(400);
+				expect(createReplyResult.body).toHaveProperty("errors");
 				expect(
-					Object.keys(result.body.errors as ValidationErrorResponseDto),
+					Object.keys(
+						createReplyResult.body.errors as ValidationErrorResponseDto,
+					),
 				).toEqual(Object.keys(testCase.resBody.errors));
 			}
 		});
 
-		it("Should return 401 status code when user is not authenticated", async () => {
-			const result = await app.getAllTasks({});
-			expect(result.statusCode).toBe(401);
+		it("Should return 400 status code when reply already created for task", async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.status).toBe(200);
+
+			const createReplyResult = await app.createTaskReply(
+				{
+					taskId: taskIds[0],
+					description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH),
+				},
+				verifyResult.get("Set-Cookie"),
+			);
+
+			expect(createReplyResult.statusCode).toBe(201);
+			expect(createReplyResult.body.data).toBeNull();
+
+			const secondCreateReplyResult = await app.createTaskReply(
+				{
+					taskId: taskIds[0],
+					description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH),
+				},
+				verifyResult.get("Set-Cookie"),
+			);
+
+			expect(secondCreateReplyResult.statusCode).toBe(400);
+		});
+
+		it(`Should return 400 status code when task status is not "${TaskStatus.Open}"`, async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.status).toBe(200);
+
+			await app.database
+				.updateTable("task")
+				.set({
+					status: TaskStatus.Completed,
+				})
+				.where("id", "=", taskIds[0])
+				.execute();
+
+			const createReplyResult = await app.createTaskReply(
+				{
+					taskId: taskIds[0],
+					description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH),
+				},
+				verifyResult.get("Set-Cookie"),
+			);
+
+			expect(createReplyResult.statusCode).toBe(400);
+		});
+
+		it("Should return 401 status code when user is not logged in", async () => {
+			const createReplyResult = await app.createTaskReply({
+				taskId: taskIds[0],
+				description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH),
+			});
+			expect(createReplyResult.statusCode).toBe(401);
 		});
 
 		it(`Should return 403 status code when user role is not "${UserRole.Freelancer}"`, async () => {
@@ -311,10 +273,34 @@ describe("Task", () => {
 				...data,
 				role: UserRole.Client,
 			});
-			expect(verifyResult.statusCode).toBe(200);
+			expect(verifyResult.status).toBe(200);
 
-			const result = await app.getAllTasks({}, verifyResult.get("Set-Cookie"));
-			expect(result.statusCode).toBe(403);
+			const createReplyResult = await app.createTaskReply(
+				{
+					taskId: taskIds[0],
+					description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH),
+				},
+				verifyResult.get("Set-Cookie"),
+			);
+			expect(createReplyResult.statusCode).toBe(403);
+		});
+
+		it("Should return 404 status code when task id is not provided or task not found", async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.status).toBe(200);
+
+			const testCases = [genUuid(), undefined];
+
+			for (const testCase of testCases) {
+				const createReplyResult = await app.createTaskReply(
+					{
+						taskId: testCase,
+						description: "d".repeat(MIN_TASK_REPLY_DESCRIPTION_LENGTH),
+					},
+					verifyResult.get("Set-Cookie"),
+				);
+				expect(createReplyResult.statusCode).toBe(404);
+			}
 		});
 	});
 });
