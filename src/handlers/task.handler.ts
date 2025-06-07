@@ -42,6 +42,11 @@ import {
 	getTaskRequestParamsSchema,
 } from "../dto/task/getTask/getTaskRequest.dto.js";
 import type { GetTaskResponseDto } from "../dto/task/getTask/getTaskResponse.dto.js";
+import {
+	type GetTasksByMyRepliesRequestQueryDto,
+	getTasksByMyRepliesRequestQuerySchema,
+} from "../dto/task/getTasksByMyReplies/getTasksByMyRepliesRequest.dto.js";
+import type { GetTasksByMyRepliesResponseDto } from "../dto/task/getTasksByMyReplies/getTasksByMyRepliesResponse.dto.js";
 import type { IncrementTaskViewResponseDto } from "../dto/task/incrementView/incrementTaskViewResponse.dto.js";
 import {
 	type IncrementTaskViewRequestParamsDto,
@@ -77,6 +82,7 @@ export class TaskHandler extends BaseHandler {
 		createTaskReplyParams: vine.compile(createTaskReplyRequestParamsSchema),
 		getMyTaskRepliesParams: vine.compile(getMyTaskRepliesRequestParamsSchema),
 		getMyTaskRepliesQuery: vine.compile(getMyTaskRepliesRequestQuerySchema),
+		getTasksByMyReplies: vine.compile(getTasksByMyRepliesRequestQuerySchema),
 	};
 
 	constructor(
@@ -943,10 +949,105 @@ export class TaskHandler extends BaseHandler {
 			req.logger,
 		);
 
-		res.status(201).json({
+		res.status(200).json({
 			status: "success",
 			data: {
 				replies: replies.map((t) => new MyTaskRepliesResponseDto(t)),
+				totalCount,
+			},
+		});
+	}
+
+	/**
+	 * @openapi
+	 * paths:
+	 *   /api/v1/tasks/by-my-replies:
+	 *     get:
+	 *       tags:
+	 *         - Tasks
+	 *       summary: Get tasks by my replies
+	 *       security:
+	 *         - Session: []
+	 *       parameters:
+	 *         - in: query
+	 *           name: limit
+	 *           required: false
+	 *           description: Number of tasks to return (max 200)
+	 *           schema:
+	 *             type: number
+	 *             maximum: 200
+	 *         - in: query
+	 *           name: page
+	 *           required: false
+	 *           description: Page number
+	 *           schema:
+	 *             type: number
+	 *         - in: query
+	 *           name: status
+	 *           required: false
+	 *           description: Task status
+	 *           schema:
+	 *             type: string
+	 *             enum: [completed, in_progress, open]
+	 *       responses:
+	 *         200:
+	 *           description: Success
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/GetTasksByMyRepliesResponseDto'
+	 *         400:
+	 *           description: Validation error
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ValidationErrorResponseDto'
+	 *               examples:
+	 *                 LimitTooBig:
+	 *                   summary: Limit exceeds maximum allowed value
+	 *                   value:
+	 *                     status: "error"
+	 *                     errors:
+	 *                       limit: "The limit must be less than or equal to 200."
+	 *         401:
+	 *           description: Unauthorized (User is not logged in)
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *         403:
+	 *           description: Forbidden (User does not have permission)
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ErrorResponseDto'
+	 *               examples:
+	 *                 NoPermission:
+	 *                   summary: User lacks permission to access this resource
+	 *                   value:
+	 *                     message: "You do not have permission to access this resource."
+	 */
+	async getTasksByMyReplies(
+		req: Request<
+			unknown,
+			GetTasksByMyRepliesResponseDto,
+			unknown,
+			GetTasksByMyRepliesRequestQueryDto
+		>,
+		res: Response<GetTasksByMyRepliesResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+
+		const { tasks, totalCount } = await this._taskService.getTasksByMyReplies(
+			req.user.id,
+			req.query,
+			req.logger,
+		);
+
+		res.status(200).json({
+			status: "success",
+			data: {
+				tasks: tasks.map((t) => new TaskResponseDto(t)),
 				totalCount,
 			},
 		});
@@ -963,6 +1064,7 @@ export class TaskHandler extends BaseHandler {
 		this.incrementTaskView = this.incrementTaskView.bind(this);
 		this.createTaskReply = this.createTaskReply.bind(this);
 		this.getMyTaskReplies = this.getMyTaskReplies.bind(this);
+		this.getTasksByMyReplies = this.getTasksByMyReplies.bind(this);
 	}
 
 	protected setupRoutes(): void {
@@ -1011,6 +1113,19 @@ export class TaskHandler extends BaseHandler {
 				},
 			]),
 			asyncWrapper(this.getMyTasks),
+		);
+
+		this.router.get(
+			"/by-my-replies",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Freelancer]),
+			this._middlewares.validateRequest([
+				{
+					validatorOrSchema: this.validators.getTasksByMyReplies,
+					type: "query",
+				},
+			]),
+			asyncWrapper(this.getTasksByMyReplies),
 		);
 
 		this.router.get(
@@ -1107,7 +1222,6 @@ export class TaskHandler extends BaseHandler {
 					validatorOrSchema: this.validators.createTaskReply,
 					type: "body",
 				},
-				
 			]),
 			//@ts-ignore
 			asyncWrapper(this.createTaskReply),

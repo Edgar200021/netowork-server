@@ -54,56 +54,51 @@ describe("Task", () => {
 	beforeEach(async () => {
 		app = await spawnApp();
 
-		try {
-			const user = await app.database
-				.insertInto("users")
-				.values({
-					role: data.role,
-					firstName: data.firstName,
-					lastName: data.lastName,
-					email: "random@gmail.com",
-					password: data.password,
-				})
-				.returning(["id"])
-				.executeTakeFirstOrThrow();
+		const user = await app.database
+			.insertInto("users")
+			.values({
+				firstName: data.firstName,
+				lastName: data.lastName,
+				email: "random@gmail.com",
+				password: data.password,
+				role: UserRole.Client,
+			})
+			.returning(["id"])
+			.executeTakeFirstOrThrow();
 
-			const tasks = [
-				{
-					clientId: user.id,
-					title: "Task title",
-					description:
-						"Dolor ea voluptate ullamco sit non proident nisi. Tempor duis labore aliquip pariatur dolor consequat id magna adipisicing minim aute elit exercitation. Magna sunt ut consectetur ut Lorem nisi mollit nostrud. Sunt excepteur magna proident incididunt. Ex exercitation mollit qui sint magna Lorem irure nulla dolor tempor minim non officia. Excepteur duis dolor qui excepteur tempor eiusmod aute veniam. Duis est dolore cupidatat nostrud in ullamco elit pariatur mollit quis deserunt veniam.",
-					categoryId: category[0].id,
-					subcategoryId: category[0].subCategories[0].id,
-					price: 100,
-				},
-				{
-					clientId: user.id,
-					title: "Task title 2",
-					description:
-						"Enim ea enim eiusmod minim amet do id labore anim ut id quis. Fugiat culpa veniam dolor est. Et aliqua aute ex qui sunt laboris cupidatat id sint. Do laboris reprehenderit cupidatat nostrud voluptate proident ipsum officia ipsum occaecat ad. Deserunt ipsum exercitation dolor ad elit id minim nisi velit.",
-					categoryId: category[1].id,
-					subcategoryId: category[1].subCategories[3].id,
-					price: 500,
-				},
-				{
-					clientId: user.id,
-					title: "Task title 3",
-					description:
-						"Qui labore magna ex eiusmod pariatur. Non anim cillum irure sunt ipsum exercitation do irure incididunt aliquip ex eiusmod eu. Eu ea sit eu amet nulla reprehenderit dolor officia proident ut anim. Sit ea laborum reprehenderit do tempor voluptate occaecat veniam. Non id officia consequat incididunt consectetur amet dolor reprehenderit duis dolore fugiat laboris sunt sint. Aute labore culpa nulla velit deserunt aliqua in non dolor eiusmod adipisicing irure fugiat enim.",
-					categoryId: category[2].id,
-					subcategoryId: category[2].subCategories[0].id,
-					price: 1000,
-				},
-			];
+		const tasks = [
+			{
+				clientId: user.id,
+				title: "Task title",
+				description:
+					"Dolor ea voluptate ullamco sit non proident nisi. Tempor duis labore aliquip pariatur dolor consequat id magna adipisicing minim aute elit exercitation. Magna sunt ut consectetur ut Lorem nisi mollit nostrud. Sunt excepteur magna proident incididunt. Ex exercitation mollit qui sint magna Lorem irure nulla dolor tempor minim non officia. Excepteur duis dolor qui excepteur tempor eiusmod aute veniam. Duis est dolore cupidatat nostrud in ullamco elit pariatur mollit quis deserunt veniam.",
+				categoryId: category[0].id,
+				subcategoryId: category[0].subCategories[0].id,
+				price: 100,
+			},
+			{
+				clientId: user.id,
+				title: "Task title 2",
+				description:
+					"Enim ea enim eiusmod minim amet do id labore anim ut id quis. Fugiat culpa veniam dolor est. Et aliqua aute ex qui sunt laboris cupidatat id sint. Do laboris reprehenderit cupidatat nostrud voluptate proident ipsum officia ipsum occaecat ad. Deserunt ipsum exercitation dolor ad elit id minim nisi velit.",
+				categoryId: category[1].id,
+				subcategoryId: category[1].subCategories[3].id,
+				price: 500,
+			},
+			{
+				clientId: user.id,
+				title: "Task title 3",
+				description:
+					"Qui labore magna ex eiusmod pariatur. Non anim cillum irure sunt ipsum exercitation do irure incididunt aliquip ex eiusmod eu. Eu ea sit eu amet nulla reprehenderit dolor officia proident ut anim. Sit ea laborum reprehenderit do tempor voluptate occaecat veniam. Non id officia consequat incididunt consectetur amet dolor reprehenderit duis dolore fugiat laboris sunt sint. Aute labore culpa nulla velit deserunt aliqua in non dolor eiusmod adipisicing irure fugiat enim.",
+				categoryId: category[2].id,
+				subcategoryId: category[2].subCategories[0].id,
+				price: 1000,
+			},
+		];
 
-			await app.database.insertInto("task").values(tasks).execute();
+		await app.database.insertInto("task").values(tasks).execute();
 
-			return new Promise((res) => setTimeout(res, 4000));
-		} catch (error) {
-			console.log("ERRORR", error);
-			throw error;
-		}
+		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {

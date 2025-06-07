@@ -442,6 +442,59 @@ export class TestApp {
 		return response;
 	}
 
+	async getMyTaskReplies(
+		body: {
+			taskId?: number | string;
+			limit?: number | string;
+			page?: number | string;
+		},
+		cookies?: string[],
+	) {
+		const params = new URLSearchParams({
+			...(body.limit && { limit: String(body.limit) }),
+			...(body.page && { page: String(body.page) }),
+		}).toString();
+
+		const request = this.superTest.get(
+			`/api/v1/tasks/${body.taskId}/replies${params ? `?${params}` : ""}`,
+		);
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
+	async getTasksByMyReplies(
+		body: {
+			page?: string | number;
+			limit?: string | number;
+			status?: TaskStatus | string;
+		},
+		cookies?: string[],
+	) {
+		const params = new URLSearchParams({
+			...(body.page && { page: String(body.page) }),
+			...(body.limit && { limit: String(body.limit) }),
+			...(body.status && { status: String(body.status) }),
+		}).toString();
+
+		const request = this.superTest.get(
+			`/api/v1/tasks/by-my-replies${params ? `?${params}` : ""}`,
+		);
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request;
+
+		return response;
+	}
+
 	async getCategories(cookies: string[]) {
 		const request = this.superTest.get("/api/v1/categories");
 
@@ -456,7 +509,7 @@ export class TestApp {
 
 	async createAndVerify(body: object) {
 		await this.register(body);
-		const token = (await this.redis.keys("*"))[0];
+		const token = (await this.redis.keys("*")).at(-1);
 
 		const response = await this.verify(token);
 

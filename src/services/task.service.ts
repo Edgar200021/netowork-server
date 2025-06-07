@@ -22,6 +22,7 @@ import type {
 } from "../dto/task/getMyTaskReplies/getMyTaskRepliesRequest.dto.js";
 import type { GetMyTasksRequestQueryDto } from "../dto/task/getMyTasks/getMyTasksRequest.dto.js";
 import type { GetTaskRequestParamsDto } from "../dto/task/getTask/getTaskRequest.dto.js";
+import type { GetTasksByMyRepliesRequestQueryDto } from "../dto/task/getTasksByMyReplies/getTasksByMyRepliesRequest.dto.js";
 import type {
 	UpdateTaskRequestDto,
 	UpdateTaskRequestParamsDto,
@@ -58,7 +59,7 @@ export class TaskService {
 		const page = Number(getAllTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
 
 		const tasks = await this.getTaskBaseQuery()
-			.select(sql<number>`COUNT(*) OVER()`.as("totalCount"))
+			.select(sql<number>`COUNT(*) OVER()::INTEGER`.as("totalCount"))
 			.where("status", "=", TaskStatus.Open)
 			.$if(!!getAllTasksRequestDto.subCategoryIds, (qb) =>
 				qb.where(
@@ -140,7 +141,7 @@ export class TaskService {
 		const page = Number(getMyTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
 
 		let tasksQuery = this.getTaskBaseQuery()
-			.select(sql<number>`COUNT(*) OVER()`.as("totalCount"))
+			.select(sql<number>`COUNT(*) OVER()::INTEGER`.as("totalCount"))
 			.select(["notifyAboutReplies"])
 			.where("clientId", "=", userId)
 			.orderBy("task.createdAt", "desc")
@@ -604,7 +605,7 @@ export class TaskService {
 				"users.lastName",
 				"users.avatar",
 			])
-			.select(sql<number>`COUNT(*) OVER()`.as("totalCount"))
+			.select(sql<number>`COUNT(*) OVER()::INTEGER`.as("totalCount"))
 			.where("taskId", "=", task.id)
 			.orderBy("createdAt", "desc")
 			.limit(limit)
@@ -623,7 +624,51 @@ export class TaskService {
 					avatar: t.avatar,
 				},
 			})),
-			totalCount: taskReplies[0].totalCount,
+			totalCount: taskReplies[0]?.totalCount,
+		};
+	}
+
+	async getTasksByMyReplies(
+		userId: User["id"],
+		getTasksByMyRepliesRequestQueryDto: GetTasksByMyRepliesRequestQueryDto,
+		log: LoggerService,
+	): Promise<{
+		tasks: TaskReturn[];
+		totalCount: number;
+	}> {
+		log.info({ userId }, "Getting tasks by my replies");
+
+		const limit =
+			Number(getTasksByMyRepliesRequestQueryDto.limit) ||
+			GET_TASKS_DEFAULT_LIMIT;
+		const page =
+			Number(getTasksByMyRepliesRequestQueryDto.page) || GET_TASKS_DEFAULT_PAGE;
+
+		const tasks = await this.getTaskBaseQuery()
+			.innerJoin("taskReplies", "taskReplies.taskId", "task.id")
+			.where("taskReplies.freelancerId", "=", userId)
+			.select(sql<number>`COUNT(*) OVER()::INTEGER`.as("totalCount"))
+			.$if(!!getTasksByMyRepliesRequestQueryDto.status, (qb) =>
+				qb.where(
+					"task.status",
+					"=",
+					getTasksByMyRepliesRequestQueryDto.status!,
+				),
+			)
+			.groupBy("taskReplies.createdAt")
+			.orderBy("taskReplies.createdAt", "desc")
+			.limit(limit)
+			.offset(page * limit - limit)
+			.execute();
+
+		return {
+			tasks: tasks.map((t) => ({
+				...t,
+				category: t.categoryName,
+				subcategory: t.subcategoryName,
+				creator: `${t.firstName} ${t.lastName}`,
+			})),
+			totalCount: tasks[0]?.totalCount || 0,
 		};
 	}
 

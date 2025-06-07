@@ -1,8 +1,8 @@
+import { randomUUID } from "node:crypto";
 import vine, { VineValidator, errors } from "@vinejs/vine";
 import type { SchemaTypes } from "@vinejs/vine/types";
 import type { NextFunction, Request, Response } from "express";
 import { type Multer, MulterError } from "multer";
-import { randomUUID } from "node:crypto";
 import {
 	ErrorResponseDto,
 	ValidationErrorResponseDto,
@@ -63,7 +63,7 @@ export class Middlewares {
 		const user = await this._database
 			.selectFrom("users")
 			.selectAll()
-			.where("id", "=",userId)
+			.where("id", "=", userId)
 			.executeTakeFirst();
 
 		if (!user || !user.isVerified || user.isBanned) {
