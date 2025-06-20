@@ -12,17 +12,17 @@ const app = new App(settings, logger);
 app.run();
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
-	process.on(signal, async () => {
-		console.log("Shutting down...");
-		await app.close();
-		process.exit(0);
-	});
+  process.on(signal, async () => {
+    logger.info("Shutting down...");
+    await app.close();
+    process.exit(0);
+  });
 }
 
 for (const signal of ["uncaughtException", "unhandledRejection"]) {
-	process.on(signal, async (err) => {
-		logger.fatal(err);
-		await app.close();
-		process.exit(1);
-	});
+  process.on(signal, async (err) => {
+    logger.fatal(err);
+    await app.close();
+    process.exit(1);
+  });
 }

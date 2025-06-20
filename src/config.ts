@@ -1,9 +1,9 @@
-import vine from "@vinejs/vine";
-import type { InferInput } from "@vinejs/vine/types";
-import yaml from "js-yaml";
 import { existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { constants } from "node:fs/promises";
 import path from "node:path";
+import vine from "@vinejs/vine";
+import type { InferInput } from "@vinejs/vine/types";
+import yaml from "js-yaml";
 import { Environment } from "./common/enums/environment.enum.js";
 import { LogLevel } from "./common/enums/logLevel.enum.js";
 
@@ -26,8 +26,8 @@ const applicationConfigSchema = vine.object({
 
 const loggerConfigSchema = vine.object({
 	logLevel: vine.enum(LogLevel),
-	infoLogsPath: vine.string().optional(),
-	errorLogsPath: vine.string().optional(),
+	infoLogsPath: vine.string(),
+	errorLogsPath: vine.string(),
 });
 
 const databaseConfigSchema = vine.object({
@@ -101,10 +101,8 @@ const freezeConfig = (config: Config) => {
 };
 
 const setLogPaths = (config: LoggerConfig) => {
-	const infoLogPath =
-		config.infoLogsPath || path.join(import.meta.dirname, "../logs/info.log");
-	const errorLogPath =
-		config.errorLogsPath || path.join(import.meta.dirname, "../logs/error.log");
+	const infoLogPath = config.infoLogsPath;
+	const errorLogPath = config.errorLogsPath;
 
 	const infoLogDir = path.dirname(infoLogPath);
 	const errorLogDir = path.dirname(errorLogPath);

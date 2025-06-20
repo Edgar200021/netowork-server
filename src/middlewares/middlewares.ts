@@ -38,7 +38,7 @@ export class Middlewares {
 		this.requestLogger = this.requestLogger.bind(this);
 	}
 
-	async auth(req: Request, res: Response, next: NextFunction) {
+	async auth(req: Request, _: Response, next: NextFunction) {
 		const log = req.logger;
 
 		log.info("Authenticating user");
@@ -80,7 +80,7 @@ export class Middlewares {
 	}
 
 	restrict(roles: UserRole[]) {
-		return (req: Request, res: Response, next: NextFunction) => {
+		return (req: Request, _: Response, next: NextFunction) => {
 			const log = req.logger;
 
 			log.info({ roles }, "Restricting access");
@@ -131,7 +131,7 @@ export class Middlewares {
 		};
 	}
 
-	requestLogger(req: Request, res: Response, next: NextFunction) {
+	requestLogger(req: Request, _: Response, next: NextFunction) {
 		const reqId = randomUUID().toString();
 		const logger = this._logger.child({ reqId });
 
