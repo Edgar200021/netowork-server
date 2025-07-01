@@ -537,6 +537,25 @@ export class TestApp {
 		return response;
 	}
 
+	async deleteChat(
+		body: {
+			chatId: string | number | undefined;
+		},
+		cookies?: string[],
+	) {
+		const request = this.superTest.delete(
+			`/api/v1/chats${body.chatId !== undefined ? `/${body.chatId}` : ""}`,
+		);
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request.send(body);
+
+		return response;
+	}
+
 	async getCategories(cookies: string[]) {
 		const request = this.superTest.get("/api/v1/categories");
 

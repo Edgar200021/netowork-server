@@ -7,6 +7,11 @@ import {
 } from "../dto/chat/createChat/createChatRequest.dto.js";
 import type { CreateChatResponseDto } from "../dto/chat/createChat/createChatResponse.dto.js";
 import {
+	type DeleteChatRequestParamsDto,
+	deleteChatRequestParamsSchema,
+} from "../dto/chat/deleteChat/deleteChatRequest.dto.js";
+import type { DeleteChatResponseDto } from "../dto/chat/deleteChat/deleteChatResponse.dto.js";
+import {
 	type GetChatsRequestQueryDto,
 	getChatsRequestQuerySchema,
 } from "../dto/chat/getChats/getChatsRequest.dto.js";
@@ -21,6 +26,7 @@ export class ChatHandler extends BaseHandler {
 	protected validators = {
 		getChats: vine.compile(getChatsRequestQuerySchema),
 		createChat: vine.compile(createChatRequestSchema),
+		deleteChat: vine.compile(deleteChatRequestParamsSchema),
 	};
 	constructor(
 		private readonly _middlewares: Middlewares,
@@ -182,9 +188,72 @@ export class ChatHandler extends BaseHandler {
 		});
 	}
 
+	/**
+	 * @openapi
+	 * /api/v1/chats/{chatId}:
+	 *   post:
+	 *     tags:
+	 *       - Chats
+	 *     summary: Delete Chat
+	 *     security:
+	 *       - Session: []
+	 *     parameters:
+	 *       - name: chatId
+	 *         in: path
+	 *         required: true
+	 *         description: Chat ID
+	 *         schema:
+	 *           type: string
+	 *           format: uuid
+	 *     responses:
+	 *       200:
+	 *         description: Success
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               $ref: '#/components/schemas/CreateChatResponseDto'
+	 *       401:
+	 *         description: Unauthorized
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 status:
+	 *                   type: string
+	 *                 error:
+	 *                   type: string
+	 *       403:
+	 *         description: Forbidden (User does not have permission)
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               $ref: '#/components/schemas/ErrorResponseDto'
+	 *             examples:
+	 *               NoPermission:
+	 *                 summary: User lacks permission to access this resource
+	 *                 value:
+	 *                   status: "error"
+	 *                   message: "You do not have permission to access this resource."
+	 */
+	async deleteChat(
+		req: Request<DeleteChatRequestParamsDto, DeleteChatResponseDto>,
+		res: Response<DeleteChatResponseDto>,
+	) {
+		if (!req.user) throw new UnauthorizedError("Unauthorized");
+
+		await this._chatService.deleteChat(req.user.id, req.params, req.logger);
+
+		res.status(200).json({
+			status: "success",
+			data: "Chat deleted successfully",
+		});
+	}
+
 	protected bindMethods(): void {
 		this.getChats = this.getChats.bind(this);
 		this.createChat = this.createChat.bind(this);
+		this.deleteChat = this.deleteChat.bind(this);
 	}
 
 	protected setupRoutes() {
@@ -204,6 +273,16 @@ export class ChatHandler extends BaseHandler {
 				{ type: "body", validatorOrSchema: this.validators.createChat },
 			]),
 			asyncWrapper(this.createChat),
+		);
+		this.router.delete(
+			"/:chatId",
+			this._middlewares.auth,
+			this._middlewares.restrict([UserRole.Client, UserRole.Admin]),
+			this._middlewares.validateRequest([
+				{ type: "params", validatorOrSchema: this.validators.deleteChat },
+			]),
+			//@ts-ignore
+			asyncWrapper(this.deleteChat),
 		);
 	}
 }

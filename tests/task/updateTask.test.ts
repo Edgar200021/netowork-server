@@ -168,14 +168,17 @@ describe("Task", () => {
 				for (const key of keys) {
 					if (key === "files") {
 						expect(updateResult.body.data.files).toHaveLength(
+							//@ts-ignore
 							testCase.resBody[key].length,
 						);
 						for (const file of updateResult.body.data.files) {
+							//@ts-ignore
 							expect(file).toEqual(testCase.resBody[key][0]);
 						}
 
 						continue;
 					}
+					//@ts-ignore
 					expect(updateResult.body.data[key]).toEqual(testCase.resBody[key]);
 				}
 			}

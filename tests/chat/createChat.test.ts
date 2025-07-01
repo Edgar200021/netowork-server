@@ -62,6 +62,25 @@ describe("Task", () => {
 			expect(createChatResult.status).toBe(201);
 		});
 
+		it("Should save in database when request is successful", async () => {
+			const verifyResult = await app.createAndVerify(data);
+			expect(verifyResult.status).toBe(200);
+
+			const createChatResult = await app.createChat(
+				{
+					recipientId: recipientIds[0],
+				},
+				verifyResult.get("Set-Cookie"),
+			);
+
+			const dbChat = await app.database
+				.selectFrom("chat")
+				.where("id", "=", createChatResult.body.data.id)
+				.executeTakeFirst();
+
+			expect(dbChat).toBeDefined();
+		});
+
 		it("Should return chat id when chat already exists", async () => {
 			const verifyResult = await app.createAndVerify(data);
 			expect(verifyResult.status).toBe(200);

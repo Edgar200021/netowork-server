@@ -6,6 +6,7 @@ import {
 	GET_CHATS_DEFAULT_PAGE,
 } from "../const/chat.js";
 import type { CreateChatRequestDto } from "../dto/chat/createChat/createChatRequest.dto.js";
+import type { DeleteChatRequestParamsDto } from "../dto/chat/deleteChat/deleteChatRequest.dto.js";
 import type { GetChatsRequestQueryDto } from "../dto/chat/getChats/getChatsRequest.dto.js";
 import { UserRole } from "../storage/db.js";
 import type { Database } from "../storage/postgres/database.js";
@@ -126,5 +127,27 @@ export class ChatService {
 			.executeTakeFirstOrThrow();
 
 		return newChat.id;
+	}
+
+	async deleteChat(
+		userId: User["id"],
+		payload: DeleteChatRequestParamsDto,
+		log: LoggerService,
+	) {
+		log.info({ userId }, "Deleting chat");
+
+		const chat = await this._database
+			.deleteFrom("chat")
+			.where("id", "=", payload.chatId)
+			.where("creatorId", "=", userId)
+			.returning("id")
+			.executeTakeFirst();
+
+		if (!chat) {
+			log.warn({ chatId: payload.chatId }, "Chat not found");
+			throw new NotFoundError("Chat not found");
+		}
+
+		return;
 	}
 }
