@@ -1,17 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type TestApp, spawnApp } from "../testApp.js";
-import { imagePath } from "../utils.js";
+import { genUuid, imagePath } from "../utils.js";
 
 describe("Works", () => {
 	let app: TestApp;
 	beforeEach(async () => {
 		app = await spawnApp();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	const data = {
@@ -36,8 +34,6 @@ describe("Works", () => {
 				verifyResponse.get("Set-Cookie"),
 			);
 			expect(createResponse.statusCode).toBe(201);
-
-			console.log(createResponse);
 
 			const deleteResponse = await app.deleteWork(
 				createResponse.body.data.id,
@@ -74,16 +70,9 @@ describe("Works", () => {
 			expect(dbWorks.length).toBe(0);
 		});
 
-		it("Should return 404 status code when work is not found", async () => {
-			const verifyResponse = await app.createAndVerify(data);
-			expect(verifyResponse.statusCode).toBe(200);
-
-			const deleteResponse = await app.deleteWork(
-				1,
-				verifyResponse.get("Set-Cookie"),
-			);
-
-			expect(deleteResponse.statusCode).toBe(404);
+		it("Should return 401 status code when user is not logged in", async () => {
+			const deleteResponse = await app.deleteWork(genUuid());
+			expect(deleteResponse.statusCode).toBe(401);
 		});
 
 		it("Should return 403 status code when user is not freelancer", async () => {
@@ -94,15 +83,22 @@ describe("Works", () => {
 			expect(verifyResponse.statusCode).toBe(200);
 
 			const deleteResponse = await app.deleteWork(
-				1,
+				genUuid(),
 				verifyResponse.get("Set-Cookie"),
 			);
 			expect(deleteResponse.statusCode).toBe(403);
 		});
 
-		it("Should return 401 status code when user is not logged in", async () => {
-			const deleteResponse = await app.deleteWork(1);
-			expect(deleteResponse.statusCode).toBe(401);
+		it("Should return 404 status code when work is not found", async () => {
+			const verifyResponse = await app.createAndVerify(data);
+			expect(verifyResponse.statusCode).toBe(200);
+
+			const deleteResponse = await app.deleteWork(
+				genUuid(),
+				verifyResponse.get("Set-Cookie"),
+			);
+
+			expect(deleteResponse.statusCode).toBe(404);
 		});
 	});
 });

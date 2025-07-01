@@ -6,12 +6,10 @@ describe("Authentication", () => {
 	let app: TestApp;
 	beforeEach(async () => {
 		app = await spawnApp();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	describe("Reset Password", () => {
@@ -36,7 +34,7 @@ describe("Authentication", () => {
 			});
 			expect(forgotPasswordResponse.statusCode).toBe(200);
 
-			const token = (await app.redis.keys("*"))[0];
+			const token = (await app.redis.keys("*")).at(-1);
 			const response = await app.resetPassword({
 				token,
 				password: "newPassword",

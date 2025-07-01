@@ -1,5 +1,6 @@
-import type { CookieOptions, Request, Response } from "express";
 import crypto, { type UUID } from "node:crypto";
+import type { CookieOptions, Request, Response } from "express";
+import { sql } from "kysely";
 import { Environment } from "../common/enums/environment.enum.js";
 import { BadRequestError, NotFoundError } from "../common/error.js";
 import type { HashingService } from "../common/services/hashing.service.js";
@@ -22,7 +23,6 @@ import type { Redis } from "../storage/redis/redis.js";
 import { generateRandomToken } from "../utils/createToken.js";
 import { generateUserError } from "../utils/generateUserError.js";
 import type { EmailService } from "./email.service.js";
-import { sql } from 'kysely';
 
 export class AuthService {
 	constructor(
@@ -194,6 +194,8 @@ export class AuthService {
 	): Promise<void> {
 		log.info({ email: payload.email }, "Forgot password");
 
+		log.info("BEFOREEEE  GETTINGS USERR RMATHA FACKA \n");
+
 		const user = await this._database
 			.selectFrom("users")
 			.selectAll()
@@ -205,6 +207,8 @@ export class AuthService {
 			log.warn({ email: payload.email }, message);
 			throw error;
 		}
+
+		log.info("AFFFTERRRR  GETTINGS USERR RMATHA FACKA \n\n\n\n");
 
 		const token = generateRandomToken();
 

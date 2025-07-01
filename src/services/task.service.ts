@@ -47,7 +47,7 @@ export class TaskService {
 	) {}
 
 	async getAllTasks(
-		getAllTasksRequestDto: GetAllTasksRequestQueryDto,
+		getAllTasksRequestQueryDto: GetAllTasksRequestQueryDto,
 		log: LoggerService,
 	): Promise<{
 		tasks: TaskReturn[];
@@ -56,32 +56,33 @@ export class TaskService {
 		log.info("Getting all tasks");
 
 		const limit =
-			Number(getAllTasksRequestDto.limit) || GET_TASKS_DEFAULT_LIMIT;
-		const page = Number(getAllTasksRequestDto.page) || GET_TASKS_DEFAULT_PAGE;
+			Number(getAllTasksRequestQueryDto.limit) || GET_TASKS_DEFAULT_LIMIT;
+		const page =
+			Number(getAllTasksRequestQueryDto.page) || GET_TASKS_DEFAULT_PAGE;
 
 		const tasks = await this.getTaskBaseQuery()
 			.select(sql<number>`COUNT(*) OVER()::INTEGER`.as("totalCount"))
 			.where("status", "=", TaskStatus.Open)
-			.$if(!!getAllTasksRequestDto.subCategoryIds, (qb) =>
+			.$if(!!getAllTasksRequestQueryDto.subCategoryIds, (qb) =>
 				qb.where(
 					"subcategory.id",
 					"in",
-					getAllTasksRequestDto.subCategoryIds!.split(",").map(Number),
+					getAllTasksRequestQueryDto.subCategoryIds!.split(",").map(Number),
 				),
 			)
-			.$if(!!getAllTasksRequestDto.search, (qb) =>
+			.$if(!!getAllTasksRequestQueryDto.search, (qb) =>
 				qb.where(
 					sql`LOWER(task.title)`,
 					"like",
-					`%${getAllTasksRequestDto.search?.toLowerCase()}%`,
+					`%${getAllTasksRequestQueryDto.search?.toLowerCase()}%`,
 				),
 			)
-			.$if(!getAllTasksRequestDto.sort, (qb) =>
+			.$if(!getAllTasksRequestQueryDto.sort, (qb) =>
 				qb.orderBy("task.createdAt", "desc"),
 			)
-			.$if(!!getAllTasksRequestDto.sort, (qb) =>
+			.$if(!!getAllTasksRequestQueryDto.sort, (qb) =>
 				qb.orderBy(
-					getAllTasksRequestDto.sort!.split(",").map((val) => {
+					getAllTasksRequestQueryDto.sort!.split(",").map((val) => {
 						const [field, order] = val.split("-");
 						return `task.${field} ${order}`;
 					}),

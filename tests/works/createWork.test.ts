@@ -12,12 +12,10 @@ describe("Works", () => {
 	let app: TestApp;
 	beforeEach(async () => {
 		app = await spawnApp();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	const data = {

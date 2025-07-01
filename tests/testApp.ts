@@ -212,7 +212,7 @@ export class TestApp {
 		return response;
 	}
 
-	async deleteWork(workId?: number, cookies?: string[]) {
+	async deleteWork(workId?: string, cookies?: string[]) {
 		const request = this.superTest.delete(`/api/v1/works/${workId ?? ""}`);
 
 		if (cookies) {
@@ -502,6 +502,31 @@ export class TestApp {
 		cookies?: string[],
 	) {
 		const request = this.superTest.post("/api/v1/chats");
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request.send(body);
+
+		return response;
+	}
+
+	async getChats(
+		body: {
+			page?: string | number;
+			limit?: string | number;
+		},
+		cookies?: string[],
+	) {
+		const params = new URLSearchParams({
+			...(body.page !== undefined && { page: String(body.page) }),
+			...(body.limit !== undefined && { limit: String(body.limit) }),
+		}).toString();
+
+		const request = this.superTest.get(
+			`/api/v1/chats${params ? `?${params}` : ""}`,
+		);
 
 		if (cookies) {
 			request.set("Cookie", cookies);

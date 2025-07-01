@@ -139,6 +139,3 @@ dist
 
 # Configuration directory
 configs/
-
-# Assets for tests
-tests/assets/

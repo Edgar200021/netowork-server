@@ -130,13 +130,10 @@ describe("Task", () => {
 		}
 
 		cookies = freelancer.get("Set-Cookie");
-
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	describe("Get Tasks By My Replies", () => {

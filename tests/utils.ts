@@ -36,3 +36,5 @@ export const pdfPath = path.join(
 	"./assets/rezhim-monaha_1.pdf",
 );
 export const txtPath = path.join(import.meta.dirname, "./assets/test.txt");
+export const uuidRegex =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

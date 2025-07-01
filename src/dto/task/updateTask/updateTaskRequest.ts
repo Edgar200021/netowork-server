@@ -45,14 +45,14 @@ export const updateTaskRequestSchema = vine.object({
 		.minLength(MIN_TASK_DESCRIPTION_LENGTH)
 		.maxLength(MAX_TASK_DESCRIPTION_LENGTH)
 		.optional(),
-	categoryId: vine.number().positive().optional(),
-	subCategoryId: vine.number().positive().optional(),
-	price: vine.number().positive().optional(),
+	categoryId: vine.number().min(1).optional(),
+	subCategoryId: vine.number().min(1).optional(),
+	price: vine.number().min(1).optional(),
 	notifyAboutReplies: vine.boolean().optional(),
 });
 
 export const updateTaskRequestParamsSchema = vine.object({
-	taskId: vine.string().uuid()
+	taskId: vine.string().uuid(),
 });
 
 export type UpdateTaskRequestDto = InferInput<typeof updateTaskRequestSchema>;

@@ -46,9 +46,9 @@ export const createTaskRequestSchema = vine.object({
 		.trim()
 		.minLength(MIN_TASK_DESCRIPTION_LENGTH)
 		.maxLength(MAX_TASK_DESCRIPTION_LENGTH),
-	categoryId: vine.number().positive(),
-	subCategoryId: vine.number().positive(),
-	price: vine.number().positive(),
+	categoryId: vine.number().min(1),
+	subCategoryId: vine.number().min(1),
+	price: vine.number().min(1),
 });
 
 export type CreateTaskRequestDto = InferInput<typeof createTaskRequestSchema>;

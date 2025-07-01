@@ -72,12 +72,10 @@ describe("Task", () => {
 
 	beforeEach(async () => {
 		app = await spawnApp();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	describe("Create Task", () => {
@@ -328,7 +326,6 @@ describe("Task", () => {
 					categoryId: category[0].id,
 					subCategoryId: category[0].subCategories[0].id,
 					price: 100,
-					files: [pdfPath],
 				},
 				verifyResult.get("Set-Cookie"),
 			);

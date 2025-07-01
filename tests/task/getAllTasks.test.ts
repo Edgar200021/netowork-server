@@ -97,13 +97,10 @@ describe("Task", () => {
 		];
 
 		await app.database.insertInto("task").values(tasks).execute();
-
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	describe("Get All Tasks", () => {

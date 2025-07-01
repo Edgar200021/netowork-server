@@ -1,33 +1,7 @@
-import { sql } from "kysely";
-import { Rollup } from "vite";
-import {
-	afterEach,
-	beforeAll,
-	beforeEach,
-	describe,
-	expect,
-	expectTypeOf,
-	it,
-	test,
-} from "vitest";
-import type { ValidationErrorResponseDto } from "../../src/common/dto/base.dto.js";
-import { TASK_FILES_MAX_COUNT } from "../../src/const/multer.js";
-import {
-	MAX_TASK_DESCRIPTION_LENGTH,
-	MAX_TASK_TITLE_LENGTH,
-	MIN_TASK_DESCRIPTION_LENGTH,
-	MIN_TASK_TITLE_LENGTH,
-} from "../../src/const/validator.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { UserRole } from "../../src/storage/db.js";
-import type { Category } from "../../src/storage/postgres/types/category.type.js";
 import { type TestApp, spawnApp } from "../testApp.js";
-import {
-	createBaseError,
-	createValidationError,
-	genUuid,
-	imagePath,
-	pdfPath,
-} from "../utils.js";
+import { genUuid } from "../utils.js";
 
 describe("Task", () => {
 	let app: TestApp;
@@ -67,13 +41,10 @@ describe("Task", () => {
 			.execute();
 
 		recipientIds = users.map((u) => u.id);
-
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	describe("Create Chat", () => {

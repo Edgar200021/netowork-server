@@ -51,7 +51,6 @@ export class FileUploader {
 							fileUrl: result.secure_url,
 							fileId: result.public_id,
 							fileName: result.original_filename,
-							fileType: result.type,
 						});
 					},
 				)

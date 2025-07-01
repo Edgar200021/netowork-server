@@ -29,12 +29,10 @@ describe("Task", () => {
 
 	beforeEach(async () => {
 		app = await spawnApp();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	describe("Get My Tasks", () => {

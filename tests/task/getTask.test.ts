@@ -105,8 +105,6 @@ describe("Task", () => {
 			for (const { id } of ids) {
 				taskIds.push(id);
 			}
-
-			return new Promise((res) => setTimeout(res, 4000));
 		} catch (error) {
 			console.log("ERRORR", error);
 			throw error;
@@ -115,7 +113,6 @@ describe("Task", () => {
 
 	afterEach(async () => {
 		await app.close();
-		return new Promise((res) => setTimeout(res, 4000));
 	});
 
 	describe("Get Task", () => {

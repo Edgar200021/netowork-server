@@ -1,19 +1,17 @@
-import path from "node:path";
 import { sql } from "kysely";
-import { BadRequestError, NotFoundError } from "../common/error.js";
+import { NotFoundError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
-import { MESSAGE_FILE_URL_ID_DELIMITER } from "../const/chat.js";
-import { MAX_WORKS_COUNT } from "../const/works.js";
+import {
+	GET_CHATS_DEFAULT_LIMIT,
+	GET_CHATS_DEFAULT_PAGE,
+} from "../const/chat.js";
 import type { CreateChatRequestDto } from "../dto/chat/createChat/createChatRequest.dto.js";
-import type { CreateWorkRequestDto } from "../dto/works/createWork/createWorkRequest.dto.js";
-import type { DeleteWorkRequestParamsDto } from "../dto/works/deleteWork/deleteWorkRequest.dto.js";
-import { WorkResponseDto } from "../dto/works/workResponse.dto.js";
+import type { GetChatsRequestQueryDto } from "../dto/chat/getChats/getChatsRequest.dto.js";
+import { UserRole } from "../storage/db.js";
 import type { Database } from "../storage/postgres/database.js";
 import type { Chat } from "../storage/postgres/types/chat.type.js";
 import type { User } from "../storage/postgres/types/user.types.js";
-import type { FileUploadResponse } from "../types/cloudinary.js";
-import { AllowedMimeTypes } from "../types/mimeTypes.js";
-import { uploadFiles } from "../utils/uploadFiles.js";
+import type { ChatReturn } from "../types/chat.js";
 import type { FileUploader } from "./fileUploader.service.js";
 
 export class ChatService {
@@ -21,6 +19,65 @@ export class ChatService {
 		private readonly _database: Database,
 		private readonly _fileUploader: FileUploader,
 	) {}
+
+	async getChats(
+		user: Pick<User, "id" | "role">,
+		getChatsRequestQueryDto: GetChatsRequestQueryDto,
+		log: LoggerService,
+	): Promise<{
+		chats: ChatReturn[];
+		totalCount: number;
+	}> {
+		log.info({ userId: user.id }, "Get chats");
+
+		const limit =
+			Number(getChatsRequestQueryDto.limit) || GET_CHATS_DEFAULT_LIMIT;
+		const page = Number(getChatsRequestQueryDto.page) || GET_CHATS_DEFAULT_PAGE;
+
+		const chats = await this._database
+			.selectFrom("chat")
+			.innerJoin(
+				"users",
+				"users.id",
+				user.role === UserRole.Client ? "chat.recipientId" : "chat.creatorId",
+			)
+			.select([
+				"chat.id",
+				"users.avatar",
+				"users.firstName",
+				"users.lastName",
+				"users.role",
+			])
+			.select(
+				sql<string>`(SELECT message FROM messages WHERE messages.chat_id = chat.id ORDER BY created_at DESC LIMIT 1)`.as(
+					"lastMessage",
+				),
+			)
+			.select(sql<number>`COUNT(*) OVER()::INTEGER`.as("totalCount"))
+			.where(({ eb, and, or, not }) =>
+				or([eb("creatorId", "=", user.id), eb("recipientId", "=", user.id)]),
+			)
+			.orderBy("chat.createdAt", "desc")
+			.limit(limit)
+			.offset(page * limit - limit)
+			.execute();
+
+		return {
+			chats: chats.map(
+				({ avatar, firstName, lastMessage, lastName, role, id }) => ({
+					id,
+					lastMessage,
+					isSupportChat: role === UserRole.Admin,
+					user: {
+						firstName,
+						lastName,
+						avatar,
+					},
+				}),
+			),
+			totalCount: chats[0]?.totalCount || 0,
+		};
+	}
 
 	async createChat(
 		userId: User["id"],
