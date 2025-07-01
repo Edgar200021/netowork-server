@@ -40,7 +40,6 @@ export class Middlewares {
 
 	async auth(req: Request, _: Response, next: NextFunction) {
 		const log = req.logger;
-
 		log.info("Authenticating user");
 
 		const session = req.signedCookies[SESSION_COOKIE_NAME];

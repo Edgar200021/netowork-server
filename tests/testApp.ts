@@ -495,6 +495,23 @@ export class TestApp {
 		return response;
 	}
 
+	async createChat(
+		body: {
+			recipientId: string | number;
+		},
+		cookies?: string[],
+	) {
+		const request = this.superTest.post("/api/v1/chats");
+
+		if (cookies) {
+			request.set("Cookie", cookies);
+		}
+
+		const response = await request.send(body);
+
+		return response;
+	}
+
 	async getCategories(cookies: string[]) {
 		const request = this.superTest.get("/api/v1/categories");
 
@@ -511,20 +528,9 @@ export class TestApp {
 		await this.register(body);
 		const token = (await this.redis.keys("*")).at(-1);
 
-		const response = await this.verify(token);
+		const response = await this.verify(token || "");
 
 		return response;
-	}
-
-	async getSessionFromResponse(
-		response: supertest.Response,
-	): Promise<string | undefined> {
-		const cookies = response.get("Set-Cookie");
-
-		return cookies
-			?.find((cookie) => cookie.startsWith("session="))
-			?.split(";")[0]
-			.split("=")[1];
 	}
 
 	async close() {

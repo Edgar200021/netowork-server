@@ -16,18 +16,6 @@ export class CategoryHandler extends BaseHandler {
 		this.setupRoutes();
 	}
 
-	protected bindMethods(): void {
-		this.getAllCategories = this.getAllCategories.bind(this);
-	}
-
-	protected setupRoutes() {
-		this.router.get(
-			"/",
-			this._middlewares.auth,
-			asyncWrapper(this.getAllCategories),
-		);
-	}
-
 	/**
 	 * @openapi
 	 * /api/v1/categories:
@@ -65,5 +53,17 @@ export class CategoryHandler extends BaseHandler {
 			status: "success",
 			data: categories.map((category) => new CategoryResponseDto(category)),
 		});
+	}
+
+	protected bindMethods(): void {
+		this.getAllCategories = this.getAllCategories.bind(this);
+	}
+
+	protected setupRoutes() {
+		this.router.get(
+			"/",
+			this._middlewares.auth,
+			asyncWrapper(this.getAllCategories),
+		);
 	}
 }

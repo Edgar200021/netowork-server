@@ -1,6 +1,6 @@
-import { type UploadApiOptions, v2 as cloudinary } from "cloudinary";
 import { randomUUID } from "node:crypto";
 import { stat, unlink } from "node:fs/promises";
+import { type UploadApiOptions, v2 as cloudinary } from "cloudinary";
 import { InternalServerError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
 import type { CloudinaryConfig } from "../config.js";
@@ -51,6 +51,7 @@ export class FileUploader {
 							fileUrl: result.secure_url,
 							fileId: result.public_id,
 							fileName: result.original_filename,
+							fileType: result.type,
 						});
 					},
 				)

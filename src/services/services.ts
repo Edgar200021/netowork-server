@@ -6,6 +6,7 @@ import type { Database } from "../storage/postgres/database.js";
 import type { Redis } from "../storage/redis/redis.js";
 import { AuthService } from "./auth.service.js";
 import { CategoryService } from "./category.service.js";
+import { ChatService } from "./chat.service.js";
 import { EmailService } from "./email.service.js";
 import { FileUploader } from "./fileUploader.service.js";
 import { TaskService } from "./task.service.js";
@@ -21,6 +22,7 @@ export class Services {
 	private readonly _fileUploader: FileUploader;
 	private readonly _categoryService: CategoryService;
 	private readonly _taskService: TaskService;
+	private readonly _chatService: ChatService;
 
 	constructor(
 		private readonly _database: Database,
@@ -52,7 +54,12 @@ export class Services {
 
 		this._worksService = new WorksService(this._database, this._fileUploader);
 		this._categoryService = new CategoryService(this._database, this._redis);
-		this._taskService = new TaskService(this._database, this._fileUploader, this._emailService);
+		this._taskService = new TaskService(
+			this._database,
+			this._fileUploader,
+			this._emailService,
+		);
+		this._chatService = new ChatService(this._database, this._fileUploader);
 	}
 
 	get authService() {
@@ -85,5 +92,9 @@ export class Services {
 
 	get taskService() {
 		return this._taskService;
+	}
+
+	get chatService() {
+		return this._chatService;
 	}
 }

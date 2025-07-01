@@ -174,6 +174,7 @@ export class TaskHandler extends BaseHandler {
 	 *                 NoPermission:
 	 *                   summary: User lacks permission to access this resource
 	 *                   value:
+	 *                     status: "error"
 	 *                     message: "You do not have permission to access this resource."
 	 */
 	async getAllTasks(
@@ -268,7 +269,8 @@ export class TaskHandler extends BaseHandler {
 	 *                 NoPermission:
 	 *                   summary: User lacks permission to access this resource
 	 *                   value:
-	 *                     message: "You do not have permission to access this resource."
+	 *                     status: "error"
+	 *                     error: "You don't have permission to access this resource."
 	 */
 	async getMyTasks(
 		req: Request<
@@ -1025,6 +1027,7 @@ export class TaskHandler extends BaseHandler {
 	 *                 NoPermission:
 	 *                   summary: User lacks permission to access this resource
 	 *                   value:
+	 *                     status: "error"
 	 *                     message: "You do not have permission to access this resource."
 	 */
 	async getTasksByMyReplies(
