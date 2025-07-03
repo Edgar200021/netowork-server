@@ -40,9 +40,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn("created_at", "timestamp", (col) =>
 			col.notNull().defaultTo("now()"),
 		)
-		.addColumn("updated_at", "timestamp", (col) =>
-			col.notNull().defaultTo("now()"),
-		)
+		.addColumn("updated_at", "timestamp")
 		.addColumn("chat_id", "uuid", (col) =>
 			col
 				.notNull()

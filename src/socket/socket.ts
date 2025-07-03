@@ -30,16 +30,17 @@ export class Socket {
 		io.engine.use(middlewares.requestLogger);
 		io.engine.use(middlewares.auth);
 
-		io.of("/chat").on("connection", (socket) => {
+		io.on("connection", (socket) => {
 			const { logger, user } = socket.request;
 			if (!user) return;
 
-			this.sockets.set(user.id, socket.id);
-			console.log(this.sockets);
 			console.log("CONNECTED");
+			this.sockets.set(user.id, socket.id);
 
+			socket.on("chatMessage", (data) => {
+				console.log(data);
+			});
 			socket.on("disconnect", () => {
-				console.log(socket.id, "DISCONNECTED");
 				this.sockets.delete(user.id);
 			});
 		});

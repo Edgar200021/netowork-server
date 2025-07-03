@@ -11,7 +11,7 @@ import { UserRole } from "../../src/storage/db.js";
 import { type TestApp, spawnApp } from "../testApp.js";
 import { createValidationError } from "../utils.js";
 
-describe("Task", () => {
+describe("Chat", () => {
 	let app: TestApp;
 	let cookie: string[] | undefined;
 

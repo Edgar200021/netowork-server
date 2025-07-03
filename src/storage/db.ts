@@ -6,132 +6,132 @@
 import type { ColumnType } from "kysely";
 
 export enum TaskStatus {
-	Completed = "completed",
-	InProgress = "in_progress",
-	Open = "open",
+  Completed = "completed",
+  InProgress = "in_progress",
+  Open = "open",
 }
 
 export enum UserRole {
-	Admin = "admin",
-	Client = "client",
-	Freelancer = "freelancer",
+  Admin = "admin",
+  Client = "client",
+  Freelancer = "freelancer",
 }
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-	? ColumnType<S, I | undefined, U>
-	: ColumnType<T, T | undefined, T>;
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Category {
-	createdAt: Generated<Timestamp>;
-	id: Generated<number>;
-	name: string;
-	parentId: number | null;
-	updatedAt: Generated<Timestamp>;
+  createdAt: Generated<Timestamp>;
+  id: Generated<number>;
+  name: string;
+  parentId: number | null;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface Chat {
-	createdAt: Generated<Timestamp>;
-	creatorId: string;
-	id: Generated<string>;
-	recipientId: string;
-	updatedAt: Generated<Timestamp>;
+  createdAt: Generated<Timestamp>;
+  creatorId: string;
+  id: Generated<string>;
+  recipientId: string;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface Messages {
-	chatId: string;
-	createdAt: Generated<Timestamp>;
-	files: Generated<string[]>;
-	id: Generated<number>;
-	isRead: Generated<boolean>;
-	message: string;
-	senderId: string;
-	updatedAt: Generated<Timestamp>;
+  chatId: string;
+  createdAt: Generated<Timestamp>;
+  files: Generated<string[]>;
+  id: Generated<number>;
+  isRead: Generated<boolean>;
+  message: string;
+  senderId: string;
+  updatedAt: Timestamp | null;
 }
 
 export interface Task {
-	categoryId: number;
-	clientId: string;
-	createdAt: Generated<Timestamp>;
-	description: string;
-	freelancerId: string | null;
-	id: Generated<string>;
-	notifyAboutReplies: Generated<boolean>;
-	price: number;
-	status: Generated<TaskStatus>;
-	subcategoryId: number | null;
-	title: string;
-	updatedAt: Generated<Timestamp>;
+  categoryId: number;
+  clientId: string;
+  createdAt: Generated<Timestamp>;
+  description: string;
+  freelancerId: string | null;
+  id: Generated<string>;
+  notifyAboutReplies: Generated<boolean>;
+  price: number;
+  status: Generated<TaskStatus>;
+  subcategoryId: number | null;
+  title: string;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface TaskFiles {
-	createdAt: Generated<Timestamp>;
-	fileId: string;
-	fileName: string;
-	fileUrl: string;
-	id: Generated<string>;
-	taskId: string;
-	updatedAt: Generated<Timestamp>;
+  createdAt: Generated<Timestamp>;
+  fileId: string;
+  fileName: string;
+  fileUrl: string;
+  id: Generated<string>;
+  taskId: string;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface TaskReplies {
-	createdAt: Generated<Timestamp>;
-	description: string;
-	freelancerId: string;
-	id: Generated<string>;
-	taskId: string;
-	updatedAt: Generated<Timestamp>;
+  createdAt: Generated<Timestamp>;
+  description: string;
+  freelancerId: string;
+  id: Generated<string>;
+  taskId: string;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface TaskViews {
-	id: Generated<string>;
-	taskId: string;
-	userId: string | null;
+  id: Generated<string>;
+  taskId: string;
+  userId: string | null;
 }
 
 export interface Users {
-	aboutMe: string | null;
-	avatar: string | null;
-	avatarId: string | null;
-	createdAt: Generated<Timestamp>;
-	email: string;
-	firstName: string;
-	id: Generated<string>;
-	isBanned: Generated<boolean>;
-	isVerified: Generated<boolean>;
-	lastName: string;
-	password: string;
-	role: UserRole;
-	updatedAt: Generated<Timestamp>;
+  aboutMe: string | null;
+  avatar: string | null;
+  avatarId: string | null;
+  createdAt: Generated<Timestamp>;
+  email: string;
+  firstName: string;
+  id: Generated<string>;
+  isBanned: Generated<boolean>;
+  isVerified: Generated<boolean>;
+  lastName: string;
+  password: string;
+  role: UserRole;
+  updatedAt: Generated<Timestamp>;
 }
 
 export interface WorkImages {
-	createdAt: Generated<Timestamp>;
-	id: Generated<string>;
-	imageId: string;
-	imageUrl: string;
-	updatedAt: Generated<Timestamp>;
-	workId: string;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  imageId: string;
+  imageUrl: string;
+  updatedAt: Generated<Timestamp>;
+  workId: string;
 }
 
 export interface Works {
-	createdAt: Generated<Timestamp>;
-	id: Generated<string>;
-	title: string;
-	updatedAt: Generated<Timestamp>;
-	userId: string;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  title: string;
+  updatedAt: Generated<Timestamp>;
+  userId: string;
 }
 
 export interface DB {
-	category: Category;
-	chat: Chat;
-	messages: Messages;
-	task: Task;
-	taskFiles: TaskFiles;
-	taskReplies: TaskReplies;
-	taskViews: TaskViews;
-	users: Users;
-	workImages: WorkImages;
-	works: Works;
+  category: Category;
+  chat: Chat;
+  messages: Messages;
+  task: Task;
+  taskFiles: TaskFiles;
+  taskReplies: TaskReplies;
+  taskViews: TaskViews;
+  users: Users;
+  workImages: WorkImages;
+  works: Works;
 }

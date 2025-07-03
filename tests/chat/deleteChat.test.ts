@@ -3,7 +3,7 @@ import { UserRole } from "../../src/storage/db.js";
 import { type TestApp, spawnApp } from "../testApp.js";
 import { genUuid } from "../utils.js";
 
-describe("Task", () => {
+describe("Chat", () => {
 	let app: TestApp;
 	let chatId: string;
 	let cookie: string[] | undefined;

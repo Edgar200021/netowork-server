@@ -1,5 +1,7 @@
 import { sql } from "kysely";
-import { NotFoundError } from "../common/error.js";
+import type { AnyColumnWithTable } from "kysely";
+import type { JoinReferenceExpression } from "kysely";
+import { BadRequestError, NotFoundError } from "../common/error.js";
 import type { LoggerService } from "../common/services/logger.service.js";
 import {
 	GET_CHATS_DEFAULT_LIMIT,
@@ -7,10 +9,12 @@ import {
 } from "../const/chat.js";
 import type { CreateChatRequestDto } from "../dto/chat/createChat/createChatRequest.dto.js";
 import type { DeleteChatRequestParamsDto } from "../dto/chat/deleteChat/deleteChatRequest.dto.js";
+import type { GetChatMessagesRequestParamsDto } from "../dto/chat/getChatMessages/getChatMessagesRequest.dto.js";
 import type { GetChatsRequestQueryDto } from "../dto/chat/getChats/getChatsRequest.dto.js";
-import { UserRole } from "../storage/db.js";
+import { type DB, UserRole } from "../storage/db.js";
 import type { Database } from "../storage/postgres/database.js";
 import type { Chat } from "../storage/postgres/types/chat.type.js";
+import type { Message } from "../storage/postgres/types/messages.type.js";
 import type { User } from "../storage/postgres/types/user.types.js";
 import type { ChatReturn } from "../types/chat.js";
 import type { FileUploader } from "./fileUploader.service.js";
@@ -40,7 +44,8 @@ export class ChatService {
 			.innerJoin(
 				"users",
 				"users.id",
-				user.role === UserRole.Client ? "chat.recipientId" : "chat.creatorId",
+				//@ts-ignore
+				sql`CASE WHEN chat.creator_id = ${user.id} THEN chat.recipient_id ELSE chat.creator_id END`,
 			)
 			.select([
 				"chat.id",
@@ -58,7 +63,7 @@ export class ChatService {
 			.where(({ eb, and, or, not }) =>
 				or([eb("creatorId", "=", user.id), eb("recipientId", "=", user.id)]),
 			)
-			.orderBy("chat.createdAt", "desc")
+			.orderBy("chat.createdAt", "asc")
 			.limit(limit)
 			.offset(page * limit - limit)
 			.execute();
@@ -149,5 +154,52 @@ export class ChatService {
 		}
 
 		return;
+	}
+
+	async getChatMessages(
+		userId: User["id"],
+		getChatMessagesRequestDto: GetChatMessagesRequestParamsDto,
+		log: LoggerService,
+	): Promise<{
+		messages: Message[];
+		totalCount: number;
+	}> {
+		log.info({ userId }, "Get chat messages");
+
+		const chat = await this._database
+			.selectFrom("chat")
+			.select(["recipientId", "creatorId"])
+			.where("chat.id", "=", getChatMessagesRequestDto.chatId)
+			.executeTakeFirst();
+
+		if (!chat) {
+			log.warn({ chatId: getChatMessagesRequestDto.chatId }, "Chat not found");
+			throw new NotFoundError("Chat not found");
+		}
+
+		const isParticipant =
+			userId === chat.creatorId || userId === chat.recipientId;
+
+		if (!isParticipant) {
+			log.warn(
+				{ chatId: getChatMessagesRequestDto.chatId, userId },
+				"Access denied: user is not a participant of this chat",
+			);
+			throw new BadRequestError(
+				"You do not have permission to access this chat",
+			);
+		}
+
+		const messages = await this._database
+			.selectFrom("messages")
+			.selectAll()
+			.select(sql<number>`COUNT(*) OVER()::INTEGER`.as("totalCount"))
+			.where("chatId", "=", getChatMessagesRequestDto.chatId)
+			.execute();
+
+		return {
+			messages,
+			totalCount: messages[0]?.totalCount || 0,
+		};
 	}
 }
